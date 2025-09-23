@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AquaMonitor - Dashboard</title>
+    <link rel="stylesheet" href="dashboard.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="logo">
+            <div class="logo-icon">AM</div>
+            <h1>AquaMonitor</h1>
+        </div>
+        <ul class="nav-links">
+            <li><a href="#" class="active">Dashboard</a></li>
+            <li><a href="#">Histórico</a></li>
+            <li><a href="#">Configurações</a></li>
+            <li><a href="login.html" class="logout-button">Sair</a></li>
+        </ul>
+    </nav>
+
+    <div class="container">
+        <div class="header">
+            <h2>Monitoramento de Nível de Água</h2>
+            <p>Sistema de monitoramento em tempo real do nível da caixa d'água</p>
+        </div>
+
+        <div class="status-cards">
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">Status do Sistema</div>
+                    <div class="card-icon icon-green">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                    </div>
+                </div>
+                <p>Sistema operando normalmente. Todos os sensores estão funcionando.</p>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">Nível Atual</div>
+                    <div class="card-icon icon-green" id="level-card-icon">
+                        <span>85%</span>
+                    </div>
+                </div>
+                <p id="level-card-text">Nível adequado. Não é necessário reabastecimento no momento.</p>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">Última Atualização</div>
+                    <div class="card-icon">
+                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                    </div>
+                </div>
+                <p id="last-update">Há 5 minutos</p>
+            </div>
+        </div>
+
+        <div class="level-indicator">
+            <div class="level-title">Nível da Caixa d'Água</div>
+            <div class="level-bar">
+                <div class="level-fill level-high" style="width: 85%;"></div>
+                <div class="level-percentage">85%</div>
+            </div>
+        </div>
+
+        <div class="history">
+            <h3 class="history-title">Histórico Recente</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Data/Hora</th>
+                        <th>Nível</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>23/09/2025 16:50</td>
+                        <td>85%</td>
+                        <td><span class="status-badge status-normal">Normal</span></td>
+                    </tr>
+                    <tr>
+                        <td>23/09/2025 15:45</td>
+                        <td>82%</td>
+                        <td><span class="status-badge status-normal">Normal</span></td>
+                    </tr>
+                    <tr>
+                        <td>23/09/2025 14:15</td>
+                        <td>78%</td>
+                        <td><span class="status-badge status-normal">Normal</span></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <footer>
+        <div class="footer-content">
+            <p>&copy; 2025 AquaMonitor - Sistema de Monitoramento de Nível de Água</p>
+            <p>Desenvolvido com as cores institucionais do IF</p>
+        </div>
+    </footer>
+
+    <script>
+        // Script para simular atualização de dados
+        document.addEventListener('DOMContentLoaded', function() {
+            const levelFill = document.querySelector('.level-fill');
+            const levelPercentage = document.querySelector('.level-percentage');
+            const levelCardIcon = document.getElementById('level-card-icon');
+            const levelCardText = document.getElementById('level-card-text');
+            const lastUpdateText = document.getElementById('last-update');
+            const historyTableBody = document.querySelector('.history table tbody');
+
+            function updateWaterLevel() {
+                const currentLevel = parseInt(levelPercentage.textContent);
+                const variation = Math.floor(Math.random() * 6) - 3; // Varia de -3 a +2
+                let newLevel = currentLevel + variation;
+                newLevel = Math.max(5, Math.min(100, newLevel)); // Mantém entre 5% e 100%
+
+                // Atualiza a barra de progresso
+                levelFill.style.width = newLevel + '%';
+                levelPercentage.textContent = newLevel + '%';
+
+                // Atualiza o card de nível
+                levelCardIcon.querySelector('span').textContent = newLevel + '%';
+                
+                // Atualiza a cor e o texto do card
+                if (newLevel < 30) {
+                    levelFill.className = 'level-fill level-low';
+                    levelCardIcon.className = 'card-icon icon-red';
+                    levelCardText.textContent = 'Nível baixo. Reabastecimento necessário em breve.';
+                } else if (newLevel < 70) {
+                    levelFill.className = 'level-fill level-medium';
+                    levelCardIcon.className = 'card-icon';
+                    levelCardIcon.style.backgroundColor = '#ff9800';
+                    levelCardText.textContent = 'Nível moderado. Consumo normal.';
+                } else {
+                    levelFill.className = 'level-fill level-high';
+                    levelCardIcon.className = 'card-icon icon-green';
+                    levelCardText.textContent = 'Nível adequado. Não é necessário reabastecimento.';
+                }
+
+                // Atualiza a hora
+                const now = new Date();
+                const timeString = now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                lastUpdateText.textContent = `Agora - ${timeString}`;
+                
+                // Adiciona novo registro ao histórico
+                const newRow = historyTableBody.insertRow(0);
+                newRow.innerHTML = `
+                    <td>${now.toLocaleDateString('pt-BR')} ${timeString}</td>
+                    <td>${newLevel}%</td>
+                    <td><span class="status-badge ${newLevel < 40 ? 'status-alert' : 'status-normal'}">${newLevel < 40 ? 'Atenção' : 'Normal'}</span></td>
+                `;
+
+                // Limita o histórico para 5 entradas
+                if (historyTableBody.rows.length > 5) {
+                    historyTableBody.deleteRow(5);
+                }
+            }
+
+            // Atualiza a cada 15 segundos
+            setInterval(updateWaterLevel, 15000);
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cadastro - IF</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container signup-container">
+        <div class="logo">
+            <h1>Crie sua Conta</h1>
+            <p>Rápido e fácil</p>
+        </div>
+        
+        <form id="signupForm">
+            <div class="form-group">
+                <label for="fullName">Nome Completo</label>
+                <input type="text" id="fullName" class="form-control" placeholder="Digite seu nome completo" required>
+                <div class="error-message" id="nameError">Por favor, insira seu nome.</div>
+            </div>
+
+            <div class="form-group">
+                <label for="email">E-mail</label>
+                <input type="email" id="email" class="form-control" placeholder="Digite um e-mail válido" required>
+                <div class="error-message" id="emailError">Por favor, insira um e-mail válido.</div>
+            </div>
+            
+            <div class="form-group">
+                <label for="password">Crie uma Senha</label>
+                <input type="password" id="password" class="form-control" placeholder="Mínimo 6 caracteres" required>
+                <div class="error-message" id="passwordError">A senha deve ter pelo menos 6 caracteres.</div>
+            </div>
+            
+            <button type="submit" class="btn">Cadastrar</button>
+            
+            <div class="bottom-link">
+                Já tem uma conta? <a href="login.html">Faça Login</a>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const signupForm = document.getElementById('signupForm');
+            
+            signupForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                let isValid = true;
+                
+                // Validações...
+                const fullName = document.getElementById('fullName');
+                const email = document.getElementById('email');
+                const password = document.getElementById('password');
+                const nameError = document.getElementById('nameError');
+                const emailError = document.getElementById('emailError');
+                const passwordError = document.getElementById('passwordError');
+
+                nameError.style.display = 'none';
+                emailError.style.display = 'none';
+                passwordError.style.display = 'none';
+
+                if (fullName.value.trim() === '') { nameError.style.display = 'block'; isValid = false; }
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (!emailRegex.test(email.value)) { emailError.style.display = 'block'; isValid = false; }
+                if (password.value.length < 6) { passwordError.style.display = 'block'; isValid = false; }
+                
+                if (isValid) {
+                    // MUDANÇA PRINCIPAL AQUI
+                    alert('Cadastro realizado com sucesso! Você será redirecionado para a página de login.');
+                    // Redireciona para a página de login
+                    window.location.href = 'login.html';
+                }
+            });
+        });
+    </script>
+</body>
+</html>
