@@ -79,7 +79,7 @@ body {
 
 /* Botão de Sair */
 .logout-button {
-    background-color: #d32f2f;
+    background-color: #ffffff;
     color: white;
     padding: 8px 15px;
     border-radius: 5px;
@@ -87,8 +87,8 @@ body {
 }
 
 .logout-button:hover {
-    background-color: #b71c1c;
-    color: white;
+    background-color: #ffffff;
+    color: black;
 }
 
 
