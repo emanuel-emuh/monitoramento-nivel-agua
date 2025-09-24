@@ -1,18 +1,20 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cadastro - IF</title>
     <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
     <div class="container signup-container">
         <div class="logo">
             <h1>Crie sua Conta</h1>
             <p>Rápido e fácil</p>
         </div>
-        
+
         <form id="signupForm">
             <div class="form-group">
                 <label for="fullName">Nome Completo</label>
@@ -25,54 +27,85 @@
                 <input type="email" id="email" class="form-control" placeholder="Digite um e-mail válido" required>
                 <div class="error-message" id="emailError">Por favor, insira um e-mail válido.</div>
             </div>
-            
+
             <div class="form-group">
                 <label for="password">Crie uma Senha</label>
                 <input type="password" id="password" class="form-control" placeholder="Mínimo 6 caracteres" required>
                 <div class="error-message" id="passwordError">A senha deve ter pelo menos 6 caracteres.</div>
             </div>
-            
+
             <button type="submit" class="btn">Cadastrar</button>
-            
+
             <div class="bottom-link">
                 Já tem uma conta? <a href="login.html">Faça Login</a>
             </div>
         </form>
     </div>
 
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+
+    <script>
+        // Sua configuração do Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyBOBbMzkTO2MvIxExVO8vlCOUgpeZp0rSY",
+            authDomain: "aqua-monitor-login.firebaseapp.com",
+            projectId: "aqua-monitor-login",
+            storageBucket: "aqua-monitor-login.appspot.com",
+            messagingSenderId: "945598154686",
+            appId: "1:945598154686:web:49a1f631557722945b5bef",
+            measurementId: "G-EY4C1MJRYZ"
+        };
+
+        // Inicializa o Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+    </script>
+
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const signupForm = document.getElementById('signupForm');
-            
+
             signupForm.addEventListener('submit', function(e) {
                 e.preventDefault();
-                let isValid = true;
-                
-                // Validações...
-                const fullName = document.getElementById('fullName');
-                const email = document.getElementById('email');
-                const password = document.getElementById('password');
-                const nameError = document.getElementById('nameError');
-                const emailError = document.getElementById('emailError');
-                const passwordError = document.getElementById('passwordError');
 
-                nameError.style.display = 'none';
-                emailError.style.display = 'none';
-                passwordError.style.display = 'none';
+                const fullName = document.getElementById('fullName').value;
+                const email = document.getElementById('email').value;
+                const password = document.getElementById('password').value;
 
-                if (fullName.value.trim() === '') { nameError.style.display = 'block'; isValid = false; }
-                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-                if (!emailRegex.test(email.value)) { emailError.style.display = 'block'; isValid = false; }
-                if (password.value.length < 6) { passwordError.style.display = 'block'; isValid = false; }
-                
-                if (isValid) {
-                    // MUDANÇA PRINCIPAL AQUI
-                    alert('Cadastro realizado com sucesso! Você será redirecionado para a página de login.');
-                    // Redireciona para a página de login
-                    window.location.href = 'login.html';
-                }
+                document.getElementById('emailError').style.display = 'none';
+                document.getElementById('passwordError').style.display = 'none';
+
+                auth.createUserWithEmailAndPassword(email, password)
+                    .then((userCredential) => {
+                        const user = userCredential.user;
+                        return db.collection('usuarios').doc(user.uid).set({
+                            nomeCompleto: fullName,
+                            email: email,
+                            dataCadastro: firebase.firestore.FieldValue.serverTimestamp()
+                        });
+                    })
+                    .then(() => {
+                        alert('Cadastro realizado com sucesso! Redirecionando para o login.');
+                        window.location.href = 'login.html';
+                    })
+                    .catch((error) => {
+                        console.error("Erro ao cadastrar:", error.message);
+                        if (error.code == 'auth/email-already-in-use') {
+                            document.getElementById('emailError').textContent = 'Este e-mail já está em uso.';
+                            document.getElementById('emailError').style.display = 'block';
+                        } else if (error.code == 'auth/weak-password') {
+                            document.getElementById('passwordError').textContent = 'A senha precisa ter no mínimo 6 caracteres.';
+                            document.getElementById('passwordError').style.display = 'block';
+                        } else {
+                            alert('Erro ao cadastrar: ' + error.message);
+                        }
+                    });
             });
         });
     </script>
 </body>
+
 </html>
