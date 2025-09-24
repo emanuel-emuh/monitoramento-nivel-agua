@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AquaMonitor - Dashboard</title>
     <link rel="stylesheet" href="dashboard.css">
 </head>
+
 <body>
     <nav class="navbar">
         <div class="logo">
@@ -36,7 +38,7 @@
                 </div>
                 <p>Sistema operando normalmente. Todos os sensores estão funcionando.</p>
             </div>
-            
+
             <div class="card">
                 <div class="card-header">
                     <div class="card-title">Nível Atual</div>
@@ -46,12 +48,12 @@
                 </div>
                 <p id="level-card-text">Nível adequado. Não é necessário reabastecimento no momento.</p>
             </div>
-            
+
             <div class="card">
                 <div class="card-header">
                     <div class="card-title">Última Atualização</div>
                     <div class="card-icon">
-                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
                     </div>
                 </div>
                 <p id="last-update">Há 5 minutos</p>
@@ -103,8 +105,45 @@
         </div>
     </footer>
 
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+
     <script>
-        // Script para simular atualização de dados
+        // Sua configuração do Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyBOBbMzkTO2MvIxExVO8vlCOUgpeZp0rSY",
+            authDomain: "aqua-monitor-login.firebaseapp.com",
+            projectId: "aqua-monitor-login",
+            storageBucket: "aqua-monitor-login.appspot.com",
+            messagingSenderId: "945598154686",
+            appId: "1:945598154686:web:49a1f631557722945b5bef",
+            measurementId: "G-EY4C1MJRYZ"
+        };
+
+        // Inicializa o Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+    </script>
+
+    <script>
+        auth.onAuthStateChanged(function(user) {
+            if (!user) {
+                window.location.href = 'login.html';
+            }
+        });
+
+        const logoutButton = document.querySelector('.logout-button');
+        logoutButton.addEventListener('click', function(e) {
+            e.preventDefault();
+            auth.signOut().then(() => {
+                window.location.href = 'login.html';
+            });
+        });
+    </script>
+
+    <script>
         document.addEventListener('DOMContentLoaded', function() {
             const levelFill = document.querySelector('.level-fill');
             const levelPercentage = document.querySelector('.level-percentage');
@@ -125,7 +164,7 @@
 
                 // Atualiza o card de nível
                 levelCardIcon.querySelector('span').textContent = newLevel + '%';
-                
+
                 // Atualiza a cor e o texto do card
                 if (newLevel < 30) {
                     levelFill.className = 'level-fill level-low';
@@ -144,9 +183,12 @@
 
                 // Atualiza a hora
                 const now = new Date();
-                const timeString = now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                const timeString = now.toLocaleTimeString('pt-BR', {
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
                 lastUpdateText.textContent = `Agora - ${timeString}`;
-                
+
                 // Adiciona novo registro ao histórico
                 const newRow = historyTableBody.insertRow(0);
                 newRow.innerHTML = `
