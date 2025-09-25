@@ -1,13 +1,11 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AquaMonitor - Dashboard</title>
     <link rel="stylesheet" href="dashboard.css">
 </head>
-
 <body>
     <nav class="navbar">
         <div class="logo">
@@ -15,10 +13,10 @@
             <h1>AquaMonitor</h1>
         </div>
         <ul class="nav-links">
-            <li><a href="#home">Dashboard</a></li>
+            <li><a href="#home" class="active">Dashboard</a></li>
             <li><a href="#history">Histórico</a></li>
             <li><a href="#configuracoes">Configurações</a></li>
-            <li><a href="login.html" class="logout-button">Sair</a></li>
+            <li><a href="#" class="logout-button">Sair</a></li>
         </ul>
     </nav>
     <section id="home">
@@ -27,116 +25,83 @@
                 <h2>Monitoramento de Nível de Água</h2>
                 <p>Sistema de monitoramento em tempo real do nível da caixa d'água</p>
             </div>
-
             <div class="status-cards">
                 <div class="card">
                     <div class="card-header">
                         <div class="card-title">Status do Sistema</div>
                         <div class="card-icon icon-green">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-                                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-                                <polyline points="22 4 12 14.01 9 11.01"></polyline>
-                            </svg>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
                         </div>
                     </div>
-                    <p>Sistema operando normalmente. Todos os sensores estão funcionando.</p>
+                    <p id="system-status-text">Conectado e recebendo dados em tempo real.</p>
                 </div>
-
                 <div class="card">
                     <div class="card-header">
                         <div class="card-title">Nível Atual</div>
                         <div class="card-icon icon-green" id="level-card-icon">
-                            <span>85%</span>
+                            <span id="level-card-value">--%</span>
                         </div>
                     </div>
-                    <p id="level-card-text">Nível adequado. Não é necessário reabastecimento no momento.</p>
+                    <p id="level-card-text">Aguardando a primeira leitura do sensor...</p>
                 </div>
-
                 <div class="card">
                     <div class="card-header">
                         <div class="card-title">Última Atualização</div>
                         <div class="card-icon">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-                                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <circle cx="12" cy="12" r="10"></circle>
-                                <polyline points="12 6 12 12 16 14"></polyline>
-                            </svg>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
                         </div>
                     </div>
-                    <p id="last-update">Há 5 minutos</p>
+                    <p id="last-update">--:--</p>
                 </div>
             </div>
-
             <div class="level-indicator">
                 <div class="level-title">Nível da Caixa d'Água</div>
                 <div class="level-bar">
-                    <div class="level-fill level-high" style="width: 85%;"></div>
-                    <div class="level-percentage">85%</div>
+                    <div id="level-fill" class="level-fill" style="width: 0%;"></div>
+                    <div id="level-percentage" class="level-percentage">--%</div>
                 </div>
             </div>
-
             <div id="history" class="history">
                 <h3 class="history-title">Histórico Recente</h3>
                 <table>
                     <thead>
                         <tr>
                             <th>Data/Hora</th>
-                            <th>Nível</th>
+                            <th>Nível (%)</th>
                             <th>Status</th>
                         </tr>
                     </thead>
-                    <tbody>
-                        <tr>
-                            <td>23/09/2025 16:50</td>
-                            <td>85%</td>
-                            <td><span class="status-badge status-normal">Normal</span></td>
-                        </tr>
-                        <tr>
-                            <td>23/09/2025 15:45</td>
-                            <td>82%</td>
-                            <td><span class="status-badge status-normal">Normal</span></td>
-                        </tr>
-                        <tr>
-                            <td>23/09/2025 14:15</td>
-                            <td>78%</td>
-                            <td><span class="status-badge status-normal">Normal</span></td>
-                        </tr>
-                    </tbody>
+                    <tbody id="history-table-body"></tbody>
                 </table>
             </div>
         </div>
     </section>
-
     <section id="configuracoes">
         <div class="container">
             <h3 class="history-title">Configurações e Controle</h3>
             <div class="settings-card">
-                <h4>Controle da Bomba de Água (Tanque 2 -> Tanque 1)</h4>
+                <h4>Controle da Bomba de Água</h4>
                 <div class="motor-status-display">
-                    Status da Bomba: <span id="motor-status" class="status-indicator-off">DESLIGADA</span>
+                    Status da Bomba: <span id="motor-status" class="status-indicator-off">--</span>
                 </div>
-
                 <div class="control-group">
                     <label for="auto-mode-switch">Modo Automático</label>
                     <label class="switch">
-                        <input type="checkbox" id="auto-mode-switch" checked>
+                        <input type="checkbox" id="auto-mode-switch">
                         <span class="slider round"></span>
                     </label>
                 </div>
-
                 <div class="control-group">
                     <label for="motor-button">Controle Manual</label>
                     <button id="motor-button" class="btn-motor-off" disabled>Ligar Bomba</button>
                 </div>
                  <p class="settings-info">
-                    <b>Modo Automático:</b> A bomba liga quando o nível do Tanque 1 estiver abaixo de 30% e desliga quando atingir 95%.<br>
+                    <b>Modo Automático:</b> A bomba liga quando o nível estiver abaixo de 30% e desliga ao atingir 95%.<br>
                     <b>Modo Manual:</b> Desative o modo automático para poder ligar ou desligar a bomba manualmente.
                 </p>
             </div>
         </div>
     </section>
-
     <footer>
         <div class="footer-content">
             <p>&copy; 2025 AquaMonitor - Sistema de Monitoramento de Nível de Água</p>
@@ -148,7 +113,6 @@
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
 
     <script>
-        // Sua configuração do Firebase
         const firebaseConfig = {
             apiKey: "AIzaSyBOBbMzkTO2MvIxExVO8vlCOUgpeZp0rSY",
             authDomain: "aqua-monitor-login.firebaseapp.com",
@@ -158,79 +122,57 @@
             appId: "1:945598154686:web:49a1f631557722945b5bef",
             measurementId: "G-EY4C1MJRYZ"
         };
-
-        // Inicializa o Firebase
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const db = firebase.firestore();
     </script>
-
     <script>
-        // Autenticação e Logout
-        auth.onAuthStateChanged(function (user) {
-            if (!user) {
-                window.location.href = 'login.html';
-            }
-        });
-
-        const logoutButton = document.querySelector('.logout-button');
-        logoutButton.addEventListener('click', function (e) {
-            e.preventDefault();
-            auth.signOut().then(() => {
-                window.location.href = 'login.html';
+        // 1. AUTENTICAÇÃO E LOGOUT
+        document.addEventListener('DOMContentLoaded', function () {
+            auth.onAuthStateChanged(function (user) {
+                if (!user) { window.location.href = 'login.html'; }
+            });
+            const logoutButton = document.querySelector('.logout-button');
+            logoutButton.addEventListener('click', function (e) {
+                e.preventDefault();
+                auth.signOut().then(() => { window.location.href = 'login.html'; });
             });
         });
     </script>
-
     <script>
-        // Simulação do Nível da Água
+        // 2. LÓGICA DO DASHBOARD DE NÍVEL EM TEMPO REAL
         document.addEventListener('DOMContentLoaded', function () {
-            const levelFill = document.querySelector('.level-fill');
-            const levelPercentage = document.querySelector('.level-percentage');
-            const levelCardIcon = document.getElementById('level-card-icon');
+            const levelFill = document.getElementById('level-fill');
+            const levelPercentage = document.getElementById('level-percentage');
+            const levelCardValue = document.getElementById('level-card-value');
             const levelCardText = document.getElementById('level-card-text');
+            const levelCardIcon = document.getElementById('level-card-icon');
             const lastUpdateText = document.getElementById('last-update');
-            const historyTableBody = document.querySelector('.history table tbody');
+            const historyTableBody = document.getElementById('history-table-body');
+            const sensorDocRef = db.doc("sensorData/currentLevel");
 
-            function updateWaterLevel() {
-                const currentLevel = parseInt(levelPercentage.textContent);
-                let newLevel;
-
-                // Lógica do modo automático
-                if (window.isAutoMode) {
-                    if (currentLevel < 30) {
-                        window.isMotorOn = true; // Liga a bomba em nível baixo
-                    } else if (currentLevel > 95) {
-                        window.isMotorOn = false; // Desliga a bomba em nível alto
+            sensorDocRef.onSnapshot((doc) => {
+                if (doc.exists) {
+                    const data = doc.data();
+                    // *** CORREÇÃO APLICADA AQUI ***
+                    // Acessamos o objeto 'fields' que o ESP envia.
+                    if (data.fields && data.fields.level) {
+                        const newLevel = data.fields.level.integerValue;
+                        updateDashboardUI(parseInt(newLevel));
                     }
-                }
+                } else { console.error("Documento do sensor não encontrado!"); }
+            }, (error) => { console.error("Erro ao escutar o sensor: ", error); });
+
+            function updateDashboardUI(level) {
+                levelFill.style.width = level + '%';
+                levelPercentage.textContent = level + '%';
+                levelCardValue.textContent = level + '%';
                 
-                // Simulação de variação do nível da água
-                let variation;
-                if (window.isMotorOn) {
-                    // Se a bomba está ligada, o nível da água sempre sobe
-                    variation = Math.floor(Math.random() * 3) + 3; // Sobe de 3% a 5%
-                } else {
-                    // Se a bomba está desligada, o nível da água desce (simulando consumo)
-                    variation = Math.floor(Math.random() * 4) - 3; // Varia de -3% a 0%
-                }
-
-                newLevel = currentLevel + variation;
-                newLevel = Math.max(0, Math.min(100, newLevel)); // Mantém entre 0% e 100%
-                
-                // Atualiza a barra de progresso
-                levelFill.style.width = newLevel + '%';
-                levelPercentage.textContent = newLevel + '%';
-
-                // Atualiza o card de nível
-                levelCardIcon.querySelector('span').textContent = newLevel + '%';
-
-                // Atualiza a cor e o texto do card
-                if (newLevel < 30) {
+                if (level < 30) {
                     levelFill.className = 'level-fill level-low';
                     levelCardIcon.className = 'card-icon icon-red';
-                    levelCardText.textContent = 'Nível baixo. Reabastecimento necessário em breve.';
-                } else if (newLevel < 70) {
+                    levelCardText.textContent = 'Nível baixo. Reabastecimento necessário.';
+                } else if (level < 70) {
                     levelFill.className = 'level-fill level-medium';
                     levelCardIcon.className = 'card-icon';
                     levelCardIcon.style.backgroundColor = '#ff9800';
@@ -238,121 +180,81 @@
                 } else {
                     levelFill.className = 'level-fill level-high';
                     levelCardIcon.className = 'card-icon icon-green';
-                    levelCardText.textContent = 'Nível adequado. Não é necessário reabastecimento.';
+                    levelCardText.textContent = 'Nível adequado. Caixa d\'água cheia.';
                 }
 
-                // Atualiza a hora
                 const now = new Date();
-                const timeString = now.toLocaleTimeString('pt-BR', {
-                    hour: '2-digit',
-                    minute: '2-digit'
-                });
+                const timeString = now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
                 lastUpdateText.textContent = `Agora - ${timeString}`;
-
-                // Adiciona novo registro ao histórico
+                addHistoryEntry(level, now);
+            }
+            
+            function addHistoryEntry(level, timestamp) {
                 const newRow = historyTableBody.insertRow(0);
-                newRow.innerHTML = `
-                    <td>${now.toLocaleDateString('pt-BR')} ${timeString}</td>
-                    <td>${newLevel}%</td>
-                    <td><span class="status-badge ${newLevel < 30 ? 'status-alert' : 'status-normal'}">${newLevel < 30 ? 'Atenção' : 'Normal'}</span></td>
-                `;
+                const dateString = timestamp.toLocaleDateString('pt-BR');
+                const timeString = timestamp.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                const isAlert = level < 30;
+                const statusClass = isAlert ? 'status-alert' : 'status-normal';
+                const statusText = isAlert ? 'Atenção' : 'Normal';
 
-                // Limita o histórico para 5 entradas
+                newRow.innerHTML = `
+                    <td>${dateString} ${timeString}</td>
+                    <td>${level}%</td>
+                    <td><span class="status-badge ${statusClass}">${statusText}</span></td>`;
                 if (historyTableBody.rows.length > 5) {
                     historyTableBody.deleteRow(5);
                 }
-
-                // Dispara a atualização da UI do motor para refletir mudanças do modo automático
-                document.getElementById('auto-mode-switch').dispatchEvent(new Event('change'));
             }
-
-            // Atualiza a cada 15 segundos
-            setInterval(updateWaterLevel, 15000);
         });
     </script>
-    
     <script>
-        // Script para Controle do Motor
-        document.addEventListener('DOMContentLoaded', function() {
+        // 3. LÓGICA DE CONTROLE DA BOMBA
+        document.addEventListener('DOMContentLoaded', function () {
             const autoModeSwitch = document.getElementById('auto-mode-switch');
             const motorButton = document.getElementById('motor-button');
             const motorStatus = document.getElementById('motor-status');
+            const controlDocRef = db.doc("bomba/controle");
 
-            window.isMotorOn = false;
-            window.isAutoMode = true;
-
-            function updateMotorUI() {
-                // Atualiza o status geral
-                if (window.isMotorOn) {
-                    motorStatus.textContent = 'LIGADA';
-                    motorStatus.className = 'status-indicator-on';
-                } else {
-                    motorStatus.textContent = 'DESLIGADA';
-                    motorStatus.className = 'status-indicator-off';
-                }
-
-                // Atualiza o botão de controle manual
-                if (window.isMotorOn) {
-                    motorButton.textContent = 'Desligar Bomba';
-                    motorButton.className = 'btn-motor-on';
-                } else {
-                    motorButton.textContent = 'Ligar Bomba';
-                    motorButton.className = 'btn-motor-off';
-                }
-
-                // Habilita/desabilita o botão manual conforme o modo
-                motorButton.disabled = window.isAutoMode;
-            }
-
-            // Evento para o interruptor de modo automático
             autoModeSwitch.addEventListener('change', function() {
-                window.isAutoMode = this.checked;
-                updateMotorUI();
+                const newMode = this.checked ? 'automatico' : 'manual';
+                controlDocRef.set({ modo: newMode }, { merge: true });
             });
 
-            // Evento para o botão de controle manual
             motorButton.addEventListener('click', function() {
-                if (!window.isAutoMode) {
-                    window.isMotorOn = !window.isMotorOn;
-                    updateMotorUI();
+                const currentCommand = motorButton.textContent.includes('Ligar') ? 'LIGAR' : 'DESLIGAR';
+                controlDocRef.set({ comandoManual: currentCommand }, { merge: true });
+            });
+
+            controlDocRef.onSnapshot((doc) => {
+                if (doc.exists) {
+                    const data = doc.data();
+                    // *** CORREÇÃO APLICADA AQUI ***
+                    const statusBomba = data.statusBomba;
+                    const modo = data.modo;
+
+                    if (statusBomba === 'LIGADA') {
+                        motorStatus.textContent = 'LIGADA';
+                        motorStatus.className = 'status-indicator-on';
+                        motorButton.textContent = 'Desligar Bomba';
+                        motorButton.className = 'btn-motor-on';
+                    } else {
+                        motorStatus.textContent = 'DESLIGADA';
+                        motorStatus.className = 'status-indicator-off';
+                        motorButton.textContent = 'Ligar Bomba';
+                        motorButton.className = 'btn-motor-off';
+                    }
+                    if (modo === 'automatico') {
+                        autoModeSwitch.checked = true;
+                        motorButton.disabled = true;
+                    } else {
+                        autoModeSwitch.checked = false;
+                        motorButton.disabled = false;
+                    }
+                } else {
+                    controlDocRef.set({ modo: 'automatico', statusBomba: 'DESLIGADA', comandoManual: 'NENHUM' });
                 }
             });
-
-            // Inicializa a UI
-            updateMotorUI();
-        });
-    </script>
-
-    <script>
-        // Script para navegação suave e classe ativa
-        document.addEventListener('DOMContentLoaded', function () {
-            const navLinks = document.querySelectorAll('.nav-links a:not(.logout-button)');
-
-            navLinks.forEach(link => {
-                link.addEventListener('click', function (e) {
-                    e.preventDefault();
-
-                    navLinks.forEach(l => l.classList.remove('active'));
-                    this.classList.add('active');
-
-                    const targetId = this.getAttribute('href');
-                    const targetSection = document.querySelector(targetId);
-
-                    if (targetSection) {
-                        window.scrollTo({
-                            top: targetSection.offsetTop - 70, // Ajuste para altura da navbar
-                            behavior: 'smooth'
-                        });
-                    }
-                });
-            });
-
-            const homeLink = document.querySelector('a[href="#home"]');
-            if (homeLink) {
-                homeLink.classList.add('active');
-            }
         });
     </script>
 </body>
-
 </html>
