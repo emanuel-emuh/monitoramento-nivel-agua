@@ -16,7 +16,6 @@
             <li><a href="#home" class="active">Visão Geral</a></li>
             <li><a href="#users">Usuários</a></li>
             <li><a href="#settings">Configurações</a></li>
-            <li><a href="#history-admin">Histórico</a></li>
             <li><a href="#" class="logout-button">Sair</a></li>
         </ul>
     </nav>
@@ -82,30 +81,9 @@
         </div>
     </section>
 
-    <section id="history-admin" style="padding-top: 2rem;">
-        <div class="container">
-            <h3 class="history-title">Histórico de Leituras do Sensor</h3>
-            <div class="table-container" style="background-color: white; padding: 1rem; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Data/Hora</th>
-                            <th>Nível (%)</th>
-                        </tr>
-                    </thead>
-                    <tbody id="admin-history-table-body">
-                        </tbody>
-                </table>
-                <button id="clear-history-button" class="logout-button" style="margin-top: 1rem;">Limpar Histórico Recente</button>
-                 <p style="font-size: 0.8rem; color: #666; margin-top: 1rem;">Nota: A limpeza completa do histórico requer uma configuração no lado do servidor (Cloud Function) para otimização.</p>
-            </div>
-        </div>
-    </section>
-
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
-
     <script>
         const firebaseConfig = {
             apiKey: "AIzaSyBOBbMzkTO2MvIxExVO8vlCOUgpeZp0rSY",
@@ -124,7 +102,6 @@
         document.addEventListener('DOMContentLoaded', function () {
             auth.onAuthStateChanged(user => {
                 if (user) {
-                    // Verifica se o usuário é admin. Se não for, redireciona.
                     db.collection('usuarios').doc(user.uid).get().then(doc => {
                         if (!doc.exists || doc.data().role !== 'admin') {
                             window.location.href = 'index.html';
@@ -156,7 +133,7 @@
             // --- 2. Gerenciador de Usuários ---
             const usersTableBody = document.getElementById('users-table-body');
             db.collection('usuarios').onSnapshot(snapshot => {
-                usersTableBody.innerHTML = ''; // Limpa a tabela
+                usersTableBody.innerHTML = ''; 
                 snapshot.forEach(doc => {
                     const user = doc.data();
                     const row = usersTableBody.insertRow();
@@ -204,26 +181,6 @@
                         setTimeout(() => { settingsFeedback.textContent = ''; }, 3000);
                     })
                     .catch(err => alert('Erro ao salvar: ' + err.message));
-            });
-
-            // --- 4. Histórico ---
-            const historyTableBody = document.getElementById('admin-history-table-body');
-            db.collection('historico').orderBy('timestamp', 'desc').limit(20).onSnapshot(snapshot => {
-                historyTableBody.innerHTML = '';
-                snapshot.forEach(doc => {
-                    const entry = doc.data();
-                    const timestamp = entry.timestamp ? entry.timestamp.toDate().toLocaleString('pt-BR') : 'N/A';
-                    historyTableBody.innerHTML += `<tr><td>${timestamp}</td><td>${entry.nivel}%</td></tr>`;
-                });
-            });
-
-            document.getElementById('clear-history-button').addEventListener('click', () => {
-                if (!confirm('Tem certeza que deseja apagar as últimas 20 entradas do histórico? Esta ação não pode ser desfeita.')) return;
-                db.collection('historico').orderBy('timestamp', 'desc').limit(20).get().then(snapshot => {
-                    const batch = db.batch();
-                    snapshot.docs.forEach(doc => batch.delete(doc.ref));
-                    return batch.commit();
-                }).then(() => alert('Histórico recente limpo com sucesso.'));
             });
         });
 
