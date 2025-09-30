@@ -155,8 +155,8 @@
                 if (doc.exists) {
                     const data = doc.data();
                     // *** CORREÇÃO APLICADA AQUI ***
-                    // Acessamos o objeto 'fields' que o ESP envia.
-                    if (data.fields && data.fields.level) {
+                    // Acessamos o objeto 'fields' que o ESP envia, que contém o valor.
+                    if (data.fields && data.fields.level && data.fields.level.integerValue) {
                         const newLevel = data.fields.level.integerValue;
                         updateDashboardUI(parseInt(newLevel));
                     }
@@ -208,50 +208,62 @@
         });
     </script>
     <script>
-        // 3. LÓGICA DE CONTROLE DA BOMBA
+        // 3. LÓGICA DE CONTROLE DA BOMBA (CORRIGIDA)
         document.addEventListener('DOMContentLoaded', function () {
             const autoModeSwitch = document.getElementById('auto-mode-switch');
             const motorButton = document.getElementById('motor-button');
             const motorStatus = document.getElementById('motor-status');
             const controlDocRef = db.doc("bomba/controle");
 
+            // *** CORREÇÃO APLICADA AQUI ***
+            // Agora o JavaScript envia os comandos no mesmo formato que o ESP espera ler.
             autoModeSwitch.addEventListener('change', function() {
                 const newMode = this.checked ? 'automatico' : 'manual';
-                controlDocRef.set({ modo: newMode }, { merge: true });
+                const commandData = {
+                    fields: { modo: { stringValue: newMode } }
+                };
+                controlDocRef.set(commandData, { merge: true });
             });
 
             motorButton.addEventListener('click', function() {
-                const currentCommand = motorButton.textContent.includes('Ligar') ? 'LIGAR' : 'DESLIGAR';
-                controlDocRef.set({ comandoManual: currentCommand }, { merge: true });
+                const newCommand = motorButton.textContent.includes('Ligar') ? 'LIGAR' : 'DESLIGAR';
+                const commandData = {
+                    fields: { comandoManual: { stringValue: newCommand } }
+                };
+                controlDocRef.set(commandData, { merge: true });
             });
 
+            // *** CORREÇÃO APLICADA AQUI ***
+            // Agora o JavaScript lê o status no mesmo formato que o ESP escreve.
             controlDocRef.onSnapshot((doc) => {
                 if (doc.exists) {
                     const data = doc.data();
-                    // *** CORREÇÃO APLICADA AQUI ***
-                    const statusBomba = data.statusBomba;
-                    const modo = data.modo;
+                    if (data.fields && data.fields.statusBomba && data.fields.modo) {
+                        const statusBomba = data.fields.statusBomba.stringValue;
+                        const modo = data.fields.modo.stringValue;
 
-                    if (statusBomba === 'LIGADA') {
-                        motorStatus.textContent = 'LIGADA';
-                        motorStatus.className = 'status-indicator-on';
-                        motorButton.textContent = 'Desligar Bomba';
-                        motorButton.className = 'btn-motor-on';
-                    } else {
-                        motorStatus.textContent = 'DESLIGADA';
-                        motorStatus.className = 'status-indicator-off';
-                        motorButton.textContent = 'Ligar Bomba';
-                        motorButton.className = 'btn-motor-off';
-                    }
-                    if (modo === 'automatico') {
-                        autoModeSwitch.checked = true;
-                        motorButton.disabled = true;
-                    } else {
-                        autoModeSwitch.checked = false;
-                        motorButton.disabled = false;
+                        if (statusBomba === 'LIGADA') {
+                            motorStatus.textContent = 'LIGADA';
+                            motorStatus.className = 'status-indicator-on';
+                            motorButton.textContent = 'Desligar Bomba';
+                            motorButton.className = 'btn-motor-on';
+                        } else {
+                            motorStatus.textContent = 'DESLIGADA';
+                            motorStatus.className = 'status-indicator-off';
+                            motorButton.textContent = 'Ligar Bomba';
+                            motorButton.className = 'btn-motor-off';
+                        }
+                        if (modo === 'automatico') {
+                            autoModeSwitch.checked = true;
+                            motorButton.disabled = true;
+                        } else {
+                            autoModeSwitch.checked = false;
+                            motorButton.disabled = false;
+                        }
                     }
                 } else {
-                    controlDocRef.set({ modo: 'automatico', statusBomba: 'DESLIGADA', comandoManual: 'NENHUM' });
+                    // Se o documento não existir, o ESP irá criá-lo na próxima atualização.
+                    console.log("Aguardando documento de controle ser criado pelo ESP...");
                 }
             });
         });
