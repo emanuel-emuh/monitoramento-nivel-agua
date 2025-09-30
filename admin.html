@@ -13,42 +13,98 @@
             <h1>AquaMonitor - Admin</h1>
         </div>
         <ul class="nav-links">
-            <li><a href="#" class="active">Painel Admin</a></li>
+            <li><a href="#home" class="active">Visão Geral</a></li>
+            <li><a href="#users">Usuários</a></li>
+            <li><a href="#settings">Configurações</a></li>
+            <li><a href="#history-admin">Histórico</a></li>
             <li><a href="#" class="logout-button">Sair</a></li>
         </ul>
     </nav>
+
     <section id="home">
         <div class="container">
             <div class="header">
                 <h2>Painel do Administrador</h2>
-                <p>Bem-vindo, Administrador. Aqui você pode gerenciar o sistema.</p>
+                <p>Gerencie o sistema e monitore o status em tempo real.</p>
             </div>
-
             <div class="status-cards">
                 <div class="card">
-                    <div class="card-header">
-                        <div class="card-title">Gerenciar Usuários</div>
-                    </div>
-                    <p><i>(Funcionalidade para listar e gerenciar usuários em desenvolvimento.)</i></p>
+                    <div class="card-header"><div class="card-title">Nível Atual</div></div>
+                    <h2 id="admin-level-card" style="font-size: 2rem; color: #2e7d32; text-align: center;">--%</h2>
                 </div>
-                 <div class="card">
-                    <div class="card-header">
-                        <div class="card-title">Configurações Gerais</div>
-                    </div>
-                    <p><i>(Funcionalidade para alterar configurações do sistema em desenvolvimento.)</i></p>
+                <div class="card">
+                    <div class="card-header"><div class="card-title">Status da Bomba</div></div>
+                    <h2 id="admin-pump-status-card" style="font-size: 2rem; color: #d32f2f; text-align: center;">--</h2>
                 </div>
-                 <div class="card">
-                    <div class="card-header">
-                        <div class="card-title">Visualizar Dashboard</div>
-                    </div>
-                    <p>Para ver o painel do cliente, <a href="index.html">clique aqui</a>.</p>
+                <div class="card">
+                    <div class="card-header"><div class="card-title">Modo de Operação</div></div>
+                    <h2 id="admin-mode-card" style="font-size: 2rem; color: #333; text-align: center;">--</h2>
                 </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="users" style="padding-top: 2rem;">
+        <div class="container">
+            <h3 class="history-title">Gerenciar Usuários</h3>
+            <div class="table-container" style="background-color: white; padding: 1rem; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Nome Completo</th>
+                            <th>Email</th>
+                            <th>Função (Role)</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="users-table-body">
+                        </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <section id="settings" style="padding-top: 2rem;">
+        <div class="container">
+             <div class="settings-card">
+                <h4>Configurações do Sistema (Controle Automático)</h4>
+                <div class="control-group">
+                    <label for="low-limit-input">Ligar Bomba Abaixo de (%):</label>
+                    <input type="number" id="low-limit-input" style="padding: 8px; border-radius: 5px; border: 1px solid #ccc; width: 80px;">
+                </div>
+                <div class="control-group">
+                    <label for="high-limit-input">Desligar Bomba Acima de (%):</label>
+                    <input type="number" id="high-limit-input" style="padding: 8px; border-radius: 5px; border: 1px solid #ccc; width: 80px;">
+                </div>
+                <button id="save-settings-button" class="btn-motor-off" style="width: 100%; margin-top: 1rem;">Salvar Configurações</button>
+                <p id="settings-feedback" style="text-align: center; color: green; margin-top: 1rem;"></p>
+            </div>
+        </div>
+    </section>
+
+    <section id="history-admin" style="padding-top: 2rem;">
+        <div class="container">
+            <h3 class="history-title">Histórico de Leituras do Sensor</h3>
+            <div class="table-container" style="background-color: white; padding: 1rem; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Data/Hora</th>
+                            <th>Nível (%)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="admin-history-table-body">
+                        </tbody>
+                </table>
+                <button id="clear-history-button" class="logout-button" style="margin-top: 1rem;">Limpar Histórico Recente</button>
+                 <p style="font-size: 0.8rem; color: #666; margin-top: 1rem;">Nota: A limpeza completa do histórico requer uma configuração no lado do servidor (Cloud Function) para otimização.</p>
             </div>
         </div>
     </section>
 
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
 
     <script>
         const firebaseConfig = {
@@ -62,27 +118,130 @@
         };
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
-    </script>
+        const db = firebase.firestore();
 
-    <script>
-        // Segurança: Garante que apenas usuários logados possam ver esta página.
-        // Se um usuário não logado tentar acessar, ele será redirecionado para o login.
+        // SEGURANÇA E LOGOUT
         document.addEventListener('DOMContentLoaded', function () {
-            auth.onAuthStateChanged(function (user) {
-                if (!user) {
+            auth.onAuthStateChanged(user => {
+                if (user) {
+                    // Verifica se o usuário é admin. Se não for, redireciona.
+                    db.collection('usuarios').doc(user.uid).get().then(doc => {
+                        if (!doc.exists || doc.data().role !== 'admin') {
+                            window.location.href = 'index.html';
+                        }
+                    });
+                } else {
                     window.location.href = 'login.html';
                 }
             });
-
-            // Lógica do botão de sair
-            const logoutButton = document.querySelector('.logout-button');
-            logoutButton.addEventListener('click', function (e) {
+            document.querySelector('.logout-button').addEventListener('click', e => {
                 e.preventDefault();
-                auth.signOut().then(() => {
-                    window.location.href = 'login.html';
-                });
+                auth.signOut().then(() => { window.location.href = 'login.html'; });
             });
         });
+
+        // FUNCIONALIDADES DO PAINEL ADMIN
+        document.addEventListener('DOMContentLoaded', function () {
+            // --- 1. Visão Geral ---
+            db.doc("sensorData/currentLevel").onSnapshot(doc => {
+                if (doc.exists) document.getElementById('admin-level-card').textContent = doc.data().level + '%';
+            });
+            db.doc("bomba/controle").onSnapshot(doc => {
+                if (doc.exists) {
+                    document.getElementById('admin-pump-status-card').textContent = doc.data().statusBomba || '--';
+                    document.getElementById('admin-mode-card').textContent = doc.data().modo || '--';
+                }
+            });
+
+            // --- 2. Gerenciador de Usuários ---
+            const usersTableBody = document.getElementById('users-table-body');
+            db.collection('usuarios').onSnapshot(snapshot => {
+                usersTableBody.innerHTML = ''; // Limpa a tabela
+                snapshot.forEach(doc => {
+                    const user = doc.data();
+                    const row = usersTableBody.insertRow();
+                    row.innerHTML = `
+                        <td>${user.nomeCompleto || 'N/A'}</td>
+                        <td>${user.email}</td>
+                        <td>
+                            <select id="role-${doc.id}" ${auth.currentUser.uid === doc.id ? 'disabled' : ''}>
+                                <option value="cliente" ${user.role === 'cliente' ? 'selected' : ''}>Cliente</option>
+                                <option value="admin" ${user.role === 'admin' ? 'selected' : ''}>Admin</option>
+                            </select>
+                        </td>
+                        <td>
+                            <button onclick="changeUserRole('${doc.id}')" ${auth.currentUser.uid === doc.id ? 'disabled' : ''}>Salvar</button>
+                            <button onclick="deleteUser('${doc.id}', '${user.email}')" ${auth.currentUser.uid === doc.id ? 'disabled' : ''} style="background-color: #d32f2f; color: white;">Excluir</button>
+                        </td>
+                    `;
+                });
+            });
+
+            // --- 3. Configurações do Sistema ---
+            const lowLimitInput = document.getElementById('low-limit-input');
+            const highLimitInput = document.getElementById('high-limit-input');
+            const settingsFeedback = document.getElementById('settings-feedback');
+            const settingsDocRef = db.doc('configuracoes/sistema');
+
+            settingsDocRef.onSnapshot(doc => {
+                if (doc.exists) {
+                    const settings = doc.data();
+                    lowLimitInput.value = settings.limiteInferior || 50;
+                    highLimitInput.value = settings.limiteSuperior || 95;
+                }
+            });
+
+            document.getElementById('save-settings-button').addEventListener('click', () => {
+                const newLow = parseInt(lowLimitInput.value);
+                const newHigh = parseInt(highLimitInput.value);
+                if (newLow >= newHigh) {
+                    alert('O limite para ligar deve ser menor que o limite para desligar.');
+                    return;
+                }
+                settingsDocRef.set({ limiteInferior: newLow, limiteSuperior: newHigh })
+                    .then(() => {
+                        settingsFeedback.textContent = 'Configurações salvas com sucesso!';
+                        setTimeout(() => { settingsFeedback.textContent = ''; }, 3000);
+                    })
+                    .catch(err => alert('Erro ao salvar: ' + err.message));
+            });
+
+            // --- 4. Histórico ---
+            const historyTableBody = document.getElementById('admin-history-table-body');
+            db.collection('historico').orderBy('timestamp', 'desc').limit(20).onSnapshot(snapshot => {
+                historyTableBody.innerHTML = '';
+                snapshot.forEach(doc => {
+                    const entry = doc.data();
+                    const timestamp = entry.timestamp ? entry.timestamp.toDate().toLocaleString('pt-BR') : 'N/A';
+                    historyTableBody.innerHTML += `<tr><td>${timestamp}</td><td>${entry.nivel}%</td></tr>`;
+                });
+            });
+
+            document.getElementById('clear-history-button').addEventListener('click', () => {
+                if (!confirm('Tem certeza que deseja apagar as últimas 20 entradas do histórico? Esta ação não pode ser desfeita.')) return;
+                db.collection('historico').orderBy('timestamp', 'desc').limit(20).get().then(snapshot => {
+                    const batch = db.batch();
+                    snapshot.docs.forEach(doc => batch.delete(doc.ref));
+                    return batch.commit();
+                }).then(() => alert('Histórico recente limpo com sucesso.'));
+            });
+        });
+
+        // Funções de Ação (chamadas pelos botões)
+        function changeUserRole(userId) {
+            const newRole = document.getElementById(`role-${userId}`).value;
+            db.collection('usuarios').doc(userId).update({ role: newRole })
+                .then(() => alert('Função do usuário atualizada com sucesso!'))
+                .catch(err => alert('Erro: ' + err.message));
+        }
+
+        function deleteUser(userId, userEmail) {
+            if (confirm(`Tem certeza que deseja excluir o usuário ${userEmail}? Esta ação removerá apenas o registro do banco de dados, não da autenticação.`)) {
+                db.collection('usuarios').doc(userId).delete()
+                    .then(() => alert('Usuário excluído com sucesso!'))
+                    .catch(err => alert('Erro: ' + err.message));
+            }
+        }
     </script>
 </body>
 </html>
