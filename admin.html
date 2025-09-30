@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel do Administrador</title>
+    <link rel="stylesheet" href="dashboard.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="logo">
+            <div class="logo-icon">AM</div>
+            <h1>AquaMonitor - Admin</h1>
+        </div>
+        <ul class="nav-links">
+            <li><a href="#" class="active">Painel Admin</a></li>
+            <li><a href="#" class="logout-button">Sair</a></li>
+        </ul>
+    </nav>
+    <section id="home">
+        <div class="container">
+            <div class="header">
+                <h2>Painel do Administrador</h2>
+                <p>Bem-vindo, Administrador. Aqui você pode gerenciar o sistema.</p>
+            </div>
+
+            <div class="status-cards">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">Gerenciar Usuários</div>
+                    </div>
+                    <p><i>(Funcionalidade para listar e gerenciar usuários em desenvolvimento.)</i></p>
+                </div>
+                 <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">Configurações Gerais</div>
+                    </div>
+                    <p><i>(Funcionalidade para alterar configurações do sistema em desenvolvimento.)</i></p>
+                </div>
+                 <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">Visualizar Dashboard</div>
+                    </div>
+                    <p>Para ver o painel do cliente, <a href="index.html">clique aqui</a>.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyBOBbMzkTO2MvIxExVO8vlCOUgpeZp0rSY",
+            authDomain: "aqua-monitor-login.firebaseapp.com",
+            projectId: "aqua-monitor-login",
+            storageBucket: "aqua-monitor-login.appspot.com",
+            messagingSenderId: "945598154686",
+            appId: "1:945598154686:web:49a1f631557722945b5bef",
+            measurementId: "G-EY4C1MJRYZ"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+    </script>
+
+    <script>
+        // Segurança: Garante que apenas usuários logados possam ver esta página.
+        // Se um usuário não logado tentar acessar, ele será redirecionado para o login.
+        document.addEventListener('DOMContentLoaded', function () {
+            auth.onAuthStateChanged(function (user) {
+                if (!user) {
+                    window.location.href = 'login.html';
+                }
+            });
+
+            // Lógica do botão de sair
+            const logoutButton = document.querySelector('.logout-button');
+            logoutButton.addEventListener('click', function (e) {
+                e.preventDefault();
+                auth.signOut().then(() => {
+                    window.location.href = 'login.html';
+                });
+            });
+        });
+    </script>
+</body>
+</html>
