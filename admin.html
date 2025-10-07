@@ -56,8 +56,7 @@
                             <th>Ações</th>
                         </tr>
                     </thead>
-                    <tbody id="users-table-body">
-                        </tbody>
+                    <tbody id="users-table-body"></tbody>
                 </table>
             </div>
         </div>
@@ -83,28 +82,28 @@
 
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+
     <script>
+        // CONFIGURAÇÃO ATUALIZADA
         const firebaseConfig = {
             apiKey: "AIzaSyBOBbMzkTO2MvIxExVO8vlCOUgpeZp0rSY",
             authDomain: "aqua-monitor-login.firebaseapp.com",
             projectId: "aqua-monitor-login",
-            storageBucket: "aqua-monitor-login.appspot.com",
-            messagingSenderId: "945598154686",
-            appId: "1:945598154686:web:49a1f631557722945b5bef",
-            measurementId: "G-EY4C1MJRYZ"
+            databaseURL: "https://aqua-monitor-login-default-rtdb.firebaseio.com"
         };
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
-        const db = firebase.firestore();
+        const database = firebase.database(); // Usa o Realtime Database
 
         // SEGURANÇA E LOGOUT
         document.addEventListener('DOMContentLoaded', function () {
             auth.onAuthStateChanged(user => {
                 if (user) {
-                    db.collection('usuarios').doc(user.uid).get().then(doc => {
-                        if (!doc.exists || doc.data().role !== 'admin') {
-                            window.location.href = 'index.html';
+                    // Busca a 'role' do usuário no Realtime Database
+                    database.ref('usuarios/' + user.uid).get().then(snapshot => {
+                        if (!snapshot.exists() || snapshot.val().role !== 'admin') {
+                            window.location.href = 'index.html'; // Se não for admin, vai para a página do cliente
                         }
                     });
                 } else {
@@ -120,35 +119,37 @@
         // FUNCIONALIDADES DO PAINEL ADMIN
         document.addEventListener('DOMContentLoaded', function () {
             // --- 1. Visão Geral ---
-            db.doc("sensorData/currentLevel").onSnapshot(doc => {
-                if (doc.exists) document.getElementById('admin-level-card').textContent = doc.data().level + '%';
+            database.ref('sensorData/level').on('value', snapshot => {
+                if(snapshot.exists()) document.getElementById('admin-level-card').textContent = snapshot.val() + '%';
             });
-            db.doc("bomba/controle").onSnapshot(doc => {
-                if (doc.exists) {
-                    document.getElementById('admin-pump-status-card').textContent = doc.data().statusBomba || '--';
-                    document.getElementById('admin-mode-card').textContent = doc.data().modo || '--';
+            database.ref('bomba/controle').on('value', snapshot => {
+                if (snapshot.exists()) {
+                    const data = snapshot.val();
+                    document.getElementById('admin-pump-status-card').textContent = data.statusBomba || '--';
+                    document.getElementById('admin-mode-card').textContent = data.modo || '--';
                 }
             });
 
             // --- 2. Gerenciador de Usuários ---
             const usersTableBody = document.getElementById('users-table-body');
-            db.collection('usuarios').onSnapshot(snapshot => {
-                usersTableBody.innerHTML = ''; 
-                snapshot.forEach(doc => {
-                    const user = doc.data();
+            database.ref('usuarios').on('value', snapshot => {
+                usersTableBody.innerHTML = '';
+                snapshot.forEach(childSnapshot => {
+                    const userId = childSnapshot.key;
+                    const user = childSnapshot.val();
                     const row = usersTableBody.insertRow();
                     row.innerHTML = `
                         <td>${user.nomeCompleto || 'N/A'}</td>
                         <td>${user.email}</td>
                         <td>
-                            <select id="role-${doc.id}" ${auth.currentUser.uid === doc.id ? 'disabled' : ''}>
+                            <select id="role-${userId}" ${auth.currentUser && auth.currentUser.uid === userId ? 'disabled' : ''}>
                                 <option value="cliente" ${user.role === 'cliente' ? 'selected' : ''}>Cliente</option>
                                 <option value="admin" ${user.role === 'admin' ? 'selected' : ''}>Admin</option>
                             </select>
                         </td>
                         <td>
-                            <button onclick="changeUserRole('${doc.id}')" ${auth.currentUser.uid === doc.id ? 'disabled' : ''}>Salvar</button>
-                            <button onclick="deleteUser('${doc.id}', '${user.email}')" ${auth.currentUser.uid === doc.id ? 'disabled' : ''} style="background-color: #d32f2f; color: white;">Excluir</button>
+                            <button onclick="changeUserRole('${userId}')" ${auth.currentUser && auth.currentUser.uid === userId ? 'disabled' : ''}>Salvar</button>
+                            <button onclick="deleteUser('${userId}', '${user.email}')" ${auth.currentUser && auth.currentUser.uid === userId ? 'disabled' : ''} style="background-color: #d32f2f; color: white;">Excluir</button>
                         </td>
                     `;
                 });
@@ -158,11 +159,11 @@
             const lowLimitInput = document.getElementById('low-limit-input');
             const highLimitInput = document.getElementById('high-limit-input');
             const settingsFeedback = document.getElementById('settings-feedback');
-            const settingsDocRef = db.doc('configuracoes/sistema');
+            const settingsRef = database.ref('configuracoes/sistema');
 
-            settingsDocRef.onSnapshot(doc => {
-                if (doc.exists) {
-                    const settings = doc.data();
+            settingsRef.on('value', snapshot => {
+                if (snapshot.exists()) {
+                    const settings = snapshot.val();
                     lowLimitInput.value = settings.limiteInferior || 50;
                     highLimitInput.value = settings.limiteSuperior || 95;
                 }
@@ -175,27 +176,27 @@
                     alert('O limite para ligar deve ser menor que o limite para desligar.');
                     return;
                 }
-                settingsDocRef.set({ limiteInferior: newLow, limiteSuperior: newHigh })
+                settingsRef.set({ limiteInferior: newLow, limiteSuperior: newHigh })
                     .then(() => {
-                        settingsFeedback.textContent = 'Configurações salvas com sucesso!';
+                        settingsFeedback.textContent = 'Configurações salvas!';
                         setTimeout(() => { settingsFeedback.textContent = ''; }, 3000);
                     })
                     .catch(err => alert('Erro ao salvar: ' + err.message));
             });
         });
 
-        // Funções de Ação (chamadas pelos botões)
+        // Funções de Ação
         function changeUserRole(userId) {
             const newRole = document.getElementById(`role-${userId}`).value;
-            db.collection('usuarios').doc(userId).update({ role: newRole })
-                .then(() => alert('Função do usuário atualizada com sucesso!'))
+            database.ref('usuarios/' + userId).update({ role: newRole })
+                .then(() => alert('Função atualizada!'))
                 .catch(err => alert('Erro: ' + err.message));
         }
 
         function deleteUser(userId, userEmail) {
-            if (confirm(`Tem certeza que deseja excluir o usuário ${userEmail}? Esta ação removerá apenas o registro do banco de dados, não da autenticação.`)) {
-                db.collection('usuarios').doc(userId).delete()
-                    .then(() => alert('Usuário excluído com sucesso!'))
+            if (confirm(`Tem certeza que deseja excluir o usuário ${userEmail}?`)) {
+                database.ref('usuarios/' + userId).remove()
+                    .then(() => alert('Usuário excluído!'))
                     .catch(err => alert('Erro: ' + err.message));
             }
         }
