@@ -65,7 +65,6 @@
                 auth.signOut().then(() => window.location.href = 'login.html');
             });
 
-            // --- REFERÊNCIAS DA UI ---
             const levelFill = document.getElementById('level-fill');
             const levelPercentage = document.getElementById('level-percentage');
             const levelCardValue = document.getElementById('level-card-value');
@@ -81,11 +80,9 @@
             const modeValue = document.getElementById('mode-value');
             const modeText = document.getElementById('mode-text');
             
-            // --- REFERÊNCIAS DO REALTIME DATABASE ---
             const levelRef = database.ref('sensorData/level');
             const controlRef = database.ref('bomba/controle');
 
-            // --- OUVINTES DE DADOS ---
             levelRef.on('value', snapshot => {
                 const level = snapshot.val();
                 if (level !== null) {
@@ -97,7 +94,6 @@
                 levelFill.style.width = level + '%';
                 levelPercentage.textContent = level + '%';
                 levelCardValue.textContent = level + '%';
-
                 if (level <= 50) {
                     levelFill.className = 'level-fill level-low';
                     levelCardIcon.className = 'card-icon icon-red';
@@ -116,7 +112,6 @@
             controlRef.on('value', snapshot => {
                 const data = snapshot.val();
                 if (data) {
-                    // Atualiza Status da Bomba
                     motorStatus.textContent = data.statusBomba;
                     pumpStatusValue.textContent = data.statusBomba === 'LIGADA' ? 'ON' : 'OFF';
                     pumpStatusText.textContent = `A bomba está ${data.statusBomba}.`;
@@ -132,8 +127,8 @@
                         motorButton.className = 'btn-motor-off';
                     }
 
-                    // Atualiza Modo de Operação
-                    modeValue.textContent = data.modo === 'automatico' ? 'AUTO' : 'MANUAL';
+                    // *** CORREÇÃO APLICADA AQUI ***
+                    modeValue.textContent = data.modo === 'automatico' ? 'AUTO' : 'MAN'; // Alterado para "MAN"
                     modeText.textContent = `Operando em modo ${data.modo}.`;
                     if (data.modo === 'automatico') {
                         autoModeSwitch.checked = true;
@@ -147,7 +142,6 @@
                 }
             });
 
-            // --- ENVIAR COMANDOS ---
             autoModeSwitch.addEventListener('change', () => {
                 const newMode = autoModeSwitch.checked ? 'automatico' : 'manual';
                 controlRef.update({ modo: newMode });
@@ -161,6 +155,3 @@
     </script>
 </body>
 </html>
-
-
-
