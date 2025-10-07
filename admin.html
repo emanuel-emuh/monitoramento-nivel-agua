@@ -84,6 +84,11 @@
                     <label>Coleta de dados do sensor:</label>
                     <button id="toggle-collection-button" class="btn-action">Aguardando...</button>
                 </div>
+                <div class="control-group">
+                    <label>Limpar dados de consumo:</label>
+                    <button id="clear-history-button" class="btn-action btn-red">Limpar Histórico</button>
+                </div>
+                 <p class="settings-info"><b>Pausar Coleta:</b> Impede o ESP de enviar novos dados. <b>Limpar Histórico:</b> Apaga todos os registros de nível do banco de dados.</p>
             </div>
         </div>
     </section>
@@ -129,11 +134,13 @@
             const highLimitInput = document.getElementById('high-limit-input');
             const settingsFeedback = document.getElementById('settings-feedback');
             const toggleCollectionButton = document.getElementById('toggle-collection-button');
+            const clearHistoryButton = document.getElementById('clear-history-button');
 
             const sensorRef = database.ref('sensorData');
             const controlRef = database.ref('bomba/controle');
             const usersRef = database.ref('usuarios');
             const settingsRef = database.ref('configuracoes/sistema');
+            const historyRef = database.ref('historico');
 
             sensorRef.on('value', snapshot => {
                 if(snapshot.exists()) {
@@ -203,6 +210,12 @@
                     const isCurrentlyActive = snapshot.val() !== false;
                     sensorRef.update({ coletaAtiva: !isCurrentlyActive });
                 });
+            });
+
+            clearHistoryButton.addEventListener('click', () => {
+                if (confirm('Tem certeza que deseja apagar TODO o histórico de leituras? Esta ação não pode ser desfeita.')) {
+                    historyRef.remove().then(() => alert('Histórico limpo com sucesso!'));
+                }
             });
         });
         
