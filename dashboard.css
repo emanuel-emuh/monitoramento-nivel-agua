@@ -67,6 +67,10 @@ body {
     padding: 5px 0;
 }
 
+.nav-links a:hover {
+    color: #2e7d32;
+}
+
 .nav-links a.active {
     color: #2e7d32;
     border-bottom: 2px solid #2e7d32;
@@ -159,6 +163,12 @@ body {
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
 }
 
+.level-title {
+    font-size: 1.2rem;
+    margin-bottom: 1rem;
+    font-weight: 600;
+}
+
 .level-bar {
     height: 30px;
     background-color: #e9ecef;
@@ -201,7 +211,7 @@ body {
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
     padding: 2rem;
     max-width: 800px;
-    margin: 0 auto;
+    margin: 1rem auto;
     border-top: 5px solid #2e7d32;
 }
 
@@ -224,7 +234,7 @@ body {
     padding-bottom: 1.5rem;
     border-bottom: 1px solid #e9ecef;
 }
-.control-group:last-of-type { border-bottom: none; }
+.control-group:last-of-type { border-bottom: none; padding-bottom: 0; margin-bottom: 0; }
 
 .motor-status-display {
     text-align: center;
@@ -243,6 +253,33 @@ body {
     background-color: #f8f9fa;
     padding: 1rem;
     border-radius: 5px;
+}
+
+/* Botões de Controle Manual */
+.btn-motor-on {
+    background-color: #dc3545; /* Vermelho para "Desligar" */
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: 500;
+}
+
+.btn-motor-off {
+    background-color: #28a745; /* Verde para "Ligar" */
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: 500;
+}
+
+button:disabled {
+    background-color: #adb5bd !important;
+    cursor: not-allowed !important;
+    opacity: 0.8;
 }
 
 /* Estilo do Interruptor (Switch) */
@@ -280,20 +317,21 @@ td button {
     color: white;
     background-color: #007bff;
 }
-td button:hover {
-    opacity: 0.8;
-}
-td button:disabled {
-    background-color: #adb5bd;
-    cursor: not-allowed;
-}
 
 /* Rodapé */
 footer {
-    background-color: #2e7d32;
+    background-color: #343a40;
     color: white;
     text-align: center;
     padding: 2rem;
     margin-top: 3rem;
 }
 
+/* Responsividade */
+@media (max-width: 768px) {
+    .navbar { flex-direction: column; padding: 1rem; }
+    .nav-links { margin-top: 1rem; width: 100%; justify-content: space-around; }
+    .nav-links li { margin-left: 0; }
+    .container { padding: 1rem; }
+    .header h2 { font-size: 2rem; }
+}
