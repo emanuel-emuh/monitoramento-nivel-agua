@@ -1,407 +1,200 @@
 <!DOCTYPE html>
-
 <html lang="pt-BR">
-
 <head>
-
-    <meta charset="UTF-8">
-
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-    <title>Painel do Administrador</title>
-
-    <link rel="stylesheet" href="dashboard.css">
-
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel do Administrador</title>
+    <link rel="stylesheet" href="dashboard.css">
 </head>
-
 <body>
-
-    <nav class="navbar">
-
-        <div class="logo">
-
-            <div class="logo-icon">AM</div>
-
-            <h1>AquaMonitor - Admin</h1>
-
-        </div>
-
-        <ul class="nav-links">
-
-            <li><a href="#home" class="active">Visão Geral</a></li>
-
-            <li><a href="#users">Usuários</a></li>
-
-            <li><a href="#settings">Configurações</a></li>
-
-            <li><a href="#" class="logout-button">Sair</a></li>
-
-        </ul>
-
-    </nav>
-
-
-
-    <section id="home">
-
-        <div class="container">
-
-            <div class="header">
-
-                <h2>Painel do Administrador</h2>
-
-                <p>Gerencie o sistema e monitore o status em tempo real.</p>
-
-            </div>
-
-            <div class="status-cards">
-
-                <div class="card">
-
-                    <div class="card-header"><div class="card-title">Nível Atual</div></div>
-
-                    <h2 id="admin-level-card" style="font-size: 2rem; color: #2e7d32; text-align: center;">--%</h2>
-
-                </div>
-
-                <div class="card">
-
-                    <div class="card-header"><div class="card-title">Status da Bomba</div></div>
-
-                    <h2 id="admin-pump-status-card" style="font-size: 2rem; color: #d32f2f; text-align: center;">--</h2>
-
-                </div>
-
-                <div class="card">
-
-                    <div class="card-header"><div class="card-title">Modo de Operação</div></div>
-
-                    <h2 id="admin-mode-card" style="font-size: 2rem; color: #333; text-align: center;">--</h2>
-
-                </div>
-
-            </div>
-
-        </div>
-
-    </section>
-
-
-
-    <section id="users" style="padding-top: 2rem;">
-
-        <div class="container">
-
-            <h3 class="history-title">Gerenciar Usuários</h3>
-
-            <div class="table-container" style="background-color: white; padding: 1rem; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-
-                <table>
-
-                    <thead>
-
-                        <tr>
-
-                            <th>Nome Completo</th>
-
-                            <th>Email</th>
-
-                            <th>Função (Role)</th>
-
-                            <th>Ações</th>
-
-                        </tr>
-
-                    </thead>
-
-                    <tbody id="users-table-body">
-
-                        </tbody>
-
-                </table>
-
-            </div>
-
-        </div>
-
-    </section>
-
-
-
-    <section id="settings" style="padding-top: 2rem;">
-
-        <div class="container">
-
-             <div class="settings-card">
-
-                <h4>Configurações do Sistema (Controle Automático)</h4>
-
-                <div class="control-group">
-
-                    <label for="low-limit-input">Ligar Bomba Abaixo de (%):</label>
-
-                    <input type="number" id="low-limit-input" style="padding: 8px; border-radius: 5px; border: 1px solid #ccc; width: 80px;">
-
-                </div>
-
-                <div class="control-group">
-
-                    <label for="high-limit-input">Desligar Bomba Acima de (%):</label>
-
-                    <input type="number" id="high-limit-input" style="padding: 8px; border-radius: 5px; border: 1px solid #ccc; width: 80px;">
-
-                </div>
-
-                <button id="save-settings-button" class="btn-motor-off" style="width: 100%; margin-top: 1rem;">Salvar Configurações</button>
-
-                <p id="settings-feedback" style="text-align: center; color: green; margin-top: 1rem;"></p>
-
-            </div>
-
-        </div>
-
-    </section>
-
-
-
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
-
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
-
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
-
-    <script>
-
-        const firebaseConfig = {
-
-            apiKey: "AIzaSyBOBbMzkTO2MvIxExVO8vlCOUgpeZp0rSY",
-
-            authDomain: "aqua-monitor-login.firebaseapp.com",
-
-            projectId: "aqua-monitor-login",
-
-            storageBucket: "aqua-monitor-login.appspot.com",
-
-            messagingSenderId: "945598154686",
-
-            appId: "1:945598154686:web:49a1f631557722945b5bef",
-
-            measurementId: "G-EY4C1MJRYZ"
-
-        };
-
-        firebase.initializeApp(firebaseConfig);
-
-        const auth = firebase.auth();
-
-        const db = firebase.firestore();
-
-
-
-        // SEGURANÇA E LOGOUT
-
-        document.addEventListener('DOMContentLoaded', function () {
-
-            auth.onAuthStateChanged(user => {
-
-                if (user) {
-
-                    db.collection('usuarios').doc(user.uid).get().then(doc => {
-
-                        if (!doc.exists || doc.data().role !== 'admin') {
-
-                            window.location.href = 'index.html';
-
-                        }
-
-                    });
-
-                } else {
-
-                    window.location.href = 'login.html';
-
-                }
-
-            });
-
-            document.querySelector('.logout-button').addEventListener('click', e => {
-
-                e.preventDefault();
-
-                auth.signOut().then(() => { window.location.href = 'login.html'; });
-
-            });
-
-        });
-
-
-
-        // FUNCIONALIDADES DO PAINEL ADMIN
-
-        document.addEventListener('DOMContentLoaded', function () {
-
-            // --- 1. Visão Geral ---
-
-            db.doc("sensorData/currentLevel").onSnapshot(doc => {
-
-                if (doc.exists) document.getElementById('admin-level-card').textContent = doc.data().level + '%';
-
-            });
-
-            db.doc("bomba/controle").onSnapshot(doc => {
-
-                if (doc.exists) {
-
-                    document.getElementById('admin-pump-status-card').textContent = doc.data().statusBomba || '--';
-
-                    document.getElementById('admin-mode-card').textContent = doc.data().modo || '--';
-
-                }
-
-            });
-
-
-
-            // --- 2. Gerenciador de Usuários ---
-
-            const usersTableBody = document.getElementById('users-table-body');
-
-            db.collection('usuarios').onSnapshot(snapshot => {
-
-                usersTableBody.innerHTML = ''; 
-
-                snapshot.forEach(doc => {
-
-                    const user = doc.data();
-
-                    const row = usersTableBody.insertRow();
-
-                    row.innerHTML = `
-
-                        <td>${user.nomeCompleto || 'N/A'}</td>
-
-                        <td>${user.email}</td>
-
-                        <td>
-
-                            <select id="role-${doc.id}" ${auth.currentUser.uid === doc.id ? 'disabled' : ''}>
-
-                                <option value="cliente" ${user.role === 'cliente' ? 'selected' : ''}>Cliente</option>
-
-                                <option value="admin" ${user.role === 'admin' ? 'selected' : ''}>Admin</option>
-
-                            </select>
-
-                        </td>
-
-                        <td>
-
-                            <button onclick="changeUserRole('${doc.id}')" ${auth.currentUser.uid === doc.id ? 'disabled' : ''}>Salvar</button>
-
-                            <button onclick="deleteUser('${doc.id}', '${user.email}')" ${auth.currentUser.uid === doc.id ? 'disabled' : ''} style="background-color: #d32f2f; color: white;">Excluir</button>
-
-                        </td>
-
-                    `;
-
-                });
-
-            });
-
-
-
-            // --- 3. Configurações do Sistema ---
-
-            const lowLimitInput = document.getElementById('low-limit-input');
-
-            const highLimitInput = document.getElementById('high-limit-input');
-
-            const settingsFeedback = document.getElementById('settings-feedback');
-
-            const settingsDocRef = db.doc('configuracoes/sistema');
-
-
-
-            settingsDocRef.onSnapshot(doc => {
-
-                if (doc.exists) {
-
-                    const settings = doc.data();
-
-                    lowLimitInput.value = settings.limiteInferior || 50;
-
-                    highLimitInput.value = settings.limiteSuperior || 95;
-
-                }
-
-            });
-
-
-
-            document.getElementById('save-settings-button').addEventListener('click', () => {
-
-                const newLow = parseInt(lowLimitInput.value);
-
-                const newHigh = parseInt(highLimitInput.value);
-
-                if (newLow >= newHigh) {
-
-                    alert('O limite para ligar deve ser menor que o limite para desligar.');
-
-                    return;
-
-                }
-
-                settingsDocRef.set({ limiteInferior: newLow, limiteSuperior: newHigh })
-
-                    .then(() => {
-
-                        settingsFeedback.textContent = 'Configurações salvas com sucesso!';
-
-                        setTimeout(() => { settingsFeedback.textContent = ''; }, 3000);
-
-                    })
-
-                    .catch(err => alert('Erro ao salvar: ' + err.message));
-
-            });
-
-        });
-
-
-
-        // Funções de Ação (chamadas pelos botões)
-
-        function changeUserRole(userId) {
-
-            const newRole = document.getElementById(`role-${userId}`).value;
-
-            db.collection('usuarios').doc(userId).update({ role: newRole })
-
-                .then(() => alert('Função do usuário atualizada com sucesso!'))
-
-                .catch(err => alert('Erro: ' + err.message));
-
-        }
-
-
-
-        function deleteUser(userId, userEmail) {
-
-            if (confirm(`Tem certeza que deseja excluir o usuário ${userEmail}? Esta ação removerá apenas o registro do banco de dados, não da autenticação.`)) {
-
-                db.collection('usuarios').doc(userId).delete()
-
-                    .then(() => alert('Usuário excluído com sucesso!'))
-
-                    .catch(err => alert('Erro: ' + err.message));
-
-            }
-
-        }
-
-    </script>
-
+    <nav class="navbar">
+        <div class="logo">
+            <div class="logo-icon">AM</div>
+            <h1>AquaMonitor - Admin</h1>
+        </div>
+        <ul class="nav-links">
+            <li><a href="#home" class="active">Visão Geral</a></li>
+            <li><a href="#users">Usuários</a></li>
+            <li><a href="#settings">Configurações</a></li>
+            <li><a href="#" class="logout-button">Sair</a></li>
+        </ul>
+    </nav>
+
+    <section id="home">
+        <div class="container">
+            <div class="header">
+                <h2>Painel do Administrador</h2>
+                <p>Gerencie o sistema e monitore o status em tempo real.</p>
+            </div>
+            <div class="status-cards">
+                <div class="card">
+                    <div class="card-header"><div class="card-title">Nível Atual</div></div>
+                    <h2 id="admin-level-card" style="font-size: 2rem; color: #2e7d32; text-align: center;">--%</h2>
+                </div>
+                <div class="card">
+                    <div class="card-header"><div class="card-title">Status da Bomba</div></div>
+                    <h2 id="admin-pump-status-card" style="font-size: 2rem; text-align: center;">--</h2>
+                </div>
+                <div class="card">
+                    <div class="card-header"><div class="card-title">Modo de Operação</div></div>
+                    <h2 id="admin-mode-card" style="font-size: 2rem; text-align: center;">--</h2>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="users">
+        <div class="container">
+            <h3 class="history-title">Gerenciar Usuários</h3>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Nome Completo</th>
+                            <th>Email</th>
+                            <th>Função (Role)</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="users-table-body"></tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <section id="settings">
+        <div class="container">
+             <div class="settings-card">
+                <h4>Configurações do Sistema (Controle Automático)</h4>
+                <div class="control-group">
+                    <label for="low-limit-input">Ligar Bomba Abaixo de (%):</label>
+                    <input type="number" id="low-limit-input">
+                </div>
+                <div class="control-group">
+                    <label for="high-limit-input">Desligar Bomba Acima de (%):</label>
+                    <input type="number" id="high-limit-input">
+                </div>
+                <button id="save-settings-button" class="btn-motor-off" style="width: 100%; margin-top: 1rem;">Salvar Configurações</button>
+                <p id="settings-feedback" style="text-align: center; color: green; margin-top: 1rem;"></p>
+            </div>
+        </div>
+    </section>
+
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyBOBbMzkTO2MvIxExVO8vlCOUgpeZp0rSY",
+            authDomain: "aqua-monitor-login.firebaseapp.com",
+            projectId: "aqua-monitor-login",
+            databaseURL: "https://aqua-monitor-login-default-rtdb.firebaseio.com"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const database = firebase.database();
+
+        document.addEventListener('DOMContentLoaded', function () {
+            auth.onAuthStateChanged(user => {
+                if (user) {
+                    database.ref('usuarios/' + user.uid).get().then(snapshot => {
+                        if (!snapshot.exists() || snapshot.val().role !== 'admin') {
+                            window.location.href = 'index.html';
+                        }
+                    });
+                } else {
+                    window.location.href = 'login.html';
+                }
+            });
+            document.querySelector('.logout-button').addEventListener('click', e => {
+                e.preventDefault();
+                auth.signOut().then(() => { window.location.href = 'login.html'; });
+            });
+
+            // --- VISÃO GERAL ---
+            const levelCard = document.getElementById('admin-level-card');
+            const pumpStatusCard = document.getElementById('admin-pump-status-card');
+            const modeCard = document.getElementById('admin-mode-card');
+
+            database.ref('sensorData/level').on('value', snapshot => {
+                if(snapshot.exists()) levelCard.textContent = snapshot.val() + '%';
+            });
+            database.ref('bomba/controle').on('value', snapshot => {
+                if (snapshot.exists()) {
+                    const data = snapshot.val();
+                    pumpStatusCard.textContent = data.statusBomba || '--';
+                    pumpStatusCard.style.color = data.statusBomba === 'LIGADA' ? '#28a745' : '#dc3545';
+                    modeCard.textContent = data.modo || '--';
+                    modeCard.style.color = data.modo === 'automatico' ? '#28a745' : '#ff9800';
+                }
+            });
+
+            // --- GERENCIADOR DE USUÁRIOS ---
+            const usersTableBody = document.getElementById('users-table-body');
+            database.ref('usuarios').on('value', snapshot => {
+                usersTableBody.innerHTML = '';
+                snapshot.forEach(childSnapshot => {
+                    const userId = childSnapshot.key;
+                    const user = childSnapshot.val();
+                    const row = usersTableBody.insertRow();
+                    const isCurrentUser = auth.currentUser && auth.currentUser.uid === userId;
+                    row.innerHTML = `
+                        <td>${user.nomeCompleto || 'N/A'}</td>
+                        <td>${user.email}</td>
+                        <td>
+                            <select id="role-${userId}" ${isCurrentUser ? 'disabled' : ''}>
+                                <option value="cliente" ${user.role === 'cliente' ? 'selected' : ''}>Cliente</option>
+                                <option value="admin" ${user.role === 'admin' ? 'selected' : ''}>Admin</option>
+                            </select>
+                        </td>
+                        <td>
+                            <button onclick="changeUserRole('${userId}')" ${isCurrentUser ? 'disabled' : ''}>Salvar</button>
+                            <button class="btn-delete" onclick="deleteUser('${userId}', '${user.email}')" ${isCurrentUser ? 'disabled' : ''}>Excluir</button>
+                        </td>
+                    `;
+                });
+            });
+
+            // --- CONFIGURAÇÕES DO SISTEMA ---
+            const lowLimitInput = document.getElementById('low-limit-input');
+            const highLimitInput = document.getElementById('high-limit-input');
+            const settingsFeedback = document.getElementById('settings-feedback');
+            const settingsRef = database.ref('configuracoes/sistema');
+
+            settingsRef.on('value', snapshot => {
+                if (snapshot.exists()) {
+                    const settings = snapshot.val();
+                    lowLimitInput.value = settings.limiteInferior || 50;
+                    highLimitInput.value = settings.limiteSuperior || 95;
+                }
+            });
+
+            document.getElementById('save-settings-button').addEventListener('click', () => {
+                const newLow = parseInt(lowLimitInput.value);
+                const newHigh = parseInt(highLimitInput.value);
+                if (newLow >= newHigh) {
+                    alert('O limite para ligar deve ser menor que o limite para desligar.');
+                    return;
+                }
+                settingsRef.set({ limiteInferior: newLow, limiteSuperior: newHigh })
+                    .then(() => {
+                        settingsFeedback.textContent = 'Configurações salvas!';
+                        setTimeout(() => { settingsFeedback.textContent = ''; }, 3000);
+                    });
+            });
+        });
+
+        function changeUserRole(userId) {
+            const newRole = document.getElementById(`role-${userId}`).value;
+            database.ref('usuarios/' + userId).update({ role: newRole });
+        }
+
+        function deleteUser(userId, userEmail) {
+            if (confirm(`Tem certeza que deseja excluir o usuário ${userEmail}?`)) {
+                database.ref('usuarios/' + userId).remove();
+            }
+        }
+    </script>
 </body>
-
 </html>
