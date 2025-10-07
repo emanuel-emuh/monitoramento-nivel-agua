@@ -139,7 +139,6 @@
             sensorDocRef.onSnapshot((doc) => {
                 if (doc.exists) {
                     const data = doc.data();
-                    // Lendo o formato "simples" que está no seu Firebase.
                     if (data && typeof data.level !== 'undefined') {
                         const newLevel = data.level;
                         updateDashboardUI(parseInt(newLevel));
@@ -171,7 +170,7 @@
                 const timeString = now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
                 lastUpdateText.textContent = `Agora - ${timeString}`;
             }
-
+            
             // --- PARTE 3: LÓGICA DE CONTROLE DA BOMBA ---
             const autoModeSwitch = document.getElementById('auto-mode-switch');
             const motorButton = document.getElementById('motor-button');
@@ -180,11 +179,13 @@
 
             autoModeSwitch.addEventListener('change', function() {
                 const newMode = this.checked ? 'automatico' : 'manual';
+                console.log("Comando enviado: Mudar para modo", newMode);
                 controlDocRef.set({ modo: newMode }, { merge: true });
             });
 
             motorButton.addEventListener('click', function() {
                 const newCommand = motorButton.textContent.includes('Ligar') ? 'LIGAR' : 'DESLIGAR';
+                console.log("Comando manual enviado:", newCommand);
                 controlDocRef.set({ comandoManual: newCommand }, { merge: true });
             });
 
@@ -194,6 +195,8 @@
                     if (data && typeof data.statusBomba !== 'undefined' && typeof data.modo !== 'undefined') {
                         const statusBomba = data.statusBomba;
                         const modo = data.modo;
+
+                        console.log("Status recebido do Firebase:", "Modo:", modo, "| Status da Bomba:", statusBomba);
 
                         if (statusBomba === 'LIGADA') {
                             motorStatus.textContent = 'LIGADA';
