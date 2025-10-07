@@ -204,4 +204,32 @@ body {
     .logo h1 {
         font-size: 24px;
     }
+
+} /* Estilo base para os ícones circulares nos cards */
+.card-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.2rem;
+    font-weight: bold;
+    background-color: #6c757d; /* Cinza como cor padrão */
+}
+
+/* Classe para a cor VERDE (status positivo) */
+.card-icon.icon-green {
+    background-color: #28a745;
+}
+
+/* Classe para a cor VERMELHA (alerta) */
+.card-icon.icon-red {
+    background-color: #dc3545;
+}
+
+/* Classe para a cor LARANJA (atenção) */
+.card-icon.icon-orange {
+    background-color: #ff9800;
 }
