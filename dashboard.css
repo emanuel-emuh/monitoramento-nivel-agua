@@ -1,121 +1,315 @@
-/* --- Cores de Status para os Cards --- */
-.status-indicator-on {
-    background-color: #28a745; /* Verde */
-    color: white;
-    padding: 3px 8px;
-    border-radius: 5px;
-    font-weight: bold;
-    font-size: 0.9em;
+/* dashboard.css - Estilos para a página principal */
+
+/* Reset e configurações básicas */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
-.status-indicator-off {
+body {
+    background-color: #f4f7f6;
+    color: #333;
+    line-height: 1.6;
+}
+
+/* Barra de Navegação */
+.navbar {
+    background-color: #ffffff;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    padding: 1rem 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+}
+
+.logo h1 {
+    font-size: 1.5rem;
+    color: #2e7d32; /* Verde Escuro */
+    margin-left: 10px;
+}
+
+.logo-icon {
+    width: 40px;
+    height: 40px;
+    background-color: #2e7d32; /* Verde Escuro */
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: bold;
+}
+
+.nav-links {
+    display: flex;
+    list-style: none;
+    align-items: center;
+}
+
+.nav-links li {
+    margin-left: 2rem;
+}
+
+.nav-links a {
+    text-decoration: none;
+    color: #333;
+    font-weight: 500;
+    transition: color 0.3s;
+    padding: 5px 0;
+}
+
+.nav-links a:hover {
+    color: #2e7d32;
+}
+
+.nav-links a.active {
+    color: #2e7d32;
+    border-bottom: 2px solid #2e7d32;
+}
+
+/* *** BOTÃO SAIR CORRIGIDO *** */
+.logout-button {
     background-color: #dc3545; /* Vermelho */
     color: white;
-    padding: 3px 8px;
+    padding: 8px 15px;
     border-radius: 5px;
-    font-weight: bold;
-    font-size: 0.9em;
+    font-weight: 500;
+    border: none;
+    cursor: pointer;
+    text-decoration: none;
+    font-size: 0.9rem;
+    transition: background-color 0.3s;
 }
 
-.status-indicator-neutral {
-    background-color: #6c757d; /* Cinza */
-    color: white;
-    padding: 3px 8px;
-    border-radius: 5px;
-    font-weight: bold;
-    font-size: 0.9em;
+.logout-button:hover {
+    background-color: #c82333; /* Vermelho mais escuro */
 }
 
-/* Estilos para os ícones nos cards */
+/* Conteúdo Principal */
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem;
+}
+
+.header {
+    text-align: center;
+    margin-bottom: 3rem;
+}
+
+.header h2 {
+    font-size: 2.5rem;
+    color: #2e7d32;
+    margin-bottom: 1rem;
+}
+
+.header p {
+    font-size: 1.1rem;
+    color: #666;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+/* Cards de Status */
+.status-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2rem;
+    margin-bottom: 3rem;
+}
+
+.card {
+    background-color: white;
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    padding: 1.5rem;
+    transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.card-title {
+    font-size: 1.2rem;
+    font-weight: 600;
+}
+
 .card-icon {
     width: 40px;
     height: 40px;
     border-radius: 50%;
     display: flex;
-    justify-content: center;
     align-items: center;
-    font-size: 1.2em;
-    font-weight: bold;
+    justify-content: center;
     color: white;
-    background-color: #6c757d; /* Padrão cinza */
+    font-size: 1rem;
+    font-weight: bold;
+    background-color: #6c757d; /* Cinza Padrão */
+    transition: background-color 0.3s;
 }
 
-/* Cor para ícone de nível alto (verde) */
-.card-icon.icon-green {
-    background-color: #28a745; /* Verde */
+.card-icon.icon-green { background-color: #28a745; }
+.card-icon.icon-red { background-color: #dc3545; }
+.card-icon.icon-orange { background-color: #ff9800; }
+
+/* Barra de Nível */
+.level-indicator {
+    background-color: white;
+    padding: 2rem;
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
 }
 
-/* Cor para ícone de nível baixo (vermelho) */
-.card-icon.icon-red {
-    background-color: #dc3545; /* Vermelho */
+.level-title {
+    font-size: 1.2rem;
+    margin-bottom: 1rem;
+    font-weight: 600;
 }
 
-/* Cor para ícone de nível médio (laranja) */
-.card-icon.icon-orange {
-    background-color: #ffc107; /* Laranja */
+.level-bar {
+    height: 30px;
+    background-color: #e9ecef;
+    border-radius: 15px;
+    overflow: hidden;
+    position: relative;
 }
 
+.level-fill {
+    height: 100%;
+    border-radius: 15px;
+    transition: width 0.5s ease;
+}
 
-/* Estilos para o botão de controle manual da bomba */
+.level-low { background-color: #dc3545; }
+.level-medium { background-color: #ff9800; }
+.level-high { background-color: #28a745; }
+
+.level-percentage {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-weight: bold;
+    color: #ffffff;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.6);
+}
+
+/* Seção de Configurações */
+#configuracoes {
+    padding: 2rem 0;
+}
+
+.settings-card {
+    background-color: white;
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    padding: 2rem;
+    max-width: 600px;
+    margin: 0 auto;
+    border-top: 5px solid #2e7d32;
+}
+
+.settings-card h4 {
+    margin-bottom: 1.5rem;
+    font-size: 1.3rem;
+    text-align: center;
+}
+
+.control-group {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid #e9ecef;
+}
+.control-group:last-of-type { border-bottom: none; }
+
+.control-group label { font-size: 1rem; font-weight: 500; }
+
+.motor-status-display {
+    text-align: center;
+    margin-bottom: 2rem;
+    font-size: 1.2rem;
+    font-weight: bold;
+}
+
+.status-indicator-on { color: #28a745; background-color: #e9f7ec; padding: 5px 10px; border-radius: 5px; }
+.status-indicator-off { color: #dc3545; background-color: #fdeeee; padding: 5px 10px; border-radius: 5px; }
+
+.settings-info {
+    margin-top: 1.5rem;
+    font-size: 0.9rem;
+    color: #6c757d;
+    background-color: #f8f9fa;
+    padding: 1rem;
+    border-radius: 5px;
+}
+
 .btn-motor-on {
-    background-color: #dc3545; /* Vermelho para "Desligar Bomba" */
+    background-color: #dc3545; /* Vermelho para "Desligar" */
     color: white;
     border: none;
     padding: 10px 15px;
     border-radius: 5px;
     cursor: pointer;
-    font-size: 1em;
-    transition: background-color 0.3s ease;
-}
-
-.btn-motor-on:hover {
-    background-color: #c82333;
+    font-weight: 500;
 }
 
 .btn-motor-off {
-    background-color: #28a745; /* Verde para "Ligar Bomba" */
+    background-color: #28a745; /* Verde para "Ligar" */
     color: white;
     border: none;
     padding: 10px 15px;
     border-radius: 5px;
     cursor: pointer;
-    font-size: 1em;
-    transition: background-color 0.3s ease;
+    font-weight: 500;
 }
 
-.btn-motor-off:hover {
-    background-color: #218838;
-}
-
-.btn-motor-off[disabled],
-.btn-motor-on[disabled] {
-    background-color: #6c757d; /* Cinza quando desabilitado */
+button:disabled {
+    background-color: #adb5bd;
     cursor: not-allowed;
-    opacity: 0.7;
+    opacity: 0.8;
 }
 
-/* Estilos para a barra de nível */
-.level-fill {
-    height: 100%;
-    background-color: #28a745; /* Verde padrão para nível bom */
-    border-radius: 8px;
-    transition: width 0.5s ease-in-out;
+/* Estilo do Interruptor (Switch) */
+.switch { position: relative; display: inline-block; width: 60px; height: 34px; }
+.switch input { opacity: 0; width: 0; height: 0; }
+.slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; }
+.slider:before { position: absolute; content: ""; height: 26px; width: 26px; left: 4px; bottom: 4px; background-color: white; transition: .4s; }
+input:checked + .slider { background-color: #2e7d32; }
+input:checked + .slider:before { transform: translateX(26px); }
+.slider.round { border-radius: 34px; }
+.slider.round:before { border-radius: 50%; }
+
+/* Rodapé */
+footer {
+    background-color: #343a40;
+    color: white;
+    text-align: center;
+    padding: 2rem;
+    margin-top: 3rem;
 }
 
-/* Cores específicas para a barra de nível */
-.level-fill.level-low {
-    background-color: #dc3545; /* Vermelho para nível baixo */
-}
-
-.level-fill.level-medium {
-    background-color: #ffc107; /* Laranja para nível médio */
-}
-
-.level-fill.level-high {
-    background-color: #28a745; /* Verde para nível alto */
-}
-
-/* Cor do texto da porcentagem dentro da barra de nível */
-.level-percentage {
-    color: #333; /* Cor mais escura para contraste */
+/* Responsividade */
+@media (max-width: 768px) {
+    .navbar { flex-direction: column; padding: 1rem; }
+    .nav-links { margin-top: 1rem; width: 100%; justify-content: space-around; }
+    .nav-links li { margin-left: 0; }
+    .container { padding: 1rem; }
+    .header h2 { font-size: 2rem; }
 }
