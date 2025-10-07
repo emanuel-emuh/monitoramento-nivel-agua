@@ -14,7 +14,6 @@
         </div>
         <ul class="nav-links">
             <li><a href="#home" class="active">Dashboard</a></li>
-            <li><a href="#history">Histórico</a></li>
             <li><a href="#configuracoes">Configurações</a></li>
             <li><a href="#" class="logout-button">Sair</a></li>
         </ul>
@@ -61,19 +60,6 @@
                     <div id="level-percentage" class="level-percentage">--%</div>
                 </div>
             </div>
-            <div id="history" class="history">
-                <h3 class="history-title">Histórico Recente</h3>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Data/Hora</th>
-                            <th>Nível (%)</th>
-                            <th>Status</th>
-                        </tr>
-                    </thead>
-                    <tbody id="history-table-body"></tbody>
-                </table>
-            </div>
         </div>
     </section>
     <section id="configuracoes">
@@ -96,7 +82,7 @@
                     <button id="motor-button" class="btn-motor-off" disabled>Ligar Bomba</button>
                 </div>
                  <p class="settings-info">
-                    <b>Modo Automático:</b> A bomba liga quando o nível estiver abaixo de 50% e desliga ao atingir 95%.<br>
+                    <b>Modo Automático:</b> A bomba liga/desliga com base nos limites definidos pelo admin.<br>
                     <b>Modo Manual:</b> Desative o modo automático para poder ligar ou desligar a bomba manualmente.
                 </p>
             </div>
@@ -148,14 +134,14 @@
             const levelCardText = document.getElementById('level-card-text');
             const levelCardIcon = document.getElementById('level-card-icon');
             const lastUpdateText = document.getElementById('last-update');
-            const historyTableBody = document.getElementById('history-table-body');
             const sensorDocRef = db.doc("sensorData/currentLevel");
 
             sensorDocRef.onSnapshot((doc) => {
                 if (doc.exists) {
                     const data = doc.data();
-                    if (data.fields && data.fields.level && data.fields.level.integerValue) {
-                        const newLevel = data.fields.level.integerValue;
+                    // Lendo o formato "simples" que está no seu Firebase.
+                    if (data && typeof data.level !== 'undefined') {
+                        const newLevel = data.level;
                         updateDashboardUI(parseInt(newLevel));
                     }
                 } else { console.error("Documento do sensor não encontrado!"); }
@@ -184,27 +170,9 @@
                 const now = new Date();
                 const timeString = now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
                 lastUpdateText.textContent = `Agora - ${timeString}`;
-                addHistoryEntry(level, now);
-            }
-            
-            function addHistoryEntry(level, timestamp) {
-                const newRow = historyTableBody.insertRow(0);
-                const dateString = timestamp.toLocaleDateString('pt-BR');
-                const timeString = timestamp.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-                const isAlert = level <= 50;
-                const statusClass = isAlert ? 'status-alert' : 'status-normal';
-                const statusText = isAlert ? 'Atenção' : 'Normal';
-
-                newRow.innerHTML = `
-                    <td>${dateString} ${timeString}</td>
-                    <td>${level}%</td>
-                    <td><span class="status-badge ${statusClass}">${statusText}</span></td>`;
-                if (historyTableBody.rows.length > 5) {
-                    historyTableBody.deleteRow(5);
-                }
             }
 
-            // --- PARTE 3: LÓGICA DE CONTROLE DA BOMBA (CORRIGIDA) ---
+            // --- PARTE 3: LÓGICA DE CONTROLE DA BOMBA ---
             const autoModeSwitch = document.getElementById('auto-mode-switch');
             const motorButton = document.getElementById('motor-button');
             const motorStatus = document.getElementById('motor-status');
@@ -212,27 +180,20 @@
 
             autoModeSwitch.addEventListener('change', function() {
                 const newMode = this.checked ? 'automatico' : 'manual';
-                console.log("Comando enviado: Mudar para modo", newMode);
-                controlDocRef.set({ fields: { modo: { stringValue: newMode } } }, { merge: true });
+                controlDocRef.set({ modo: newMode }, { merge: true });
             });
 
             motorButton.addEventListener('click', function() {
                 const newCommand = motorButton.textContent.includes('Ligar') ? 'LIGAR' : 'DESLIGAR';
-                console.log("Comando manual enviado:", newCommand);
-                controlDocRef.set({ fields: { comandoManual: { stringValue: newCommand } } }, { merge: true });
+                controlDocRef.set({ comandoManual: newCommand }, { merge: true });
             });
 
-            // OUVINTE PARA RECEBER E ATUALIZAR A INTERFACE
             controlDocRef.onSnapshot((doc) => {
                 if (doc.exists) {
                     const data = doc.data();
-                    // *** CORREÇÃO APLICADA AQUI ***
-                    // O código agora lê a estrutura de dados "fields" que o ESP envia.
-                    if (data.fields && data.fields.statusBomba && data.fields.modo) {
-                        const statusBomba = data.fields.statusBomba.stringValue;
-                        const modo = data.fields.modo.stringValue;
-
-                        console.log("Status recebido do Firebase:", "Modo:", modo, "| Status da Bomba:", statusBomba);
+                    if (data && typeof data.statusBomba !== 'undefined' && typeof data.modo !== 'undefined') {
+                        const statusBomba = data.statusBomba;
+                        const modo = data.modo;
 
                         if (statusBomba === 'LIGADA') {
                             motorStatus.textContent = 'LIGADA';
