@@ -1,5 +1,6 @@
 /* ===================================================================
    AQUAMONITOR - FOLHA DE ESTILO PRINCIPAL (dashboard.css)
+   Versão Melhorada e Organizada
    =================================================================== */
 
 /* --- GERAL E RESET --- */
@@ -346,7 +347,7 @@ td button {
 
 /* --- RODAPÉ (FOOTER) --- */
 footer {
-    background-color: #343a40;
+    background-color: #2e7d32;
     color: white;
     text-align: center;
     padding: 2rem;
