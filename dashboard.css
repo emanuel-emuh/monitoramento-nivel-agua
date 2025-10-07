@@ -1,6 +1,9 @@
-/* dashboard.css - Estilos completos para AquaMonitor */
+/* ===================================================================
+   AQUAMONITOR - FOLHA DE ESTILO PRINCIPAL (dashboard.css)
+   Versão Melhorada e Organizada
+   =================================================================== */
 
-/* Reset e configurações básicas */
+/* --- GERAL E RESET --- */
 * {
     margin: 0;
     padding: 0;
@@ -14,7 +17,7 @@ body {
     line-height: 1.6;
 }
 
-/* Barra de Navegação */
+/* --- BARRA DE NAVEGAÇÃO (NAVBAR) --- */
 .navbar {
     background-color: #ffffff;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
@@ -65,6 +68,7 @@ body {
     color: #333;
     font-weight: 500;
     padding: 5px 0;
+    transition: color 0.3s;
 }
 
 .nav-links a:hover {
@@ -93,7 +97,7 @@ body {
     background-color: #c82333;
 }
 
-/* Conteúdo Principal */
+/* --- LAYOUT PRINCIPAL E CABEÇALHO --- */
 .container {
     max-width: 1200px;
     margin: 0 auto;
@@ -111,7 +115,11 @@ body {
     margin-bottom: 1rem;
 }
 
-/* Cards de Status */
+section {
+    padding-top: 2rem;
+}
+
+/* --- CARDS DE STATUS --- */
 .status-cards {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -124,6 +132,12 @@ body {
     border-radius: 10px;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
     padding: 1.5rem;
+    transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 12px rgba(0, 0, 0, 0.1);
 }
 
 .card-header {
@@ -155,7 +169,7 @@ body {
 .card-icon.icon-red { background-color: #dc3545; }
 .card-icon.icon-orange { background-color: #ff9800; }
 
-/* Barra de Nível */
+/* --- INDICADOR DE NÍVEL (BARRA DE PROGRESSO) --- */
 .level-indicator {
     background-color: white;
     padding: 2rem;
@@ -190,13 +204,13 @@ body {
     position: absolute;
     top: 50%;
     left: 50%;
-    transform: translate(-f50%, -50%);
+    transform: translate(-50%, -50%);
     font-weight: bold;
     color: #ffffff;
     text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.6);
 }
 
-/* Seção de Configurações e Tabelas */
+/* --- SEÇÃO DE CONFIGURAÇÕES E TÍTULOS DE SEÇÃO --- */
 .history-title {
     font-size: 1.8rem;
     margin-bottom: 1.5rem;
@@ -205,7 +219,7 @@ body {
     font-weight: 600;
 }
 
-.settings-card, .table-container {
+.settings-card {
     background-color: white;
     border-radius: 10px;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
@@ -215,17 +229,22 @@ body {
     border-top: 5px solid #2e7d32;
 }
 
-.table-container {
-    max-width: 1200px;
-    overflow-x: auto;
-}
-
 .settings-card h4 {
     margin-bottom: 1.5rem;
     font-size: 1.3rem;
     text-align: center;
 }
 
+.settings-info {
+    margin-top: 1.5rem;
+    font-size: 0.9rem;
+    color: #6c757d;
+    background-color: #f8f9fa;
+    padding: 1rem;
+    border-radius: 5px;
+}
+
+/* --- ELEMENTOS DE FORMULÁRIO (BOTÕES, SWITCH) --- */
 .control-group {
     display: flex;
     justify-content: space-between;
@@ -234,7 +253,14 @@ body {
     padding-bottom: 1.5rem;
     border-bottom: 1px solid #e9ecef;
 }
-.control-group:last-of-type { border-bottom: none; padding-bottom: 0; margin-bottom: 0; }
+.control-group:last-of-type { border-bottom: none; }
+
+.control-group input[type="number"] {
+    padding: 8px;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+    width: 80px;
+}
 
 .motor-status-display {
     text-align: center;
@@ -246,40 +272,28 @@ body {
 .status-indicator-on { color: #28a745; background-color: #e9f7ec; padding: 5px 10px; border-radius: 5px; }
 .status-indicator-off { color: #dc3545; background-color: #fdeeee; padding: 5px 10px; border-radius: 5px; }
 
-.settings-info {
-    margin-top: 1.5rem;
-    font-size: 0.9rem;
-    color: #6c757d;
-    background-color: #f8f9fa;
-    padding: 1rem;
-    border-radius: 5px;
-}
+.btn-motor-on { background-color: #dc3545; } /* Vermelho para "Desligar" */
+.btn-motor-off { background-color: #28a745; } /* Verde para "Ligar" */
 
-/* Botões de Controle Manual */
-.btn-motor-on {
-    background-color: #dc3545; /* Vermelho para "Desligar" */
-}
-
-.btn-motor-off {
-    background-color: #28a745; /* Verde para "Ligar" */
-}
-
-.btn-motor-on, .btn-motor-off {
+#save-settings-button, .btn-motor-on, .btn-motor-off {
     color: white;
     border: none;
     padding: 10px 15px;
     border-radius: 5px;
     cursor: pointer;
     font-weight: 500;
+    transition: opacity 0.3s;
+}
+#save-settings-button:hover, .btn-motor-on:hover, .btn-motor-off:hover {
+    opacity: 0.85;
 }
 
 button:disabled {
     background-color: #adb5bd !important;
     cursor: not-allowed !important;
-    opacity: 0.8;
+    opacity: 0.7;
 }
 
-/* Estilo do Interruptor (Switch) */
 .switch { position: relative; display: inline-block; width: 60px; height: 34px; }
 .switch input { opacity: 0; width: 0; height: 0; }
 .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; }
@@ -289,7 +303,18 @@ input:checked + .slider:before { transform: translateX(26px); }
 .slider.round { border-radius: 34px; }
 .slider.round:before { border-radius: 50%; }
 
-/* Estilos de Tabela para Usuários */
+/* --- TABELAS (PAINEL ADMIN) --- */
+.table-container {
+    max-width: 1200px;
+    overflow-x: auto;
+    background-color: white;
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    padding: 1rem;
+    margin: 1rem auto;
+    border-top: 5px solid #2e7d32;
+}
+
 table {
     width: 100%;
     border-collapse: collapse;
@@ -309,25 +334,27 @@ td button, td select {
     border: 1px solid #ced4da;
     cursor: pointer;
     margin-right: 5px;
+    font-size: 0.9rem;
 }
 td button {
     color: white;
     background-color: #007bff; /* Azul para "Salvar" */
+    border: none;
 }
 .btn-delete {
     background-color: #dc3545 !important; /* Vermelho para "Excluir" */
 }
 
-/* Rodapé */
+/* --- RODAPÉ (FOOTER) --- */
 footer {
-    background-color: #343a40;
+    background-color: #2e7d32; /* Verde padronizado */
     color: white;
     text-align: center;
     padding: 2rem;
     margin-top: 3rem;
 }
 
-/* Responsividade */
+/* --- RESPONSIVIDADE --- */
 @media (max-width: 768px) {
     .navbar { flex-direction: column; padding: 1rem; }
     .nav-links { margin-top: 1rem; width: 100%; justify-content: space-around; }
