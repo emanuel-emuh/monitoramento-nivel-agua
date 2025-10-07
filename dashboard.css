@@ -1,6 +1,6 @@
 /* ===================================================================
    AQUAMONITOR - FOLHA DE ESTILO PRINCIPAL (dashboard.css)
-   Versão Melhorada e Organizada
+   Versão Organizada
    =================================================================== */
 
 /* --- GERAL E RESET --- */
@@ -132,12 +132,6 @@ section {
     border-radius: 10px;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
     padding: 1.5rem;
-    transition: transform 0.3s, box-shadow 0.3s;
-}
-
-.card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 8px 12px rgba(0, 0, 0, 0.1);
 }
 
 .card-header {
@@ -219,7 +213,7 @@ section {
     font-weight: 600;
 }
 
-.settings-card {
+.settings-card, .table-container {
     background-color: white;
     border-radius: 10px;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
@@ -307,12 +301,6 @@ input:checked + .slider:before { transform: translateX(26px); }
 .table-container {
     max-width: 1200px;
     overflow-x: auto;
-    background-color: white;
-    border-radius: 10px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-    padding: 1rem;
-    margin: 1rem auto;
-    border-top: 5px solid #2e7d32;
 }
 
 table {
