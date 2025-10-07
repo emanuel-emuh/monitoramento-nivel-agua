@@ -154,8 +154,8 @@
             sensorDocRef.onSnapshot((doc) => {
                 if (doc.exists) {
                     const data = doc.data();
-                    if (data && typeof data.level !== 'undefined') {
-                        const newLevel = data.level;
+                    if (data.fields && data.fields.level && data.fields.level.integerValue) {
+                        const newLevel = data.fields.level.integerValue;
                         updateDashboardUI(parseInt(newLevel));
                     }
                 } else { console.error("Documento do sensor não encontrado!"); }
@@ -210,26 +210,27 @@
             const motorStatus = document.getElementById('motor-status');
             const controlDocRef = db.doc("bomba/controle");
 
-            // OUVINTE PARA ENVIAR COMANDOS
             autoModeSwitch.addEventListener('change', function() {
                 const newMode = this.checked ? 'automatico' : 'manual';
                 console.log("Comando enviado: Mudar para modo", newMode);
-                controlDocRef.set({ modo: newMode }, { merge: true });
+                controlDocRef.set({ fields: { modo: { stringValue: newMode } } }, { merge: true });
             });
 
             motorButton.addEventListener('click', function() {
                 const newCommand = motorButton.textContent.includes('Ligar') ? 'LIGAR' : 'DESLIGAR';
                 console.log("Comando manual enviado:", newCommand);
-                controlDocRef.set({ comandoManual: newCommand }, { merge: true });
+                controlDocRef.set({ fields: { comandoManual: { stringValue: newCommand } } }, { merge: true });
             });
 
             // OUVINTE PARA RECEBER E ATUALIZAR A INTERFACE
             controlDocRef.onSnapshot((doc) => {
                 if (doc.exists) {
                     const data = doc.data();
-                    if (data && typeof data.statusBomba !== 'undefined' && typeof data.modo !== 'undefined') {
-                        const statusBomba = data.statusBomba;
-                        const modo = data.modo;
+                    // *** CORREÇÃO APLICADA AQUI ***
+                    // O código agora lê a estrutura de dados "fields" que o ESP envia.
+                    if (data.fields && data.fields.statusBomba && data.fields.modo) {
+                        const statusBomba = data.fields.statusBomba.stringValue;
+                        const modo = data.fields.modo.stringValue;
 
                         console.log("Status recebido do Firebase:", "Modo:", modo, "| Status da Bomba:", statusBomba);
 
