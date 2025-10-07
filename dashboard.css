@@ -77,7 +77,6 @@ body {
     border-bottom: 2px solid #2e7d32;
 }
 
-/* *** CORREÇÃO APLICADA AQUI *** */
 .logout-button {
     background-color: #d32f2f;
     color: white;
@@ -164,15 +163,21 @@ body {
     justify-content: center;
     color: white;
     font-size: 1.2rem;
-    background-color: #757575;
+    font-weight: bold;
+    background-color: #6c757d; /* Cinza como cor padrão */
+    transition: background-color 0.3s;
 }
 
-.icon-green {
-    background-color: #2e7d32;
+.card-icon.icon-green {
+    background-color: #28a745; /* Verde */
 }
 
-.icon-red {
-    background-color: #d32f2f;
+.card-icon.icon-red {
+    background-color: #dc3545; /* Vermelho */
+}
+
+.card-icon.icon-orange {
+    background-color: #ff9800; /* Laranja */
 }
 
 /* Indicador de nível */
@@ -200,16 +205,16 @@ body {
     transition: width 0.5s ease;
 }
 
-.level-low {
-    background-color: #d32f2f;
+.level-fill.level-low {
+    background-color: #dc3545;
 }
 
-.level-medium {
+.level-fill.level-medium {
     background-color: #ff9800;
 }
 
-.level-high {
-    background-color: #2e7d32;
+.level-fill.level-high {
+    background-color: #28a745;
 }
 
 .level-percentage {
@@ -220,60 +225,6 @@ body {
     font-weight: bold;
     color: #fff;
     text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
-}
-
-/* Histórico */
-.history {
-    margin-top: 3rem;
-}
-
-.history-title {
-    font-size: 1.5rem;
-    margin-bottom: 1.5rem;
-    color: #333;
-    text-align: center;
-}
-
-table {
-    width: 100%;
-    border-collapse: collapse;
-    background-color: white;
-    border-radius: 10px;
-    overflow: hidden;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-}
-
-th,
-td {
-    padding: 1rem;
-    text-align: left;
-    border-bottom: 1px solid #e0e0e0;
-}
-
-th {
-    background-color: #f5f5f5;
-    font-weight: 600;
-}
-
-tr:last-child td {
-    border-bottom: none;
-}
-
-.status-badge {
-    padding: 0.3rem 0.8rem;
-    border-radius: 20px;
-    font-size: 0.8rem;
-    font-weight: 600;
-}
-
-.status-normal {
-    background-color: #e8f5e9;
-    color: #2e7d32;
-}
-
-.status-alert {
-    background-color: #ffebee;
-    color: #d32f2f;
 }
 
 /* Seção de Configurações */
@@ -350,115 +301,18 @@ tr:last-child td {
     line-height: 1.5;
 }
 
-#motor-button {
-    padding: 10px 20px;
-    border: none;
-    border-radius: 5px;
+.btn-motor-on {
+    background-color: #d32f2f; /* Vermelho para Desligar */
     color: white;
-    font-weight: bold;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 5px;
     cursor: pointer;
     transition: background-color 0.3s;
 }
 
-#motor-button:disabled {
-    background-color: #ccc;
-    cursor: not-allowed;
-}
-
-.btn-motor-on {
-    background-color: #d32f2f; /* Vermelho para Desligar */
-}
-
 .btn-motor-off {
-    background-color: #2e7d32; /* Verde para Ligar */
-}
-
-.switch {
-    position: relative;
-    display: inline-block;
-    width: 60px;
-    height: 34px;
-}
-
-.switch input {
-    opacity: 0;
-    width: 0;
-    height: 0;
-}
-
-.slider {
-    position: absolute;
-    cursor: pointer;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: #ccc;
-    transition: .4s;
-}
-
-.slider:before {
-    position: absolute;
-    content: "";
-    height: 26px;
-    width: 26px;
-    left: 4px;
-    bottom: 4px;
-    background-color: white;
-    transition: .4s;
-}
-
-input:checked+.slider {
-    background-color: #2e7d32;
-}
-
-input:focus+.slider {
-    box-shadow: 0 0 1px #2e7d32;
-}
-
-input:checked+.slider:before {
-    transform: translateX(26px);
-}
-
-.slider.round {
-    border-radius: 34px;
-}
-
-.slider.round:before {
-    border-radius: 50%;
-}
-
-/* Footer */
-footer {
-    background-color: #2e7d32;
+    background-color: #28a745; /* Verde para Ligar */
     color: white;
-    text-align: center;
-    padding: 2rem;
-    margin-top: 3rem;
-}
-
-/* Responsividade */
-@media (max-width: 768px) {
-    .navbar {
-        flex-direction: column;
-        padding: 1rem;
-    }
-
-    .nav-links {
-        margin-top: 1rem;
-        width: 100%;
-        justify-content: space-around;
-    }
-
-    .nav-links li {
-        margin-left: 0;
-    }
-
-    .container {
-        padding: 1rem;
-    }
-
-    .header h2 {
-        font-size: 2rem;
-    }
-}
+    border: none;
+    padding: 10
