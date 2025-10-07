@@ -1,3 +1,5 @@
+HTML
+
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -69,14 +71,17 @@
             const levelFill = document.getElementById('level-fill');
             const levelPercentage = document.getElementById('level-percentage');
             const levelCardValue = document.getElementById('level-card-value');
+            const levelCardText = document.getElementById('level-card-text');
             const levelCardIcon = document.getElementById('level-card-icon');
             const autoModeSwitch = document.getElementById('auto-mode-switch');
             const motorButton = document.getElementById('motor-button');
             const motorStatus = document.getElementById('motor-status');
             const pumpStatusIcon = document.getElementById('pump-status-icon');
             const pumpStatusValue = document.getElementById('pump-status-value');
+            const pumpStatusText = document.getElementById('pump-status-text');
             const modeIcon = document.getElementById('mode-icon');
             const modeValue = document.getElementById('mode-value');
+            const modeText = document.getElementById('mode-text');
             
             // --- REFERÊNCIAS DO REALTIME DATABASE ---
             const levelRef = database.ref('sensorData/level');
@@ -86,20 +91,29 @@
             levelRef.on('value', snapshot => {
                 const level = snapshot.val();
                 if (level !== null) {
-                    levelFill.style.width = level + '%';
-                    levelPercentage.textContent = level + '%';
-                    levelCardValue.textContent = level + '%';
-
-                    // Muda a cor do ícone de nível
-                    if (level <= 50) {
-                        levelCardIcon.className = 'card-icon icon-red';
-                    } else if (level < 95) {
-                        levelCardIcon.className = 'card-icon icon-orange';
-                    } else {
-                        levelCardIcon.className = 'card-icon icon-green';
-                    }
+                    updateDashboardUI(level);
                 }
             });
+
+            function updateDashboardUI(level) {
+                levelFill.style.width = level + '%';
+                levelPercentage.textContent = level + '%';
+                levelCardValue.textContent = level + '%';
+
+                if (level <= 50) {
+                    levelFill.className = 'level-fill level-low';
+                    levelCardIcon.className = 'card-icon icon-red';
+                    levelCardText.textContent = 'Nível baixo. Bomba pode ligar.';
+                } else if (level < 95) {
+                    levelFill.className = 'level-fill level-medium';
+                    levelCardIcon.className = 'card-icon icon-orange';
+                    levelCardText.textContent = 'Nível moderado.';
+                } else {
+                    levelFill.className = 'level-fill level-high';
+                    levelCardIcon.className = 'card-icon icon-green';
+                    levelCardText.textContent = 'Nível adequado.';
+                }
+            }
 
             controlRef.on('value', snapshot => {
                 const data = snapshot.val();
@@ -107,28 +121,30 @@
                     // Atualiza Status da Bomba
                     motorStatus.textContent = data.statusBomba;
                     pumpStatusValue.textContent = data.statusBomba === 'LIGADA' ? 'ON' : 'OFF';
+                    pumpStatusText.textContent = `A bomba está ${data.statusBomba}.`;
                     if (data.statusBomba === 'LIGADA') {
                         motorStatus.className = 'status-indicator-on';
-                        pumpStatusIcon.className = 'card-icon icon-green'; // <-- COR VERDE AQUI
+                        pumpStatusIcon.className = 'card-icon icon-green';
                         motorButton.textContent = 'Desligar Bomba';
                         motorButton.className = 'btn-motor-on';
                     } else {
                         motorStatus.className = 'status-indicator-off';
-                        pumpStatusIcon.className = 'card-icon icon-red'; // Cor vermelha se desligada
+                        pumpStatusIcon.className = 'card-icon icon-red';
                         motorButton.textContent = 'Ligar Bomba';
                         motorButton.className = 'btn-motor-off';
                     }
 
                     // Atualiza Modo de Operação
                     modeValue.textContent = data.modo === 'automatico' ? 'AUTO' : 'MANUAL';
+                    modeText.textContent = `Operando em modo ${data.modo}.`;
                     if (data.modo === 'automatico') {
                         autoModeSwitch.checked = true;
                         motorButton.disabled = true;
-                        modeIcon.className = 'card-icon icon-green'; // <-- COR VERDE AQUI
+                        modeIcon.className = 'card-icon icon-green';
                     } else {
                         autoModeSwitch.checked = false;
                         motorButton.disabled = false;
-                        modeIcon.className = 'card-icon icon-orange'; // Cor laranja para manual
+                        modeIcon.className = 'card-icon icon-orange';
                     }
                 }
             });
