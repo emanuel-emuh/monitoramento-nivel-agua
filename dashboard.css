@@ -290,9 +290,10 @@ td button:disabled {
 
 /* Rodapé */
 footer {
-    background-color: #343a40;
+    background-color: #2e7d32;
     color: white;
     text-align: center;
     padding: 2rem;
     margin-top: 3rem;
 }
+
