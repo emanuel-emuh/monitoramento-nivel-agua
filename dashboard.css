@@ -1,4 +1,4 @@
-/* dashboard.css - Estilos para a página principal */
+/* dashboard.css - Estilos completos para AquaMonitor */
 
 /* Reset e configurações básicas */
 * {
@@ -34,14 +34,14 @@ body {
 
 .logo h1 {
     font-size: 1.5rem;
-    color: #2e7d32; /* Verde Escuro */
+    color: #2e7d32;
     margin-left: 10px;
 }
 
 .logo-icon {
     width: 40px;
     height: 40px;
-    background-color: #2e7d32; /* Verde Escuro */
+    background-color: #2e7d32;
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -64,12 +64,7 @@ body {
     text-decoration: none;
     color: #333;
     font-weight: 500;
-    transition: color 0.3s;
     padding: 5px 0;
-}
-
-.nav-links a:hover {
-    color: #2e7d32;
 }
 
 .nav-links a.active {
@@ -77,10 +72,9 @@ body {
     border-bottom: 2px solid #2e7d32;
 }
 
-/* *** BOTÃO SAIR CORRIGIDO *** */
 .logout-button {
-    background-color: #dc3545; /* Vermelho */
-    color: white;
+    background-color: #dc3545;
+    color: white !important;
     padding: 8px 15px;
     border-radius: 5px;
     font-weight: 500;
@@ -92,7 +86,7 @@ body {
 }
 
 .logout-button:hover {
-    background-color: #c82333; /* Vermelho mais escuro */
+    background-color: #c82333;
 }
 
 /* Conteúdo Principal */
@@ -113,13 +107,6 @@ body {
     margin-bottom: 1rem;
 }
 
-.header p {
-    font-size: 1.1rem;
-    color: #666;
-    max-width: 600px;
-    margin: 0 auto;
-}
-
 /* Cards de Status */
 .status-cards {
     display: grid;
@@ -133,7 +120,6 @@ body {
     border-radius: 10px;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
     padding: 1.5rem;
-    transition: transform 0.3s, box-shadow 0.3s;
 }
 
 .card-header {
@@ -159,7 +145,6 @@ body {
     font-size: 1rem;
     font-weight: bold;
     background-color: #6c757d; /* Cinza Padrão */
-    transition: background-color 0.3s;
 }
 
 .card-icon.icon-green { background-color: #28a745; }
@@ -174,17 +159,10 @@ body {
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
 }
 
-.level-title {
-    font-size: 1.2rem;
-    margin-bottom: 1rem;
-    font-weight: 600;
-}
-
 .level-bar {
     height: 30px;
     background-color: #e9ecef;
     border-radius: 15px;
-    overflow: hidden;
     position: relative;
 }
 
@@ -208,19 +186,28 @@ body {
     text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.6);
 }
 
-/* Seção de Configurações */
-#configuracoes {
-    padding: 2rem 0;
+/* Seção de Configurações e Tabelas */
+.history-title {
+    font-size: 1.8rem;
+    margin-bottom: 1.5rem;
+    color: #333;
+    text-align: center;
+    font-weight: 600;
 }
 
-.settings-card {
+.settings-card, .table-container {
     background-color: white;
     border-radius: 10px;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
     padding: 2rem;
-    max-width: 600px;
+    max-width: 800px;
     margin: 0 auto;
     border-top: 5px solid #2e7d32;
+}
+
+.table-container {
+    max-width: 1200px;
+    overflow-x: auto;
 }
 
 .settings-card h4 {
@@ -238,8 +225,6 @@ body {
     border-bottom: 1px solid #e9ecef;
 }
 .control-group:last-of-type { border-bottom: none; }
-
-.control-group label { font-size: 1rem; font-weight: 500; }
 
 .motor-status-display {
     text-align: center;
@@ -260,32 +245,6 @@ body {
     border-radius: 5px;
 }
 
-.btn-motor-on {
-    background-color: #dc3545; /* Vermelho para "Desligar" */
-    color: white;
-    border: none;
-    padding: 10px 15px;
-    border-radius: 5px;
-    cursor: pointer;
-    font-weight: 500;
-}
-
-.btn-motor-off {
-    background-color: #28a745; /* Verde para "Ligar" */
-    color: white;
-    border: none;
-    padding: 10px 15px;
-    border-radius: 5px;
-    cursor: pointer;
-    font-weight: 500;
-}
-
-button:disabled {
-    background-color: #adb5bd;
-    cursor: not-allowed;
-    opacity: 0.8;
-}
-
 /* Estilo do Interruptor (Switch) */
 .switch { position: relative; display: inline-block; width: 60px; height: 34px; }
 .switch input { opacity: 0; width: 0; height: 0; }
@@ -296,6 +255,39 @@ input:checked + .slider:before { transform: translateX(26px); }
 .slider.round { border-radius: 34px; }
 .slider.round:before { border-radius: 50%; }
 
+/* Estilos de Tabela para Usuários */
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+th, td {
+    padding: 1rem;
+    text-align: left;
+    border-bottom: 1px solid #e9ecef;
+}
+th {
+    background-color: #f8f9fa;
+    font-weight: 600;
+}
+td button, td select {
+    padding: 6px 12px;
+    border-radius: 5px;
+    border: 1px solid #ced4da;
+    cursor: pointer;
+    margin-right: 5px;
+}
+td button {
+    color: white;
+    background-color: #007bff;
+}
+td button:hover {
+    opacity: 0.8;
+}
+td button:disabled {
+    background-color: #adb5bd;
+    cursor: not-allowed;
+}
+
 /* Rodapé */
 footer {
     background-color: #343a40;
@@ -303,13 +295,4 @@ footer {
     text-align: center;
     padding: 2rem;
     margin-top: 3rem;
-}
-
-/* Responsividade */
-@media (max-width: 768px) {
-    .navbar { flex-direction: column; padding: 1rem; }
-    .nav-links { margin-top: 1rem; width: 100%; justify-content: space-around; }
-    .nav-links li { margin-left: 0; }
-    .container { padding: 1rem; }
-    .header h2 { font-size: 2rem; }
 }
