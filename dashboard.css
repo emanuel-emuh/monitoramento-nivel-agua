@@ -132,6 +132,12 @@ section {
     border-radius: 10px;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
     padding: 1.5rem;
+    transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 12px rgba(0, 0, 0, 0.1);
 }
 
 .card-header {
@@ -213,7 +219,7 @@ section {
     font-weight: 600;
 }
 
-.settings-card, .table-container {
+.settings-card {
     background-color: white;
     border-radius: 10px;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
@@ -269,7 +275,7 @@ section {
 .btn-motor-on { background-color: #dc3545; } /* Vermelho para "Desligar" */
 .btn-motor-off { background-color: #28a745; } /* Verde para "Ligar" */
 
-#save-settings-button, .btn-motor-on, .btn-motor-off {
+#save-settings-button, .btn-motor-on, .btn-motor-off, .btn-action {
     color: white;
     border: none;
     padding: 10px 15px;
@@ -278,7 +284,7 @@ section {
     font-weight: 500;
     transition: opacity 0.3s;
 }
-#save-settings-button:hover, .btn-motor-on:hover, .btn-motor-off:hover {
+#save-settings-button:hover, .btn-motor-on:hover, .btn-motor-off:hover, .btn-action:hover {
     opacity: 0.85;
 }
 
@@ -301,6 +307,12 @@ input:checked + .slider:before { transform: translateX(26px); }
 .table-container {
     max-width: 1200px;
     overflow-x: auto;
+    background-color: white;
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    padding: 1rem;
+    margin: 1rem auto;
+    border-top: 5px solid #2e7d32;
 }
 
 table {
@@ -326,12 +338,11 @@ td button, td select {
 }
 td button {
     color: white;
-    background-color: #007bff; /* Azul para "Salvar" */
     border: none;
 }
-.btn-delete {
-    background-color: #dc3545 !important; /* Vermelho para "Excluir" */
-}
+.btn-blue { background-color: #007bff; }
+.btn-red, .btn-delete { background-color: #dc3545 !important; } /* Vermelho para Excluir/Pausar */
+.btn-green { background-color: #28a745; } /* Verde para Salvar/Retomar */
 
 /* --- RODAPÉ (FOOTER) --- */
 footer {
