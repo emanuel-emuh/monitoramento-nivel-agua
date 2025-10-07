@@ -74,7 +74,7 @@
                     <label for="high-limit-input">Desligar Bomba Acima de (%):</label>
                     <input type="number" id="high-limit-input">
                 </div>
-                <button id="save-settings-button" class="btn-action btn-green" style="width: 100%; margin-top: 1rem;">Salvar Configurações da Bomba</button>
+                <button id="save-settings-button" class="btn-action btn-green" style="width: 100%; margin-top: 1rem;">Salvar Configurações</button>
                 <p id="settings-feedback" style="text-align: center; color: green; margin-top: 1rem;"></p>
             </div>
 
@@ -82,13 +82,8 @@
                 <h4>Gerenciamento de Dados</h4>
                 <div class="control-group">
                     <label>Coleta de dados do sensor:</label>
-                    <button id="toggle-collection-button" class="btn-action">Pausar Coleta</button>
+                    <button id="toggle-collection-button" class="btn-action">Aguardando...</button>
                 </div>
-                <div class="control-group">
-                    <label>Limpar dados de consumo:</label>
-                    <button id="clear-history-button" class="btn-action btn-red">Limpar Histórico</button>
-                </div>
-                 <p class="settings-info"><b>Pausar Coleta:</b> Impede o ESP de enviar novos dados. <b>Limpar Histórico:</b> Apaga todos os registros de nível do banco de dados.</p>
             </div>
         </div>
     </section>
@@ -125,7 +120,6 @@
                 auth.signOut().then(() => { window.location.href = 'login.html'; });
             });
 
-            // --- REFERÊNCIAS ---
             const levelCard = document.getElementById('admin-level-card');
             const pumpStatusCard = document.getElementById('admin-pump-status-card');
             const modeCard = document.getElementById('admin-mode-card');
@@ -135,16 +129,12 @@
             const highLimitInput = document.getElementById('high-limit-input');
             const settingsFeedback = document.getElementById('settings-feedback');
             const toggleCollectionButton = document.getElementById('toggle-collection-button');
-            const clearHistoryButton = document.getElementById('clear-history-button');
 
-            // --- CAMINHOS NO FIREBASE ---
             const sensorRef = database.ref('sensorData');
             const controlRef = database.ref('bomba/controle');
             const usersRef = database.ref('usuarios');
             const settingsRef = database.ref('configuracoes/sistema');
-            const historyRef = database.ref('historico');
 
-            // --- OUVINTES (LISTENERS) ---
             sensorRef.on('value', snapshot => {
                 if(snapshot.exists()) {
                     const data = snapshot.val();
@@ -198,11 +188,9 @@
                 }
             });
             
-            // --- AÇÕES DOS BOTÕES ---
             document.getElementById('save-settings-button').addEventListener('click', () => {
                 const newLow = parseInt(lowLimitInput.value);
                 const newHigh = parseInt(highLimitInput.value);
-                if (newLow >= newHigh) { alert('O limite para ligar deve ser menor que o limite para desligar.'); return; }
                 settingsRef.set({ limiteInferior: newLow, limiteSuperior: newHigh })
                     .then(() => {
                         settingsFeedback.textContent = 'Configurações salvas!';
@@ -215,12 +203,6 @@
                     const isCurrentlyActive = snapshot.val() !== false;
                     sensorRef.update({ coletaAtiva: !isCurrentlyActive });
                 });
-            });
-
-            clearHistoryButton.addEventListener('click', () => {
-                if (confirm('Tem certeza que deseja apagar TODO o histórico de leituras? Esta ação não pode ser desfeita.')) {
-                    historyRef.remove().then(() => alert('Histórico limpo com sucesso!'));
-                }
             });
         });
         
