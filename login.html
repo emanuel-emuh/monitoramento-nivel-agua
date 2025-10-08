@@ -14,14 +14,13 @@
         </div>
         <form id="loginForm">
             <div class="form-group">
-                <label for="username">E-mail</label>
-                <input type="email" id="username" class="form-control" placeholder="Digite seu e-mail" required>
-                <div class="error-message" id="usernameError">E-mail ou senha inválidos.</div>
+                <label for="email">E-mail</label>
+                <input type="email" id="email" class="form-control" placeholder="Digite seu e-mail" required>
+                <div class="error-message" id="error-message"></div>
             </div>
             <div class="form-group">
                 <label for="password">Senha</label>
                 <input type="password" id="password" class="form-control" placeholder="Digite sua senha" required>
-                <button type="button" class="password-toggle" id="togglePassword">Mostrar</button>
             </div>
             <button type="submit" class="btn">Entrar</button>
             <div class="bottom-link">
@@ -30,12 +29,20 @@
         </form>
     </div>
 
+    <div class="loader-wrapper" id="loader">
+        <div class="loader-container">
+            <label class="loading-title">Carregando...</label>
+            <span class="loading-circle sp1">
+                <span class="loading-circle sp2">
+                    <span class="loading-circle sp3"></span>
+                </span>
+            </span>
+        </div>
+    </div>
+
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
-
-    <script>
-        // CONFIGURAÇÃO ATUALIZADA para Realtime Database
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script> <script>
         const firebaseConfig = {
             apiKey: "AIzaSyBOBbMzkTO2MvIxExVO8vlCOUgpeZp0rSY",
             authDomain: "aqua-monitor-login.firebaseapp.com",
@@ -44,30 +51,30 @@
         };
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
-        const database = firebase.database(); // Usa o Realtime Database
+        const database = firebase.database();
     </script>
-
     <script>
-        // LÓGICA DE LOGIN ATUALIZADA para Realtime Database
         document.addEventListener('DOMContentLoaded', function() {
             const loginForm = document.getElementById('loginForm');
-            const usernameError = document.getElementById('usernameError');
+            const errorMessage = document.getElementById('error-message');
+            const loader = document.getElementById('loader'); // Pega a referência da animação
 
             loginForm.addEventListener('submit', function(e) {
                 e.preventDefault();
-                usernameError.style.display = 'none';
+                errorMessage.style.display = 'none';
+                
+                // *** MOSTRA A ANIMAÇÃO QUANDO O LOGIN É INICIADO ***
+                loader.style.display = 'flex';
 
-                const email = document.getElementById('username').value;
+                const email = document.getElementById('email').value;
                 const password = document.getElementById('password').value;
 
                 auth.signInWithEmailAndPassword(email, password)
                     .then((userCredential) => {
                         const user = userCredential.user;
-                        // Busca o perfil do usuário no Realtime Database
                         return database.ref('usuarios/' + user.uid).get();
                     })
                     .then((snapshot) => {
-                        // Verifica se o perfil existe e se o cargo é 'admin'
                         if (snapshot.exists() && snapshot.val().role === 'admin') {
                             window.location.href = 'admin.html';
                         } else {
@@ -75,18 +82,12 @@
                         }
                     })
                     .catch((error) => {
+                        // Se der erro, esconde a animação e mostra a mensagem de erro
+                        loader.style.display = 'none'; 
                         console.error("Erro no login:", error);
-                        usernameError.textContent = 'E-mail ou senha inválidos.';
-                        usernameError.style.display = 'block';
+                        errorMessage.textContent = 'E-mail ou senha inválidos.';
+                        errorMessage.style.display = 'block';
                     });
-            });
-
-            const togglePassword = document.getElementById('togglePassword');
-            const passwordInput = document.getElementById('password');
-            togglePassword.addEventListener('click', function() {
-                const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
-                passwordInput.setAttribute('type', type);
-                this.textContent = type === 'password' ? 'Mostrar' : 'Ocultar';
             });
         });
     </script>
