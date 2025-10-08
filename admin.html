@@ -127,7 +127,6 @@
                 auth.signOut().then(() => { window.location.href = 'login.html'; });
             });
 
-            // --- REFERÊNCIAS ---
             const levelCard = document.getElementById('admin-level-card');
             const pumpStatusCard = document.getElementById('admin-pump-status-card');
             const collectionStatusCard = document.getElementById('admin-collection-status-card');
@@ -144,23 +143,18 @@
             const historyRef = database.ref('historico');
 
             // --- OUVINTES DE DADOS (LISTENERS) ---
-            
-            // Visão Geral - Nível e Status da Coleta
             sensorRef.on('value', snapshot => {
                 if(snapshot.exists()) {
                     const data = snapshot.val();
                     levelCard.textContent = data.level !== undefined ? data.level + '%' : '--%';
-
-                    const isCollectionActive = data.coletaAtiva !== false;
+                    const isCollectionActive = data.coletaAtiva !== false; // Ativo por padrão se o campo não existir
                     collectionStatusCard.textContent = isCollectionActive ? 'ATIVA' : 'PAUSADA';
                     collectionStatusCard.style.color = isCollectionActive ? '#28a745' : '#dc3545';
-                    
                     toggleCollectionButton.textContent = isCollectionActive ? 'Pausar Coleta' : 'Retomar Coleta';
                     toggleCollectionButton.className = 'btn-action ' + (isCollectionActive ? 'btn-red' : 'btn-green');
                 }
             });
 
-            // Visão Geral - Status da Bomba e Modo
             controlRef.on('value', snapshot => {
                 if (snapshot.exists()) {
                     const data = snapshot.val();
@@ -169,7 +163,6 @@
                 }
             });
 
-            // Gerenciar Usuários
             usersRef.on('value', snapshot => {
                 usersTableBody.innerHTML = '';
                 snapshot.forEach(childSnapshot => {
@@ -194,7 +187,6 @@
                 });
             });
 
-            // Configurações do Sistema
             settingsRef.on('value', snapshot => {
                 if (snapshot.exists()) {
                     const settings = snapshot.val();
@@ -204,14 +196,9 @@
             });
             
             // --- AÇÕES DOS BOTÕES ---
-            
             document.getElementById('save-settings-button').addEventListener('click', () => {
                 const newLow = parseInt(lowLimitInput.value);
                 const newHigh = parseInt(highLimitInput.value);
-                if (newLow >= newHigh) {
-                    alert('O limite para ligar deve ser menor que o limite para desligar.');
-                    return;
-                }
                 settingsRef.update({ limiteInferior: newLow, limiteSuperior: newHigh })
                     .then(() => {
                         settingsFeedback.textContent = 'Configurações salvas!';
@@ -228,20 +215,20 @@
 
             document.getElementById('clear-history-button').addEventListener('click', () => {
                 if (confirm('Tem certeza que deseja apagar TODO o histórico de leituras? Esta ação não pode ser desfeita.')) {
-                    // A chamada da Cloud Function continua a mesma se você a implementou
-                    // Se não, o comando abaixo apaga o nó diretamente.
                     historyRef.remove().then(() => alert('Histórico limpo com sucesso!'));
                 }
             });
         });
         
-        // Funções Globais para os botões da tabela
         function changeUserRole(userId) {
             const newRole = document.getElementById(`role-${userId}`).value;
             database.ref('usuarios/' + userId).update({ role: newRole });
         }
         function deleteUser(userId, userEmail) {
             if (confirm(`Tem certeza que deseja excluir o usuário ${userEmail}?`)) {
-                database.ref('usuarios/'
-
-                             
+                database.ref('usuarios/' + userId).remove();
+            }
+        }
+    </script>
+</body>
+</html>
