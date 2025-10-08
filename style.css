@@ -165,7 +165,7 @@ body {
 }
 
 /* ========================================= */
-/* --- CÓDIGO DA ANIMAÇÃO DE CARREGAMENTO --- */
+/* --- CÓDIGO DA ANIMAÇÃO DE CARREGAMENTO (ATUALIZADO) --- */
 /* ========================================= */
 
 /* O contêiner que cobre a tela inteira */
@@ -180,57 +180,30 @@ body {
     justify-content: center;
     align-items: center;
     z-index: 9999;
-    /* Começa escondido */
-    display: none; 
+    flex-direction: column; /* Para alinhar o texto abaixo da animação */
+    display: none; /* Começa escondido */
 }
 
-/* Centraliza o conteúdo da animação */
-.loader-container {
-    width: 100px;
-    height: 125px;
-}
-
+/* O título "Carregando..." */
 .loading-title {
-    display: block;
-    text-align: center;
-    font-size: 20px; /* Corrigido: Faltava 'px' */
+    font-size: 20px;
     font-family: 'Segoe UI', sans-serif;
-    font-weight: bold;
-    padding-bottom: 15px;
-    color: #555;
+    font-weight: 600;
+    color: #333;
+    margin-top: 20px; /* Espaço entre a animação e o texto */
 }
 
-.loading-circle {
-    display: block;
-    border-left: 5px solid;
-    border-top-left-radius: 100%;
-    border-top: 5px solid transparent; /* Deixa transparente para criar o efeito de 'arco' */
-    margin: 5px;
-    animation-name: Loader_611;
-    animation-duration: 1500ms;
-    animation-timing-function: linear;
-    animation-iteration-count: infinite;
+/* A nova animação do círculo */
+.loader {
+    border: 8px solid #e9ecef; /* Borda cinza clara */
+    border-top: 8px solid #2e7d32; /* Verde escuro do seu tema */
+    border-radius: 50%;
+    width: 60px;
+    height: 60px;
+    animation: spin 1s linear infinite;
 }
 
-.sp1 {
-    border-left-color: #F44336; /* Vermelho */
-    width: 50px;
-    height: 50px;
-}
-
-.sp2 {
-    border-left-color: #FFC107; /* Laranja */
-    width: 40px;
-    height: 40px;
-}
-
-.sp3 {
-    width: 30px;
-    height: 30px;
-    border-left-color: #8bc34a; /* Verde */
-}
-
-@keyframes Loader_611 {
+@keyframes spin {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
 }
