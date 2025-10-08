@@ -30,19 +30,15 @@
     </div>
 
     <div class="loader-wrapper" id="loader">
-        <div class="loader-container">
-            <label class="loading-title">Carregando...</label>
-            <span class="loading-circle sp1">
-                <span class="loading-circle sp2">
-                    <span class="loading-circle sp3"></span>
-                </span>
-            </span>
-        </div>
+        <div class="loader"></div>
+        <label class="loading-title">Carregando...</label>
     </div>
 
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script> <script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+    
+    <script>
         const firebaseConfig = {
             apiKey: "AIzaSyBOBbMzkTO2MvIxExVO8vlCOUgpeZp0rSY",
             authDomain: "aqua-monitor-login.firebaseapp.com",
@@ -57,13 +53,11 @@
         document.addEventListener('DOMContentLoaded', function() {
             const loginForm = document.getElementById('loginForm');
             const errorMessage = document.getElementById('error-message');
-            const loader = document.getElementById('loader'); // Pega a referência da animação
+            const loader = document.getElementById('loader');
 
             loginForm.addEventListener('submit', function(e) {
                 e.preventDefault();
                 errorMessage.style.display = 'none';
-                
-                // *** MOSTRA A ANIMAÇÃO QUANDO O LOGIN É INICIADO ***
                 loader.style.display = 'flex';
 
                 const email = document.getElementById('email').value;
@@ -82,9 +76,7 @@
                         }
                     })
                     .catch((error) => {
-                        // Se der erro, esconde a animação e mostra a mensagem de erro
                         loader.style.display = 'none'; 
-                        console.error("Erro no login:", error);
                         errorMessage.textContent = 'E-mail ou senha inválidos.';
                         errorMessage.style.display = 'block';
                     });
