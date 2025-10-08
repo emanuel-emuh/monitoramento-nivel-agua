@@ -7,13 +7,64 @@
     <link rel="stylesheet" href="dashboard.css">
 </head>
 <body>
-    <nav class="navbar"></nav>
-    <section id="home"></section>
-    <section id="users"></section>
+    <nav class="navbar">
+        <div class="logo">
+            <div class="logo-icon">AM</div>
+            <h1>AquaMonitor - Admin</h1>
+        </div>
+        <ul class="nav-links">
+            <li><a href="#home" class="active">Visão Geral</a></li>
+            <li><a href="#users">Usuários</a></li>
+            <li><a href="#settings">Configurações</a></li>
+            <li><a href="#" class="logout-button">Sair</a></li>
+        </ul>
+    </nav>
 
-    <section id="settings" style="padding-top: 2rem;">
+    <section id="home">
         <div class="container">
-             <div class="settings-card" id="system-settings-card">
+            <div class="header">
+                <h2>Painel do Administrador</h2>
+                <p>Gerencie o sistema e monitore o status em tempo real.</p>
+            </div>
+            <div class="status-cards">
+                <div class="card">
+                    <div class="card-header"><div class="card-title">Nível Atual</div></div>
+                    <h2 id="admin-level-card" style="font-size: 2rem; color: #2e7d32; text-align: center;">--%</h2>
+                </div>
+                <div class="card">
+                    <div class="card-header"><div class="card-title">Status da Bomba</div></div>
+                    <h2 id="admin-pump-status-card" style="font-size: 2rem; text-align: center;">--</h2>
+                </div>
+                <div class="card">
+                    <div class="card-header"><div class="card-title">Status da Coleta</div></div>
+                    <h2 id="admin-collection-status-card" style="font-size: 2rem; text-align: center;">--</h2>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="users">
+        <div class="container">
+            <h3 class="history-title">Gerenciar Usuários</h3>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Nome Completo</th>
+                            <th>Email</th>
+                            <th>Função (Role)</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="users-table-body"></tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <section id="settings">
+        <div class="container">
+             <div class="settings-card">
                 <h4>Configurações do Sistema</h4>
                 <div class="control-group">
                     <label for="low-limit-input">Ligar Bomba Abaixo de (%):</label>
@@ -23,20 +74,21 @@
                     <label for="high-limit-input">Desligar Bomba Acima de (%):</label>
                     <input type="number" id="high-limit-input">
                 </div>
-                <button id="save-settings-button" class="btn-motor-off" style="width: 100%; margin-top: 1rem;">Salvar Configurações</button>
+                <button id="save-settings-button" class="btn-action btn-green" style="width: 100%; margin-top: 1rem;">Salvar Limites</button>
                 <p id="settings-feedback" style="text-align: center; color: green; margin-top: 1rem;"></p>
             </div>
-            <div class="settings-card" style="margin-top: 2rem; border-top-color: #dc3545;" id="data-management-card">
+
+            <div class="settings-card" style="margin-top: 2rem; border-top-color: #ff9800;">
                 <h4>Gerenciamento de Dados</h4>
                 <div class="control-group">
-                    <label for="pause-switch">Coleta de dados do sensor:</label>
-                    <label class="switch"><input type="checkbox" id="pause-switch"><span class="slider round"></span></label>
+                    <label>Coleta de dados do sensor:</label>
+                    <button id="toggle-collection-button" class="btn-action">Aguardando...</button>
                 </div>
                 <div class="control-group">
-                    <label>Limpar dados de consumo:</label>
-                    <button id="clear-history-button" style="background-color: #dc3545; color: white; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer;">Limpar Histórico</button>
+                    <label>Limpar histórico de consumo:</label>
+                    <button id="clear-history-button" class="btn-action btn-red">Limpar Histórico</button>
                 </div>
-                <p class="settings-info"><b>Pausar Coleta:</b> Impede o ESP de enviar novos dados. <b>Limpar Histórico:</b> Apaga todos os registros de nível do banco de dados.</p>
+                 <p class="settings-info"><b>Pausar/Retomar Coleta:</b> Ativa ou desativa o envio de dados do sensor. <b>Limpar Histórico:</b> Apaga todos os registros de nível do banco de dados.</p>
             </div>
         </div>
     </section>
@@ -59,27 +111,100 @@
         const functions = firebase.functions();
 
         document.addEventListener('DOMContentLoaded', function () {
-            // (Lógica de segurança e logout)
+            auth.onAuthStateChanged(user => {
+                if (user) {
+                    database.ref('usuarios/' + user.uid).get().then(snapshot => {
+                        if (!snapshot.exists() || snapshot.val().role !== 'admin') {
+                            window.location.href = 'index.html';
+                        }
+                    });
+                } else {
+                    window.location.href = 'login.html';
+                }
+            });
+            document.querySelector('.logout-button').addEventListener('click', e => {
+                e.preventDefault();
+                auth.signOut().then(() => { window.location.href = 'login.html'; });
+            });
 
             // --- REFERÊNCIAS ---
+            const levelCard = document.getElementById('admin-level-card');
+            const pumpStatusCard = document.getElementById('admin-pump-status-card');
+            const collectionStatusCard = document.getElementById('admin-collection-status-card');
+            const usersTableBody = document.getElementById('users-table-body');
             const lowLimitInput = document.getElementById('low-limit-input');
             const highLimitInput = document.getElementById('high-limit-input');
-            const pauseSwitch = document.getElementById('pause-switch');
             const settingsFeedback = document.getElementById('settings-feedback');
+            const toggleCollectionButton = document.getElementById('toggle-collection-button');
+            
+            const sensorRef = database.ref('sensorData');
+            const controlRef = database.ref('bomba/controle');
+            const usersRef = database.ref('usuarios');
             const settingsRef = database.ref('configuracoes/sistema');
+            const historyRef = database.ref('historico');
 
-            // --- CARREGA E EXIBE AS CONFIGURAÇÕES ATUAIS ---
+            // --- OUVINTES DE DADOS (LISTENERS) ---
+            
+            // Visão Geral - Nível e Status da Coleta
+            sensorRef.on('value', snapshot => {
+                if(snapshot.exists()) {
+                    const data = snapshot.val();
+                    levelCard.textContent = data.level !== undefined ? data.level + '%' : '--%';
+
+                    const isCollectionActive = data.coletaAtiva !== false;
+                    collectionStatusCard.textContent = isCollectionActive ? 'ATIVA' : 'PAUSADA';
+                    collectionStatusCard.style.color = isCollectionActive ? '#28a745' : '#dc3545';
+                    
+                    toggleCollectionButton.textContent = isCollectionActive ? 'Pausar Coleta' : 'Retomar Coleta';
+                    toggleCollectionButton.className = 'btn-action ' + (isCollectionActive ? 'btn-red' : 'btn-green');
+                }
+            });
+
+            // Visão Geral - Status da Bomba e Modo
+            controlRef.on('value', snapshot => {
+                if (snapshot.exists()) {
+                    const data = snapshot.val();
+                    pumpStatusCard.textContent = data.statusBomba || '--';
+                    pumpStatusCard.style.color = data.statusBomba === 'LIGADA' ? '#28a745' : '#dc3545';
+                }
+            });
+
+            // Gerenciar Usuários
+            usersRef.on('value', snapshot => {
+                usersTableBody.innerHTML = '';
+                snapshot.forEach(childSnapshot => {
+                    const userId = childSnapshot.key;
+                    const user = childSnapshot.val();
+                    const isCurrentUser = auth.currentUser && auth.currentUser.uid === userId;
+                    const row = usersTableBody.insertRow();
+                    row.innerHTML = `
+                        <td>${user.nomeCompleto || 'N/A'}</td>
+                        <td>${user.email}</td>
+                        <td>
+                            <select id="role-${userId}" ${isCurrentUser ? 'disabled' : ''}>
+                                <option value="cliente" ${user.role === 'cliente' ? 'selected' : ''}>Cliente</option>
+                                <option value="admin" ${user.role === 'admin' ? 'selected' : ''}>Admin</option>
+                            </select>
+                        </td>
+                        <td>
+                            <button class="btn-action btn-blue" onclick="changeUserRole('${userId}')" ${isCurrentUser ? 'disabled' : ''}>Salvar</button>
+                            <button class="btn-action btn-red" onclick="deleteUser('${userId}', '${user.email}')" ${isCurrentUser ? 'disabled' : ''}>Excluir</button>
+                        </td>
+                    `;
+                });
+            });
+
+            // Configurações do Sistema
             settingsRef.on('value', snapshot => {
                 if (snapshot.exists()) {
                     const settings = snapshot.val();
                     lowLimitInput.value = settings.limiteInferior || 50;
                     highLimitInput.value = settings.limiteSuperior || 95;
-                    // O switch representa a coleta PAUSADA. Se coletaAtiva for false, o switch deve estar marcado.
-                    pauseSwitch.checked = (settings.coletaAtiva === false);
                 }
             });
-
+            
             // --- AÇÕES DOS BOTÕES ---
+            
             document.getElementById('save-settings-button').addEventListener('click', () => {
                 const newLow = parseInt(lowLimitInput.value);
                 const newHigh = parseInt(highLimitInput.value);
@@ -89,29 +214,34 @@
                 }
                 settingsRef.update({ limiteInferior: newLow, limiteSuperior: newHigh })
                     .then(() => {
-                        settingsFeedback.textContent = 'Limites salvos com sucesso!';
+                        settingsFeedback.textContent = 'Configurações salvas!';
                         setTimeout(() => { settingsFeedback.textContent = ''; }, 3000);
-                    })
-                    .catch(err => alert('Erro ao salvar limites: ' + err.message));
+                    });
             });
             
-            pauseSwitch.addEventListener('change', () => {
-                const isPaused = pauseSwitch.checked;
-                // A coleta está ATIVA se o botão de pausar estiver DESMARCADO.
-                settingsRef.update({ coletaAtiva: !isPaused });
+            toggleCollectionButton.addEventListener('click', () => {
+                sensorRef.child('coletaAtiva').get().then(snapshot => {
+                    const isCurrentlyActive = snapshot.val() !== false;
+                    sensorRef.update({ coletaAtiva: !isCurrentlyActive });
+                });
             });
 
             document.getElementById('clear-history-button').addEventListener('click', () => {
-                if (!confirm('Tem certeza? Esta ação apagará TODO o histórico de forma irreversível.')) return;
-                const clearHistoryFunction = functions.httpsCallable('clearHistory');
-                alert("Iniciando limpeza do histórico...");
-                clearHistoryFunction()
-                    .then(() => alert("Histórico limpo com sucesso!"))
-                    .catch(error => alert("Erro: " + error.message));
+                if (confirm('Tem certeza que deseja apagar TODO o histórico de leituras? Esta ação não pode ser desfeita.')) {
+                    // A chamada da Cloud Function continua a mesma se você a implementou
+                    // Se não, o comando abaixo apaga o nó diretamente.
+                    historyRef.remove().then(() => alert('Histórico limpo com sucesso!'));
+                }
             });
-
-            // (O restante do código para visão geral e gerenciar usuários permanece o mesmo)
         });
-    </script>
-</body>
-</html>
+        
+        // Funções Globais para os botões da tabela
+        function changeUserRole(userId) {
+            const newRole = document.getElementById(`role-${userId}`).value;
+            database.ref('usuarios/' + userId).update({ role: newRole });
+        }
+        function deleteUser(userId, userEmail) {
+            if (confirm(`Tem certeza que deseja excluir o usuário ${userEmail}?`)) {
+                database.ref('usuarios/'
+
+                             
