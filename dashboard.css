@@ -408,3 +408,23 @@ footer {
 #btn-ferias:hover {
     opacity: 0.85;
 }
+
+/* Adicione este código no FINAL do seu arquivo dashboard.css */
+
+.card-main-value {
+    font-size: 2.2rem;
+    color: #2e7d32;
+    text-align: center;
+    margin: 0.5rem 0 1rem 0;
+    font-weight: 600;
+}
+
+/* Cor azul para o valor de volume em litros */
+#volume-liters-value {
+    color: #007bff;
+}
+
+/* Cor laranja para o valor de consumo */
+#consumption-value {
+    color: #ff9800;
+}
