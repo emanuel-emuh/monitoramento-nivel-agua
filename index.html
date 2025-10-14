@@ -23,7 +23,13 @@
             <div class="header"><h2>Monitoramento de Nível de Água</h2><p>Sistema de monitoramento em tempo real do nível da caixa d'água</p></div>
             <div class="status-cards">
                 <div class="card"><div class="card-header"><div class="card-title">Nível Atual</div><div class="card-icon" id="level-card-icon"><span id="level-card-value">--%</span></div></div><p id="level-card-text">Aguardando leitura...</p></div>
+                
+                <div class="card"><div class="card-header"><div class="card-title">Volume Atual (Litros)</div><div class="card-icon icon-green" style="background-color: #007bff;"><span id="volume-liters-value">-- L</span></div></div><p id="volume-liters-text">Insira as dimensões da caixa...</p></div>
+                
+                <div class="card"><div class="card-header"><div class="card-title">Consumo Médio</div><div class="card-icon icon-orange"><span id="consumption-value">--</span></div></div><p id="consumption-text">Calculando...</p></div>
+
                 <div class="card"><div class="card-header"><div class="card-title">Status da Bomba</div><div class="card-icon" id="pump-status-icon"><span id="pump-status-value">--</span></div></div><p id="pump-status-text">Aguardando status...</p></div>
+                
                 <div class="card"><div class="card-header"><div class="card-title">Modo de Operação</div><div class="card-icon" id="mode-icon"><span id="mode-value">--</span></div></div><p id="mode-text">Aguardando status...</p></div>
             </div>
             <div class="level-indicator"><div class="level-title">Nível da Caixa d'Água</div><div class="level-bar"><div id="level-fill" class="level-fill" style="width: 0%;"></div><div id="level-percentage" class="level-percentage">--%</div></div></div>
@@ -42,12 +48,39 @@
     <section id="configuracoes">
         <div class="container">
             <h3 class="history-title">Configurações e Controle</h3>
+
             <div class="settings-card">
+                <h4>Configurações da Caixa d'Água</h4>
+                <div class="form-group">
+                    <label for="tank-shape">Formato da Caixa:</label>
+                    <select id="tank-shape">
+                        <option value="retangular">Retangular / Quadrada</option>
+                        <option value="cilindrica">Cilíndrica</option>
+                    </select>
+                </div>
+                <div id="retangular-fields" class="dimension-fields">
+                    <div class="form-group"><label for="tank-width">Largura (cm):</label><input type="number" id="tank-width" placeholder="ex: 100"></div>
+                    <div class="form-group"><label for="tank-depth">Profundidade (cm):</label><input type="number" id="tank-depth" placeholder="ex: 100"></div>
+                </div>
+                <div id="cilindrica-fields" class="dimension-fields">
+                    <div class="form-group"><label for="tank-diameter">Diâmetro (cm):</label><input type="number" id="tank-diameter" placeholder="ex: 120"></div>
+                </div>
+                <button id="save-tank-settings" class="btn-action btn-green" style="width: 100%;">Salvar Dimensões</button>
+                 <p class="settings-info">A altura da caixa é fixa em 110 cm, conforme definido no hardware.</p>
+            </div>
+
+            <div class="settings-card" style="margin-top: 2rem;">
                 <h4>Controle da Bomba de Água</h4>
                 <div class="motor-status-display">Status da Bomba: <span id="motor-status" class="status-indicator-off">--</span></div>
                 <div class="control-group"><label for="auto-mode-switch">Modo Automático</label><label class="switch"><input type="checkbox" id="auto-mode-switch"><span class="slider round"></span></label></div>
                 <div class="control-group"><label for="motor-button">Controle Manual</label><button id="motor-button" class="btn-motor-off" disabled>Ligar Bomba</button></div>
                  <p class="settings-info"><b>Modo Automático:</b> A bomba liga/desliga com base nos limites.<br><b>Modo Manual:</b> Desative o modo automático para o controle manual.</p>
+            </div>
+
+            <div class="settings-card" style="margin-top: 2rem; border-top-color: #ff9800;">
+                <h4>Modo Econômico</h4>
+                <button id="btn-ferias" class="normal">Ativar Modo Férias</button>
+                <p class="settings-info" id="ferias-info"><b>Modo Férias:</b> Usa limites de 15% a 50% para economizar energia durante a sua ausência.</p>
             </div>
         </div>
     </section>
