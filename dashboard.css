@@ -361,3 +361,50 @@ footer {
     .container { padding: 1rem; }
     .header h2 { font-size: 2rem; }
 }
+
+/* --- Estilos para as Novas Funcionalidades --- */
+.settings-card .form-group {
+    margin-bottom: 1rem;
+}
+
+.settings-card .form-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 500;
+}
+
+.settings-card .form-group input,
+.settings-card .form-group select {
+    width: 100%;
+    padding: 8px;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+}
+
+.dimension-fields {
+    display: none; /* Escondido por padrão */
+}
+
+#btn-ferias {
+    width: 100%;
+    padding: 10px 15px;
+    margin-top: 1rem;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: background-color 0.3s;
+    color: white;
+}
+
+#btn-ferias.normal {
+    background-color: #007bff; /* Azul para ativar */
+}
+
+#btn-ferias.ferias {
+    background-color: #ff9800; /* Laranja quando ativo */
+}
+
+#btn-ferias:hover {
+    opacity: 0.85;
+}
