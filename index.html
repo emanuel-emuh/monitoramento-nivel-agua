@@ -16,16 +16,13 @@
             <div class="form-group">
                 <label for="username">E-mail</label>
                 <input type="email" id="username" class="form-control" placeholder="Digite seu e-mail" required>
-                <div class="error-message" id="usernameError">E-mail ou senha inválidos.</div>
+                <div class="error-message" id="usernameError"></div>
             </div>
             <div class="form-group">
                 <label for="password">Senha</label>
                 <input type="password" id="password" class="form-control" placeholder="Digite sua senha" required>
-                <button type="button" class="password-toggle" id="togglePassword">Mostrar</button>
             </div>
             <button type="submit" class="btn">Entrar</button>
-            <div class="bottom-link">
-                </div>
         </form>
     </div>
 
@@ -46,6 +43,7 @@
     </script>
 
     <script>
+        // LÓGICA DE LOGIN ATUALIZADA com verificação de cargo
         document.addEventListener('DOMContentLoaded', function() {
             const loginForm = document.getElementById('loginForm');
             const usernameError = document.getElementById('usernameError');
@@ -57,15 +55,20 @@
                 const email = document.getElementById('username').value;
                 const password = document.getElementById('password').value;
 
+                // Passo 1: Autenticar o usuário
                 auth.signInWithEmailAndPassword(email, password)
                     .then((userCredential) => {
                         const user = userCredential.user;
+                        // Passo 2: Buscar o perfil do usuário no Realtime Database
                         return database.ref('usuarios/' + user.uid).get();
                     })
                     .then((snapshot) => {
+                        // Passo 3: Decidir para onde redirecionar
                         if (snapshot.exists() && snapshot.val().role === 'admin') {
+                            // Se o cargo for 'admin', redireciona para a página de admin
                             window.location.href = 'admin.html';
                         } else {
+                            // Caso contrário (cliente ou sem cargo), redireciona para a página principal
                             window.location.href = 'index.html';
                         }
                     })
@@ -74,14 +77,6 @@
                         usernameError.textContent = 'E-mail ou senha inválidos.';
                         usernameError.style.display = 'block';
                     });
-            });
-
-            const togglePassword = document.getElementById('togglePassword');
-            const passwordInput = document.getElementById('password');
-            togglePassword.addEventListener('click', function() {
-                const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
-                passwordInput.setAttribute('type', type);
-                this.textContent = type === 'password' ? 'Mostrar' : 'Ocultar';
             });
         });
     </script>
