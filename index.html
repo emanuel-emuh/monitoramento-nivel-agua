@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AquaMonitor - Dashboard</title>
-    <link rel="stylesheet" href="painel.css">
+    <link rel="stylesheet" href="dashboard.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
@@ -78,8 +78,11 @@
                 auth.signOut().then(() => window.location.href = 'login.html');
             });
 
+            // --- O RESTANTE DA LÓGICA DO PAINEL (GRÁFICO, CARDS, CONTROLES) ---
+            
             const levelFill = document.getElementById('level-fill');
             const levelPercentage = document.getElementById('level-percentage');
+            // ... (demais referências)
             const levelCardValue = document.getElementById('level-card-value');
             const levelCardText = document.getElementById('level-card-text');
             const levelCardIcon = document.getElementById('level-card-icon');
@@ -143,6 +146,7 @@
                 levelFill.style.width = level + '%';
                 levelPercentage.textContent = level + '%';
                 levelCardValue.textContent = level + '%';
+
                 if (level <= 50) {
                     levelFill.className = 'level-fill level-low';
                     levelCardIcon.className = 'card-icon icon-red';
@@ -175,6 +179,7 @@
                         motorButton.textContent = 'Ligar Bomba';
                         motorButton.className = 'btn-motor-off';
                     }
+
                     modeValue.textContent = data.modo === 'automatico' ? 'AUTO' : 'MAN';
                     modeText.textContent = `Operando em modo ${data.modo}.`;
                     if (data.modo === 'automatico') {
