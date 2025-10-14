@@ -3,28 +3,55 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - AquaMonitor</title>
-    <link rel="stylesheet" href="style.css">
+    <title>AquaMonitor - Dashboard</title>
+    <link rel="stylesheet" href="painel.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-    <div class="container login-container">
-        <div class="logo">
-            <h1>AquaMonitor Login</h1>
-            <p>Acesse sua conta</p>
+    <nav class="navbar">
+        <div class="logo"><div class="logo-icon">AM</div><h1>AquaMonitor</h1></div>
+        <ul class="nav-links">
+            <li><a href="#home" class="active">Dashboard</a></li>
+            <li><a href="#chart-section">Gráfico</a></li>
+            <li><a href="#configuracoes">Configurações</a></li>
+            <li><a href="#" class="logout-button">Sair</a></li>
+        </ul>
+    </nav>
+
+    <section id="home">
+        <div class="container">
+            <div class="header"><h2>Monitoramento de Nível de Água</h2><p>Sistema de monitoramento em tempo real do nível da caixa d'água</p></div>
+            <div class="status-cards">
+                <div class="card"><div class="card-header"><div class="card-title">Nível Atual</div><div class="card-icon" id="level-card-icon"><span id="level-card-value">--%</span></div></div><p id="level-card-text">Aguardando leitura...</p></div>
+                <div class="card"><div class="card-header"><div class="card-title">Status da Bomba</div><div class="card-icon" id="pump-status-icon"><span id="pump-status-value">--</span></div></div><p id="pump-status-text">Aguardando status...</p></div>
+                <div class="card"><div class="card-header"><div class="card-title">Modo de Operação</div><div class="card-icon" id="mode-icon"><span id="mode-value">--</span></div></div><p id="mode-text">Aguardando status...</p></div>
+            </div>
+            <div class="level-indicator"><div class="level-title">Nível da Caixa d'Água</div><div class="level-bar"><div id="level-fill" class="level-fill" style="width: 0%;"></div><div id="level-percentage" class="level-percentage">--%</div></div></div>
         </div>
-        <form id="loginForm">
-            <div class="form-group">
-                <label for="username">E-mail</label>
-                <input type="email" id="username" class="form-control" placeholder="Digite seu e-mail" required>
-                <div class="error-message" id="usernameError"></div>
+    </section>
+
+    <section id="chart-section">
+        <div class="container">
+            <div class="chart-container" style="background-color: white; padding: 2rem; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+                <h3 class="history-title" style="text-align: left; margin-bottom: 1.5rem;">Histórico de Nível (Últimas Leituras)</h3>
+                <canvas id="levelChart"></canvas>
             </div>
-            <div class="form-group">
-                <label for="password">Senha</label>
-                <input type="password" id="password" class="form-control" placeholder="Digite sua senha" required>
+        </div>
+    </section>
+
+    <section id="configuracoes">
+        <div class="container">
+            <h3 class="history-title">Configurações e Controle</h3>
+            <div class="settings-card">
+                <h4>Controle da Bomba de Água</h4>
+                <div class="motor-status-display">Status da Bomba: <span id="motor-status" class="status-indicator-off">--</span></div>
+                <div class="control-group"><label for="auto-mode-switch">Modo Automático</label><label class="switch"><input type="checkbox" id="auto-mode-switch"><span class="slider round"></span></label></div>
+                <div class="control-group"><label for="motor-button">Controle Manual</label><button id="motor-button" class="btn-motor-off" disabled>Ligar Bomba</button></div>
+                 <p class="settings-info"><b>Modo Automático:</b> A bomba liga/desliga com base nos limites.<br><b>Modo Manual:</b> Desative o modo automático para o controle manual.</p>
             </div>
-            <button type="submit" class="btn">Entrar</button>
-        </form>
-    </div>
+        </div>
+    </section>
+    <footer><div class="footer-content"><p>&copy; 2025 AquaMonitor</p></div></footer>
 
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
@@ -41,42 +68,135 @@
         const auth = firebase.auth();
         const database = firebase.database();
     </script>
-
+    
     <script>
-        // LÓGICA DE LOGIN ATUALIZADA com verificação de cargo
-        document.addEventListener('DOMContentLoaded', function() {
-            const loginForm = document.getElementById('loginForm');
-            const usernameError = document.getElementById('usernameError');
-
-            loginForm.addEventListener('submit', function(e) {
+        document.addEventListener('DOMContentLoaded', function () {
+            
+            auth.onAuthStateChanged(user => { if (!user) window.location.href = 'login.html'; });
+            document.querySelector('.logout-button').addEventListener('click', e => {
                 e.preventDefault();
-                usernameError.style.display = 'none';
+                auth.signOut().then(() => window.location.href = 'login.html');
+            });
 
-                const email = document.getElementById('username').value;
-                const password = document.getElementById('password').value;
+            const levelFill = document.getElementById('level-fill');
+            const levelPercentage = document.getElementById('level-percentage');
+            const levelCardValue = document.getElementById('level-card-value');
+            const levelCardText = document.getElementById('level-card-text');
+            const levelCardIcon = document.getElementById('level-card-icon');
+            const autoModeSwitch = document.getElementById('auto-mode-switch');
+            const motorButton = document.getElementById('motor-button');
+            const motorStatus = document.getElementById('motor-status');
+            const pumpStatusIcon = document.getElementById('pump-status-icon');
+            const pumpStatusValue = document.getElementById('pump-status-value');
+            const pumpStatusText = document.getElementById('pump-status-text');
+            const modeIcon = document.getElementById('mode-icon');
+            const modeValue = document.getElementById('mode-value');
+            const modeText = document.getElementById('mode-text');
+            
+            const levelRef = database.ref('sensorData/level');
+            const controlRef = database.ref('bomba/controle');
+            const historyRef = database.ref('historico').orderByChild('timestamp').limitToLast(30);
 
-                // Passo 1: Autenticar o usuário
-                auth.signInWithEmailAndPassword(email, password)
-                    .then((userCredential) => {
-                        const user = userCredential.user;
-                        // Passo 2: Buscar o perfil do usuário no Realtime Database
-                        return database.ref('usuarios/' + user.uid).get();
-                    })
-                    .then((snapshot) => {
-                        // Passo 3: Decidir para onde redirecionar
-                        if (snapshot.exists() && snapshot.val().role === 'admin') {
-                            // Se o cargo for 'admin', redireciona para a página de admin
-                            window.location.href = 'admin.html';
-                        } else {
-                            // Caso contrário (cliente ou sem cargo), redireciona para a página principal
-                            window.location.href = 'index.html';
-                        }
-                    })
-                    .catch((error) => {
-                        console.error("Erro no login:", error);
-                        usernameError.textContent = 'E-mail ou senha inválidos.';
-                        usernameError.style.display = 'block';
-                    });
+            const ctx = document.getElementById('levelChart').getContext('2d');
+            const levelChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Nível da Água (%)',
+                        data: [],
+                        borderColor: '#2e7d32',
+                        backgroundColor: 'rgba(46, 125, 50, 0.1)',
+                        fill: true,
+                        tension: 0.2
+                    }]
+                },
+                options: { scales: { y: { beginAtZero: true, max: 100 } } }
+            });
+
+            historyRef.on('value', snapshot => {
+                const data = snapshot.val();
+                if (data) {
+                    const labels = [];
+                    const levels = [];
+                    for (const key in data) {
+                        const entry = data[key];
+                        const date = new Date(entry.timestamp);
+                        const timeString = date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                        labels.push(timeString);
+                        levels.push(entry.nivel);
+                    }
+                    levelChart.data.labels = labels;
+                    levelChart.data.datasets[0].data = levels;
+                    levelChart.update();
+                }
+            });
+
+            levelRef.on('value', snapshot => {
+                const level = snapshot.val();
+                if (level !== null) {
+                    updateDashboardUI(level);
+                }
+            });
+
+            function updateDashboardUI(level) {
+                levelFill.style.width = level + '%';
+                levelPercentage.textContent = level + '%';
+                levelCardValue.textContent = level + '%';
+                if (level <= 50) {
+                    levelFill.className = 'level-fill level-low';
+                    levelCardIcon.className = 'card-icon icon-red';
+                    levelCardText.textContent = 'Nível baixo. Bomba pode ligar.';
+                } else if (level < 95) {
+                    levelFill.className = 'level-fill level-medium';
+                    levelCardIcon.className = 'card-icon icon-orange';
+                    levelCardText.textContent = 'Nível moderado.';
+                } else {
+                    levelFill.className = 'level-fill level-high';
+                    levelCardIcon.className = 'card-icon icon-green';
+                    levelCardText.textContent = 'Nível adequado.';
+                }
+            }
+
+            controlRef.on('value', snapshot => {
+                const data = snapshot.val();
+                if (data) {
+                    motorStatus.textContent = data.statusBomba;
+                    pumpStatusValue.textContent = data.statusBomba === 'LIGADA' ? 'ON' : 'OFF';
+                    pumpStatusText.textContent = `A bomba está ${data.statusBomba}.`;
+                    if (data.statusBomba === 'LIGADA') {
+                        motorStatus.className = 'status-indicator-on';
+                        pumpStatusIcon.className = 'card-icon icon-green';
+                        motorButton.textContent = 'Desligar Bomba';
+                        motorButton.className = 'btn-motor-on';
+                    } else {
+                        motorStatus.className = 'status-indicator-off';
+                        pumpStatusIcon.className = 'card-icon icon-red';
+                        motorButton.textContent = 'Ligar Bomba';
+                        motorButton.className = 'btn-motor-off';
+                    }
+                    modeValue.textContent = data.modo === 'automatico' ? 'AUTO' : 'MAN';
+                    modeText.textContent = `Operando em modo ${data.modo}.`;
+                    if (data.modo === 'automatico') {
+                        autoModeSwitch.checked = true;
+                        motorButton.disabled = true;
+                        modeIcon.className = 'card-icon icon-green';
+                    } else {
+                        autoModeSwitch.checked = false;
+                        motorButton.disabled = false;
+                        modeIcon.className = 'card-icon icon-orange';
+                    }
+                }
+            });
+
+            autoModeSwitch.addEventListener('change', () => {
+                const newMode = autoModeSwitch.checked ? 'automatico' : 'manual';
+                controlRef.update({ modo: newMode });
+            });
+
+            motorButton.addEventListener('click', () => {
+                const newCommand = motorButton.textContent.includes('Ligar') ? 'LIGAR' : 'DESLIGAR';
+                controlRef.update({ comandoManual: newCommand });
             });
         });
     </script>
