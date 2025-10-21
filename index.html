@@ -27,7 +27,7 @@
                 <div class="card">
                     <div class="card-header"><div class="card-title">Volume Atual (Litros)</div></div>
                     <h2 id="volume-liters-value" class="card-main-value">--</h2>
-                    <p id="volume-liters-text">Insira as dimensões da caixa...</p>
+                    <p id="volume-liters-text">Calculando...</p>
                 </div>
                 
                 <div class="card">
@@ -56,26 +56,6 @@
     <section id="configuracoes">
         <div class="container">
             <h3 class="history-title">Configurações e Controle</h3>
-
-            <div class="settings-card">
-                <h4>Configurações da Caixa d'Água</h4>
-                <div class="form-group">
-                    <label for="tank-shape">Formato da Caixa:</label>
-                    <select id="tank-shape">
-                        <option value="retangular">Retangular / Quadrada</option>
-                        <option value="cilindrica">Cilíndrica</option>
-                    </select>
-                </div>
-                <div id="retangular-fields" class="dimension-fields">
-                    <div class="form-group"><label for="tank-width">Largura (cm):</label><input type="number" id="tank-width" placeholder="ex: 100"></div>
-                    <div class="form-group"><label for="tank-depth">Profundidade (cm):</label><input type="number" id="tank-depth" placeholder="ex: 100"></div>
-                </div>
-                <div id="cilindrica-fields" class="dimension-fields">
-                    <div class="form-group"><label for="tank-diameter">Diâmetro (cm):</label><input type="number" id="tank-diameter" placeholder="ex: 120"></div>
-                </div>
-                <button id="save-tank-settings" class="btn-action btn-green" style="width: 100%;">Salvar Dimensões</button>
-                 <p class="settings-info">A altura da caixa é fixa em 110 cm, conforme definido no hardware.</p>
-            </div>
 
             <div class="settings-card" style="margin-top: 2rem;">
                 <h4>Controle da Bomba de Água</h4>
