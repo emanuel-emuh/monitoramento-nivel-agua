@@ -15,17 +15,12 @@ document.addEventListener('DOMContentLoaded', function () {
     const auth = firebase.auth();
     const database = firebase.database();
 
-    let currentUserId = null;
-
     // --- VERIFICAÇÃO DE AUTENTICAÇÃO E LOGOUT ---
     auth.onAuthStateChanged(user => {
         if (!user) {
             window.location.href = 'login.html';
-        } else {
-            currentUserId = user.uid;
-            // Carrega as configurações da caixa d'água do usuário quando ele loga
-            loadTankSettings(currentUserId);
-        }
+        } 
+        // Não precisamos mais carregar as configurações do usuário
     });
 
     document.querySelector('.logout-button').addEventListener('click', e => {
@@ -36,8 +31,8 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     // --- VARIÁVEIS GLOBAIS ---
-    let userTankSettings = {}; // Armazena as dimensões da caixa do usuário
-    let totalVolumeLiters = 0; // Volume total da caixa em litros
+    // ATUALIZADO: Volume fixo para o protótipo (12x12x12 cm = 1.728 Litros)
+    const totalVolumeLiters = 1.728;
 
     // --- REFERÊNCIAS AOS ELEMENTOS DO DOM (HTML) ---
     // Dashboard
@@ -62,11 +57,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const modeValue = document.getElementById('mode-value');
     const modeText = document.getElementById('mode-text');
 
-    // Configurações da Caixa
-    const tankShapeSelect = document.getElementById('tank-shape');
-    const retangularFields = document.getElementById('retangular-fields');
-    const cilindricaFields = document.getElementById('cilindrica-fields');
-    const saveTankSettingsButton = document.getElementById('save-tank-settings');
+    // Configurações da Caixa (REMOVIDAS)
 
     // Modo Férias
     const btnFerias = document.getElementById('btn-ferias');
@@ -76,7 +67,6 @@ document.addEventListener('DOMContentLoaded', function () {
     // --- REFERÊNCIAS AOS DADOS NO FIREBASE ---
     const levelRef = database.ref('sensorData/level');
     const controlRef = database.ref('bomba/controle');
-    // Aumentamos o limite para ter mais dados para o cálculo de consumo
     const historyRef = database.ref('historico').orderByChild('timestamp').limitToLast(100);
 
     // --- CONFIGURAÇÃO E INICIALIZAÇÃO DO GRÁFICO ---
@@ -121,7 +111,6 @@ document.addEventListener('DOMContentLoaded', function () {
             levelChart.data.datasets[0].data = levels;
             levelChart.update();
             
-            // Calcula o consumo médio com os novos dados
             calculateAverageConsumption(data);
         }
     });
@@ -142,78 +131,19 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // --- LÓGICA DAS NOVAS FUNCIONALIDADES ---
 
-    // Carrega as configurações da caixa do Firebase
-    function loadTankSettings(userId) {
-        if (!userId) return;
-        database.ref('usuarios/' + userId + '/tankSettings').get().then(snapshot => {
-            if (snapshot.exists()) {
-                userTankSettings = snapshot.val();
-                calculateTotalVolume();
-                updateTankSettingsForm();
-            }
-            toggleDimensionFields();
-        });
-    }
-
-    // Salva as configurações da caixa no Firebase
-    saveTankSettingsButton.addEventListener('click', () => {
-        if (!currentUserId) return;
-
-        userTankSettings = {
-            shape: tankShapeSelect.value,
-            width: document.getElementById('tank-width').value || 0,
-            depth: document.getElementById('tank-depth').value || 0,
-            diameter: document.getElementById('tank-diameter').value || 0,
-        };
-
-        database.ref('usuarios/' + currentUserId + '/tankSettings').set(userTankSettings)
-            .then(() => {
-                alert('Configurações salvas com sucesso!');
-                calculateTotalVolume();
-                // Força a atualização da UI com o novo volume
-                levelRef.get().then(snapshot => updateDashboardUI(snapshot.val()));
-            })
-            .catch(error => alert('Erro ao salvar: ' + error.message));
-    });
-    
-    tankShapeSelect.addEventListener('change', toggleDimensionFields);
-    function toggleDimensionFields() {
-        retangularFields.style.display = tankShapeSelect.value === 'retangular' ? 'block' : 'none';
-        cilindricaFields.style.display = tankShapeSelect.value === 'cilindrica' ? 'block' : 'none';
-    }
-
-    function updateTankSettingsForm() {
-        if (!userTankSettings) return;
-        tankShapeSelect.value = userTankSettings.shape || 'retangular';
-        document.getElementById('tank-width').value = userTankSettings.width || '';
-        document.getElementById('tank-depth').value = userTankSettings.depth || '';
-        document.getElementById('tank-diameter').value = userTankSettings.diameter || '';
-    }
-
-    // Calcula o volume total da caixa em litros
-    function calculateTotalVolume() {
-        if (!userTankSettings || !userTankSettings.shape) {
-            totalVolumeLiters = 0;
-            return;
-        }
-
-        let volumeCm3 = 0;
-        const alturaCaixaCm = 110; // Fixo, conforme o .ino
-        const pi = 3.14159;
-        if (userTankSettings.shape === 'retangular') {
-            volumeCm3 = (userTankSettings.width || 0) * (userTankSettings.depth || 0) * alturaCaixaCm;
-        } else if (userTankSettings.shape === 'cilindrica') {
-            const radius = (userTankSettings.diameter || 0) / 2;
-            volumeCm3 = pi * (radius * radius) * alturaCaixaCm;
-        }
-        totalVolumeLiters = volumeCm3 / 1000; // 1000 cm³ = 1 Litro
-    }
+    // FUNÇÕES DE CONFIGURAÇÃO DE CAIXA (REMOVIDAS)
+    // - loadTankSettings
+    // - saveTankSettingsButton.addEventListener
+    // - toggleDimensionFields
+    // - updateTankSettingsForm
+    // - calculateTotalVolume
 
     // Calcula o consumo médio diário em litros
     function calculateAverageConsumption(historyData) {
-        if (totalVolumeLiters === 0 || !historyData) {
+        // ATUALIZADO: O volume total é fixo, já não precisamos de verificar se é 0
+        if (!historyData) {
             consumptionValue.textContent = '--';
-            consumptionText.textContent = 'Insira as dimensões...';
+            consumptionText.textContent = 'Calculando...';
             return;
         }
 
@@ -226,7 +156,6 @@ document.addEventListener('DOMContentLoaded', function () {
             const prev = entries[i-1];
             const curr = entries[i];
             
-            // Ignora subidas de nível (bomba ligou) ou dados instáveis
             if (curr.nivel > prev.nivel) continue;
 
             const date = new Date(curr.timestamp).toLocaleDateString('pt-BR');
@@ -279,15 +208,10 @@ document.addEventListener('DOMContentLoaded', function () {
             levelCardText.textContent = 'Nível adequado.';
         }
 
-        // Atualiza o volume em litros
-        if (totalVolumeLiters > 0) {
-            const currentLiters = (totalVolumeLiters * (level / 100)).toFixed(1);
-            volumeLitersValue.textContent = `${currentLiters} L`;
-            volumeLitersText.textContent = `De um total de ${totalVolumeLiters.toFixed(1)} L`;
-        } else {
-            volumeLitersValue.textContent = '-- L';
-            volumeLitersText.textContent = "Insira as dimensões da caixa...";
-        }
+        // ATUALIZADO: Mostra o volume com base no valor fixo
+        const currentLiters = (totalVolumeLiters * (level / 100)).toFixed(1);
+        volumeLitersValue.textContent = `${currentLiters} L`;
+        volumeLitersText.textContent = `De um total de ${totalVolumeLiters.toFixed(1)} L`;
     }
     
     function updatePumpControlsUI(data) {
@@ -320,7 +244,6 @@ document.addEventListener('DOMContentLoaded', function () {
             modeIcon.className = 'card-icon icon-orange';
         }
         
-        // Atualiza a aparência do botão Modo Férias
         if (data.modoOperacao === 'ferias') {
             btnFerias.textContent = 'Desativar Modo Férias';
             btnFerias.className = 'ferias';
@@ -332,7 +255,6 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
     
-    // Eventos de clique para os botões de controle
     autoModeSwitch.addEventListener('change', () => {
         const newMode = autoModeSwitch.checked ? 'automatico' : 'manual';
         controlRef.update({ modo: newMode });
