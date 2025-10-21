@@ -1,9 +1,9 @@
 // ===================================================================
-//   AQUAMONITOR - SCRIPT DO DASHBOARD DO CLIENTE (dashboard.js)
+//   AQUAMONITOR - SCRIPT DO PAINEL DE ADMINISTRADOR (admin.js)
 // ===================================================================
 
 document.addEventListener('DOMContentLoaded', function () {
-    console.log("Dashboard script starting..."); // DEBUG
+    console.log("Admin script starting...");
 
     // --- INICIALIZAÇÃO E AUTENTICAÇÃO DO FIREBASE ---
     const firebaseConfig = {
@@ -14,351 +14,317 @@ document.addEventListener('DOMContentLoaded', function () {
     };
     try {
         firebase.initializeApp(firebaseConfig);
-        console.log("Firebase initialized."); // DEBUG
+        console.log("Firebase initialized.");
     } catch (e) {
         console.error("Firebase initialization failed:", e);
         alert("Erro crítico ao inicializar a conexão. Verifique a consola.");
-        return; // Impede a execução do resto do script
+        return;
     }
     const auth = firebase.auth();
     const database = firebase.database();
 
-    // --- VERIFICAÇÃO DE AUTENTICAÇÃO E LOGOUT ---
+    // --- Referências DOM --- (Obtidas cedo)
+    const levelCard = document.getElementById('admin-level-card');
+    const resLevelCard = document.getElementById('admin-res-level-card');
+    const pumpStatusCard = document.getElementById('admin-pump-status-card');
+    const collectionStatusCard = document.getElementById('admin-collection-status-card');
+    const connectionStatusCard = document.getElementById('admin-connection-status');
+    const lastSeenText = document.getElementById('admin-last-seen');
+    const lowLimitInput = document.getElementById('low-limit-input');
+    const highLimitInput = document.getElementById('high-limit-input');
+    const settingsFeedback = document.getElementById('settings-feedback');
+    const toggleCollectionButton = document.getElementById('toggle-collection-button');
+    const restartEspButton = document.getElementById('restart-esp-button');
+    const logEntriesList = document.getElementById('log-entries');
+    const adminWaterMain = document.getElementById('admin-water-main');
+    const adminWaterRes = document.getElementById('admin-water-res');
+    const adminLevelPercentMain = document.getElementById('admin-level-percent-main');
+    const adminLevelPercentRes = document.getElementById('admin-level-percent-res');
+    const saveSettingsButton = document.getElementById('save-settings-button');
+    const clearHistoryButton = document.getElementById('clear-history-button');
+    const logoutButton = document.querySelector('.logout-button');
+
+    // --- Referências Firebase ---
+    const sensorRef = database.ref('sensorData');
+    const controlRef = database.ref('bomba/controle');
+    const settingsRef = database.ref('configuracoes/sistema');
+    const historyRef = database.ref('historico');
+    const logsRef = database.ref('logs');
+    const lastSeenRef = database.ref('sensorData/lastSeen');
+
+     // --- Variável de estado para evitar adicionar listeners múltiplos ---
+     let listenersAttached = false;
+
+    // --- Verificação de Admin ---
     auth.onAuthStateChanged(user => {
-        console.log("Auth state changed. User:", user ? user.uid : 'null'); // DEBUG
-        if (!user) {
-            console.log("No user logged in, redirecting to login."); // DEBUG
+        console.log("Auth state changed. User:", user ? user.uid : 'null');
+        if (user) {
+            database.ref('usuarios/' + user.uid).get().then(snapshot => {
+                if (!snapshot.exists() || snapshot.val().role !== 'admin') {
+                    console.warn("User is not admin or data missing.");
+                    alert('Acesso negado. Você precisa ser administrador.');
+                    window.location.href = 'index.html';
+                } else {
+                    console.log("Admin verified.");
+                    // Garante que os listeners só são adicionados uma vez
+                    if (!listenersAttached) {
+                        console.log("Attaching listeners and enabling controls...");
+                        enableAdminControls(); // Habilita botões e adiciona listeners de clique
+                        attachFirebaseListeners(); // Adiciona listeners do Firebase
+                        listenersAttached = true;
+                    }
+                }
+            }).catch(error => {
+                console.error("Erro ao verificar permissão:", error);
+                window.location.href = 'login.html';
+            });
+        } else {
+            console.log("No user logged in, redirecting to login.");
             window.location.href = 'login.html';
         }
-        // Não precisamos carregar settings do usuário aqui
     });
 
-    // --- Referências DOM --- (Obtidas cedo)
-    const logoutButton = document.querySelector('.logout-button');
-    // Caixa Principal
-    const mainLevelValue = document.getElementById('main-level-value');
-    const mainLevelLiters = document.getElementById('main-level-liters');
-    const levelFillMain = document.getElementById('level-fill-main');
-    const levelPercentageMain = document.getElementById('level-percentage-main');
-    const clientWaterMain = document.getElementById('client-water-main');
-    const clientLevelPercentMain = document.getElementById('client-level-percent-main');
-    // Reservatório
-    const resLevelValue = document.getElementById('res-level-value');
-    const resLevelLiters = document.getElementById('res-level-liters');
-    const levelFillRes = document.getElementById('level-fill-res');
-    const levelPercentageRes = document.getElementById('level-percentage-res');
-    const clientWaterRes = document.getElementById('client-water-res');
-    const clientLevelPercentRes = document.getElementById('client-level-percent-res');
-    // Outros
-    const consumptionValue = document.getElementById('consumption-value');
-    const consumptionText = document.getElementById('consumption-text');
-    // Controles da Bomba
-    const autoModeSwitch = document.getElementById('auto-mode-switch');
-    const motorButton = document.getElementById('motor-button');
-    const motorStatus = document.getElementById('motor-status');
-    const pumpStatusIcon = document.getElementById('pump-status-icon');
-    const pumpStatusValue = document.getElementById('pump-status-value');
-    const pumpStatusText = document.getElementById('pump-status-text');
-    const modeIcon = document.getElementById('mode-icon');
-    const modeValue = document.getElementById('mode-value');
-    const modeText = document.getElementById('mode-text');
-    // Modo Férias
-    const btnFerias = document.getElementById('btn-ferias');
-    const feriasInfo = document.getElementById('ferias-info');
-    // Gráfico
-    const ctx = document.getElementById('levelChart').getContext('2d');
+    // --- Função para Habilitar Controles e Adicionar Listeners de Clique ---
+    function enableAdminControls() {
+        // Remove o atributo 'disabled' se existir
+        saveSettingsButton.disabled = false;
+        // toggleCollectionButton será habilitado/desabilitado pelo listener
+        clearHistoryButton.disabled = false;
+        restartEspButton.disabled = false;
+        logoutButton.disabled = false; // Botão de logout
+
+        console.log("Admin control buttons potentially enabled.");
+
+        // Adiciona listeners aos botões (se já não existirem - idealmente usar .removeEventListener antes, mas isto simplifica)
+        // Usar .onclick garante que substitui listeners anteriores, se houver
+        logoutButton.onclick = (e) => {
+             e.preventDefault();
+             auth.signOut().then(() => { window.location.href = 'login.html'; });
+        };
+
+        saveSettingsButton.onclick = () => {
+             console.log("Save Settings clicked");
+             const newLow = parseInt(lowLimitInput.value);
+             const newHigh = parseInt(highLimitInput.value);
+             if (isNaN(newLow) || isNaN(newHigh) || newLow < 0 || newHigh > 100 || newLow >= newHigh) {
+                 alert('Valores inválidos para os limites.');
+                 return;
+             }
+             settingsRef.update({ limiteInferior: newLow, limiteSuperior: newHigh })
+                 .then(() => {
+                     settingsFeedback.textContent = 'Configurações salvas!';
+                     setTimeout(() => { settingsFeedback.textContent = ''; }, 3000);
+                 })
+                 .catch(error => {
+                    console.error("Error saving settings:", error);
+                    alert('Erro ao salvar configurações: ' + error.message);
+                 });
+         };
+
+         toggleCollectionButton.onclick = () => {
+             console.log("Toggle Collection clicked");
+             // Desabilita temporariamente para evitar cliques duplos
+             toggleCollectionButton.disabled = true;
+             sensorRef.child('coletaAtiva').get().then(snapshot => {
+                 const isCurrentlyActive = snapshot.val() !== false;
+                 sensorRef.update({ coletaAtiva: !isCurrentlyActive })
+                    .catch(error => {
+                        console.error("Error toggling collection:", error);
+                        alert('Erro ao alterar coleta: ' + error.message);
+                    })
+                    .finally(() => {
+                        // Reabilita o botão após a operação, independentemente do resultado
+                         toggleCollectionButton.disabled = false;
+                    });
+             }).catch(error => {
+                 console.error("Error getting current collection status:", error);
+                 alert('Erro ao ler status da coleta: ' + error.message);
+                 toggleCollectionButton.disabled = false; // Reabilita em caso de erro na leitura
+             });
+         };
+
+         clearHistoryButton.onclick = () => {
+             console.log("Clear History clicked");
+             if (confirm('Tem certeza que deseja apagar TODO o histórico de leituras?')) {
+                 historyRef.remove()
+                     .then(() => alert('Histórico limpo com sucesso!'))
+                     .catch(error => {
+                        console.error("Error clearing history:", error);
+                        alert('Erro ao limpar histórico: ' + error.message);
+                     });
+             }
+         };
+
+         restartEspButton.onclick = () => {
+             console.log("Restart ESP clicked");
+             if (confirm('Tem certeza que deseja reiniciar o ESP8266?')) {
+                 controlRef.update({ comandoRestart: true })
+                     .then(() => alert('Comando enviado.'))
+                     .catch(error => {
+                        console.error("Error sending restart command:", error);
+                        alert('Erro ao enviar comando: ' + error.message);
+                     });
+             }
+         };
+         console.log("Admin button click handlers attached.");
+    }
+
+    // --- Função para Adicionar Listeners do Firebase ---
+    function attachFirebaseListeners() {
+        console.log("Attaching Firebase listeners...");
+
+        // Sensor Data (Níveis, Coleta)
+        sensorRef.on('value', snapshot => {
+            console.log("Sensor data received:", snapshot.val());
+            let levelMain = '--';
+            let levelRes = '--';
+            let isCollectionActive = false;
+            let collectionText = '??';
+            let collectionColor = '#6c757d';
+
+            if(snapshot.exists()) {
+                const currentData = snapshot.val();
+                levelMain = currentData.level !== undefined ? currentData.level : '--';
+                levelRes = currentData.levelReservatorio !== undefined ? currentData.levelReservatorio : '--';
+
+                isCollectionActive = currentData.coletaAtiva !== false;
+                collectionText = isCollectionActive ? 'ATIVA' : 'PAUSADA';
+                collectionColor = isCollectionActive ? '#28a745' : '#dc3545';
+                // Atualiza o estado visual do botão de coleta
+                toggleCollectionButton.textContent = isCollectionActive ? 'Pausar Coleta' : 'Retomar Coleta';
+                toggleCollectionButton.className = 'btn-action ' + (isCollectionActive ? 'btn-red' : 'btn-green');
+                 // Habilita o botão se houver dados
+                 if (listenersAttached) toggleCollectionButton.disabled = false;
 
 
-    // --- VARIÁVEIS GLOBAIS ---
-    const totalVolumeLiters = 1.728; // Volume fixo
+                adminWaterMain.style.height = (levelMain !== '--' ? levelMain : 0) + '%'; // Usa 0 se inválido
+                adminWaterRes.style.height = (levelRes !== '--' ? levelRes : 0) + '%'; // Usa 0 se inválido
+                adminLevelPercentMain.textContent = levelMain;
+                adminLevelPercentRes.textContent = levelRes;
 
-    // --- REFERÊNCIAS AOS DADOS NO FIREBASE ---
-    const sensorDataRef = database.ref('sensorData');
-    const controlRef = database.ref('bomba/controle');
-    const historyRef = database.ref('historico').orderByChild('timestamp').limitToLast(100);
-
-    // --- CONFIGURAÇÃO E INICIALIZAÇÃO DO GRÁFICO ---
-    const levelChart = new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: [],
-            datasets: [{
-                label: 'Nível Caixa Principal (%)',
-                data: [],
-                borderColor: '#2e7d32',
-                backgroundColor: 'rgba(46, 125, 50, 0.1)',
-                fill: true,
-                tension: 0.2
-            }]
-        },
-        options: {
-            scales: {
-                y: { beginAtZero: true, max: 100 }
-            },
-            animation: { // Desativa animação para evitar problemas visuais iniciais
-                duration: 0
+            } else {
+                 console.warn("Sensor data node does not exist.");
+                 // Mantém o botão desabilitado se não houver dados
+                 toggleCollectionButton.textContent = 'Aguardando...';
+                 toggleCollectionButton.className = 'btn-action';
+                 toggleCollectionButton.disabled = true;
+                 adminWaterMain.style.height = `0%`;
+                 adminWaterRes.style.height = `0%`;
+                 adminLevelPercentMain.textContent = '--';
+                adminLevelPercentRes.textContent = '--';
             }
-        }
-     });
 
-    // --- OUVINTES (LISTENERS) DE DADOS DO FIREBASE ---
-    console.log("Attaching Firebase listeners..."); //DEBUG
+            levelCard.textContent = `${levelMain}%`;
+            resLevelCard.textContent = `${levelRes}%`;
+            collectionStatusCard.textContent = collectionText;
+            collectionStatusCard.style.color = collectionColor;
 
-    historyRef.on('value', snapshot => {
-        console.log("Dashboard history data received:", snapshot.val() ? snapshot.numChildren() + " entries" : "null"); // DEBUG
-        const data = snapshot.val();
-        const labels = [];
-        const levels = [];
+        }, error => {
+             console.error("Error fetching sensor data:", error);
+             toggleCollectionButton.disabled = true; // Desabilita em caso de erro
+        });
 
-        if (data) {
-            const sortedEntries = Object.values(data)
-                                    .filter(entry => typeof entry === 'object' && entry !== null && typeof entry.timestamp === 'number' && typeof entry.nivel === 'number')
-                                    .sort((a, b) => a.timestamp - b.timestamp);
+        // Controle da Bomba (Status)
+        controlRef.on('value', snapshot => {
+            console.log("Control data received:", snapshot.val());
+            let pumpStatus = '--';
+            let pumpColor = '#6c757d';
 
-            console.log("Sorted history entries:", sortedEntries.length); // DEBUG
+            if (snapshot.exists()) {
+                const currentControlData = snapshot.val();
+                pumpStatus = currentControlData.statusBomba || '--';
+                pumpColor = currentControlData.statusBomba === 'LIGADA' ? '#28a745' : '#dc3545';
+            } else {
+                console.warn("Control data node does not exist.");
+            }
+            pumpStatusCard.textContent = pumpStatus;
+            pumpStatusCard.style.color = pumpColor;
 
-            sortedEntries.forEach(entry => {
-                const date = new Date(entry.timestamp);
-                const timeString = date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-                labels.push(timeString);
-                levels.push(entry.nivel);
-            });
+        }, error => {
+            console.error("Error fetching control data:", error);
+            pumpStatusCard.textContent = 'Erro'; // Indica erro na UI
+        });
 
-            calculateAverageConsumption(data);
+        // Configurações (Limites)
+        settingsRef.on('value', snapshot => {
+            if (snapshot.exists()) {
+                const settings = snapshot.val();
+                lowLimitInput.value = settings.limiteInferior || 50;
+                highLimitInput.value = settings.limiteSuperior || 95;
+            } else {
+                console.warn("Settings node does not exist, using defaults.");
+                lowLimitInput.value = 50;
+                highLimitInput.value = 95;
+            }
+        }, error => {
+             console.error("Error fetching settings data:", error);
+             alert("Erro ao carregar configurações de limites.");
+        });
 
-        } else {
-             console.warn("History data is null or empty."); // DEBUG
-             consumptionValue.textContent = '--';
-             consumptionText.textContent = 'Sem histórico.';
-        }
+        // Last Seen (Status Conexão)
+         lastSeenRef.on('value', snapshot => {
+             console.log("LastSeen data received:", snapshot.val());
+             if (snapshot.exists()) {
+                 const lastSeenTimestamp = snapshot.val();
+                  // Verifica se é um número válido antes de usar
+                 if (typeof lastSeenTimestamp === 'number' && lastSeenTimestamp > 0) {
+                     const now = Date.now();
+                     const diffMinutes = (now - lastSeenTimestamp) / (1000 * 60);
+                     const lastSeenDate = new Date(lastSeenTimestamp);
+                     const formattedDate = lastSeenDate.toLocaleString('pt-BR');
 
-        // Atualiza os dados do gráfico SEMPRE
-        levelChart.data.labels = labels;
-        levelChart.data.datasets[0].data = levels;
-        try {
-            levelChart.update();
-            console.log("Chart updated successfully."); // DEBUG
-        } catch (e) {
-            console.error("Error updating chart:", e); // DEBUG
-        }
-
-    }, error => {
-        console.error("Error fetching history data:", error);
-        levelChart.data.labels = [];
-        levelChart.data.datasets[0].data = [];
-        levelChart.update();
-        consumptionValue.textContent = 'Erro';
-        consumptionText.textContent = 'Falha ao carregar histórico.';
-    });
-
-
-    sensorDataRef.on('value', snapshot => {
-        console.log("Sensor data received:", snapshot.val()); // DEBUG
-        const data = snapshot.val();
-        if (data && data.level !== undefined && data.levelReservatorio !== undefined) {
-            updateDashboardUI(data.level, data.levelReservatorio);
-        } else {
-             console.warn("Sensor data incomplete or missing."); // DEBUG
-             updateDashboardUI('--', '--');
-        }
-    }, error => {
-        console.error("Error fetching sensor data:", error);
-        updateDashboardUI('--', '--');
-    });
-
-
-    controlRef.on('value', snapshot => {
-         console.log("Control data received:", snapshot.val()); // DEBUG
-        const data = snapshot.val();
-        updatePumpControlsUI(data || {});
-    }, error => {
-         console.error("Error fetching control data:", error);
-         updatePumpControlsUI({});
-    });
-
-
-    // --- LÓGICA DAS NOVAS FUNCIONALIDADES ---
-
-    function calculateAverageConsumption(historyData) {
-        if (!historyData) {
-            consumptionValue.textContent = '--';
-            consumptionText.textContent = 'Calculando...';
-            return;
-        }
-        const entries = Object.values(historyData)
-                        .filter(entry => typeof entry === 'object' && entry !== null && typeof entry.timestamp === 'number' && typeof entry.nivel === 'number')
-                        .sort((a, b) => a.timestamp - b.timestamp);
-        if (entries.length < 2) {
-             consumptionValue.textContent = '0 L/dia';
-             consumptionText.textContent = 'Dados insuficientes.';
-             return;
-        }
-
-        const consumptionByDay = {};
-        for (let i = 1; i < entries.length; i++) {
-            const prev = entries[i-1];
-            const curr = entries[i];
-            if (curr.nivel > prev.nivel) continue;
-            const date = new Date(curr.timestamp).toLocaleDateString('pt-BR');
-            consumptionByDay[date] = (consumptionByDay[date] || 0) + (prev.nivel - curr.nivel);
-        }
-
-        const dailyConsumptions = Object.values(consumptionByDay);
-        if (dailyConsumptions.length === 0) {
-            consumptionValue.textContent = '0 L/dia';
-            consumptionText.textContent = 'Sem consumo registado.';
-            return;
-        }
-
-        const totalPercentageDropped = dailyConsumptions.reduce((sum, val) => sum + val, 0);
-        const averagePercentageDropped = totalPercentageDropped / dailyConsumptions.length;
-        const averageLitersConsumed = (totalVolumeLiters * (averagePercentageDropped / 100)).toFixed(1);
-
-        consumptionValue.textContent = `${averageLitersConsumed} L/dia`;
-        consumptionText.textContent = `Méd. últimos ${dailyConsumptions.length} dias.`;
-    }
-
-
-    // --- AÇÕES DOS BOTÕES ---
-    console.log("Attaching button listeners..."); // DEBUG
-
-    logoutButton.addEventListener('click', e => {
-        e.preventDefault();
-        auth.signOut().then(() => { window.location.href = 'login.html'; });
-    });
-
-    btnFerias.addEventListener('click', () => {
-        console.log("Botão Férias clicado");
-        const isFerias = btnFerias.classList.contains('ferias');
-        const newMode = isFerias ? 'normal' : 'ferias';
-        controlRef.update({ modoOperacao: newMode })
-            .catch(error => {
-                console.error("Erro ao atualizar modo férias:", error);
-                alert("Erro ao tentar mudar o modo Férias.");
-            });
-    });
-
-    autoModeSwitch.addEventListener('change', () => {
-        console.log("Switch Auto/Manual mudou:", autoModeSwitch.checked);
-        const newMode = autoModeSwitch.checked ? 'automatico' : 'manual';
-        controlRef.update({ modo: newMode })
-         .catch(error => {
-            console.error("Erro ao atualizar modo:", error);
-            alert("Erro ao tentar mudar o modo.");
-            autoModeSwitch.checked = !autoModeSwitch.checked;
+                     if (diffMinutes > 5) {
+                         connectionStatusCard.textContent = 'OFFLINE';
+                         connectionStatusCard.style.color = '#dc3545';
+                         lastSeenText.textContent = `Visto: ${formattedDate}`;
+                     } else {
+                         connectionStatusCard.textContent = 'ONLINE';
+                         connectionStatusCard.style.color = '#28a745';
+                         lastSeenText.textContent = `Sinal: ${formattedDate}`;
+                     }
+                 } else {
+                      console.warn("LastSeen timestamp is invalid:", lastSeenTimestamp);
+                      connectionStatusCard.textContent = '??';
+                      connectionStatusCard.style.color = '#6c757d';
+                      lastSeenText.textContent = 'Timestamp inválido.';
+                 }
+             } else {
+                 console.warn("LastSeen node does not exist.");
+                 connectionStatusCard.textContent = '??';
+                 connectionStatusCard.style.color = '#6c757d';
+                 lastSeenText.textContent = 'Nenhum sinal.';
+             }
+         }, error => {
+              console.error("Error fetching lastSeen data:", error);
+              connectionStatusCard.textContent = 'Erro';
+              lastSeenText.textContent = 'Falha ao carregar.';
          });
-    });
 
-    motorButton.addEventListener('click', () => {
-        if(motorButton.disabled) {
-            console.warn("Botão manual clicado enquanto desabilitado.");
-            return;
-        }
-        console.log("Botão Manual clicado. Comando:", motorButton.textContent);
-        const newCommand = motorButton.textContent.includes('Ligar') ? 'LIGAR' : 'DESLIGAR';
-        controlRef.update({ comandoManual: newCommand })
-         .catch(error => {
-            console.error("Erro ao enviar comando manual:", error);
-            alert("Erro ao enviar comando para a bomba.");
+         // Logs
+         logsRef.orderByChild('timestamp').limitToLast(50).on('value', snapshot => {
+             console.log("Logs received:", snapshot.numChildren(), "entries");
+             logEntriesList.innerHTML = '';
+             if (snapshot.exists()) {
+                 const logs = [];
+                 snapshot.forEach(childSnapshot => { logs.push(childSnapshot.val()); });
+                 logs.reverse().forEach(log => {
+                     const timestamp = (log && typeof log.timestamp === 'number') ? log.timestamp : Date.now();
+                     const message = (log && log.message) ? log.message : "Log inválido";
+                     const date = new Date(timestamp);
+                     const formattedTime = date.toLocaleString('pt-BR');
+                     const listItem = document.createElement('li');
+                     listItem.textContent = `[${formattedTime}] ${message}`;
+                     logEntriesList.appendChild(listItem);
+                 });
+             } else {
+                 logEntriesList.innerHTML = '<li>Nenhum log registrado ainda.</li>';
+             }
+         }, error => {
+              console.error("Error fetching logs:", error);
+              logEntriesList.innerHTML = '<li>Erro ao carregar logs.</li>';
          });
-    });
-    console.log("Button listeners attached."); // DEBUG
 
-
-    // --- FUNÇÕES DE ATUALIZAÇÃO DA INTERFACE ---
-
-    function updateDashboardUI(levelMain, levelRes) {
-        const isDataValid = typeof levelMain === 'number' && typeof levelRes === 'number';
-
-        // --- Caixa Principal ---
-        const currentLitersMain = isDataValid ? (totalVolumeLiters * (levelMain / 100)).toFixed(1) : '--';
-        mainLevelValue.textContent = isDataValid ? `${levelMain}%` : '--%';
-        mainLevelLiters.textContent = isDataValid ? `${currentLitersMain} L (Total: ${totalVolumeLiters.toFixed(1)} L)` : '-- L';
-        levelFillMain.style.width = isDataValid ? levelMain + '%' : '0%';
-        levelPercentageMain.textContent = isDataValid ? `${levelMain}%` : '--%';
-        clientWaterMain.style.height = isDataValid ? levelMain + '%' : '0%';
-        clientLevelPercentMain.textContent = isDataValid ? levelMain : '--';
-
-        if (!isDataValid) {
-            levelFillMain.className = 'level-fill';
-        } else if (levelMain <= 50) {
-            levelFillMain.className = 'level-fill level-low';
-        } else if (levelMain < 95) {
-            levelFillMain.className = 'level-fill level-medium';
-        } else {
-            levelFillMain.className = 'level-fill level-high';
-        }
-
-        // --- Reservatório ---
-        const currentLitersRes = isDataValid ? (totalVolumeLiters * (levelRes / 100)).toFixed(1) : '--';
-        resLevelValue.textContent = isDataValid ? `${levelRes}%` : '--%';
-        resLevelLiters.textContent = isDataValid ? `${currentLitersRes} L (Total: ${totalVolumeLiters.toFixed(1)} L)` : '-- L';
-        levelFillRes.style.width = isDataValid ? levelRes + '%' : '0%';
-        levelPercentageRes.textContent = isDataValid ? `${levelRes}%` : '--%';
-        clientWaterRes.style.height = isDataValid ? levelRes + '%' : '0%';
-        clientLevelPercentRes.textContent = isDataValid ? levelRes : '--';
-
-        if (!isDataValid) {
-            levelFillRes.className = 'level-fill';
-        } else if (levelRes <= 50) {
-             levelFillRes.className = 'level-fill level-low';
-        } else if (levelRes < 95) {
-             levelFillRes.className = 'level-fill level-medium';
-        } else {
-             levelFillRes.className = 'level-fill level-high';
-        }
-    }
-
-
-    function updatePumpControlsUI(data) {
-        // Assume defaults seguros se data for vazio ou incompleto
-        const statusBomba = data.statusBomba || '--';
-        const modo = data.modo || '--';
-        const modoOp = data.modoOperacao || 'normal';
-
-        // Atualiza Cards
-        motorStatus.textContent = statusBomba;
-        pumpStatusValue.textContent = statusBomba === 'LIGADA' ? 'ON' : (statusBomba === 'DESLIGADA' ? 'OFF' : '--');
-        pumpStatusText.textContent = statusBomba !== '--' ? `A bomba está ${statusBomba}.` : 'Aguardando...';
-        pumpStatusIcon.className = 'card-icon ' + (statusBomba === 'LIGADA' ? 'icon-green' : 'icon-red');
-
-        modeValue.textContent = modo === 'automatico' ? 'AUTO' : (modo === 'manual' ? 'MAN' : '--');
-        modeText.textContent = modo !== '--' ? `Operando em modo ${modo}.` : 'Aguardando...';
-        modeIcon.className = 'card-icon ' + (modo === 'automatico' ? 'icon-green' : (modo === 'manual' ? 'icon-orange' : ''));
-
-        // Atualiza Controles
-        if (statusBomba === 'LIGADA') {
-            motorStatus.className = 'status-indicator-on';
-            motorButton.textContent = 'Desligar Bomba';
-            motorButton.className = 'btn-motor-on';
-        } else {
-            motorStatus.className = 'status-indicator-off';
-            motorButton.textContent = 'Ligar Bomba';
-            motorButton.className = 'btn-motor-off';
-        }
-
-        // Habilita/Desabilita botão manual e ajusta switch
-        if (modo === 'automatico') {
-            autoModeSwitch.checked = true;
-            motorButton.disabled = true;
-            console.log("Modo Automático: Botão manual DESABILITADO."); // DEBUG
-        } else {
-            autoModeSwitch.checked = false; // Desmarcado se manual ou indefinido
-            motorButton.disabled = false; // Habilita se manual ou indefinido
-             console.log(`Modo ${modo}: Botão manual HABILITADO.`); // DEBUG
-        }
-
-        // Atualiza Botão Modo Férias (sempre habilitado)
-        if (modoOp === 'ferias') {
-            btnFerias.textContent = 'Desativar Modo Férias';
-            btnFerias.className = 'ferias';
-            feriasInfo.innerHTML = '<b>Modo Férias ATIVADO:</b> Limites econômicos em uso.';
-        } else {
-            btnFerias.textContent = 'Ativar Modo Férias';
-            btnFerias.className = 'normal';
-            feriasInfo.innerHTML = '<b>Modo Férias:</b> Usa limites de 15% a 50% para economizar.';
-        }
-         btnFerias.disabled = false; // Garante que nunca fica desabilitado
+         console.log("Firebase listeners attached.");
     }
 
 }); // Fim do DOMContentLoaded
