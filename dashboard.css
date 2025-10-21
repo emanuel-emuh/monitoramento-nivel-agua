@@ -122,8 +122,8 @@ section {
 /* --- CARDS DE STATUS --- */
 .status-cards {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 2rem;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); /* Ajuste minmax para caber mais cards */
+    gap: 1.5rem; /* Reduz gap */
     margin-bottom: 3rem;
 }
 
@@ -148,19 +148,19 @@ section {
 }
 
 .card-title {
-    font-size: 1.2rem;
+    font-size: 1.1rem; /* Reduzido */
     font-weight: 600;
 }
 
 .card-icon {
-    width: 40px;
-    height: 40px;
+    width: 35px; /* Reduzido */
+    height: 35px; /* Reduzido */
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
     color: white;
-    font-size: 1rem;
+    font-size: 0.9rem; /* Reduzido */
     font-weight: bold;
     background-color: #6c757d; /* Cinza Padrão */
 }
@@ -169,32 +169,49 @@ section {
 .card-icon.icon-red { background-color: #dc3545; }
 .card-icon.icon-orange { background-color: #ff9800; }
 
+/* Estilo para valores principais nos cards (sem ícone) */
+.card-main-value {
+    font-size: 2rem; /* Reduzido */
+    text-align: center;
+    margin: 0.5rem 0 1rem 0;
+    font-weight: 600;
+}
+/* Cores específicas */
+#volume-liters-value, #cv-res-level-value, #admin-res-level-card, #admin-water-res { color: #007bff; }
+#consumption-value, #cv-consumption-value { color: #ff9800; }
+#admin-level-card, #cv-main-level-value, #admin-water-main { color: #2e7d32; }
+
+
 /* --- INDICADOR DE NÍVEL (BARRA DE PROGRESSO) --- */
 .level-indicator {
     background-color: white;
-    padding: 2rem;
+    padding: 1.5rem 2rem; /* Ajustado */
     border-radius: 10px;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
 }
 
 .level-title {
-    font-size: 1.2rem;
+    font-size: 1.1rem; /* Reduzido */
     margin-bottom: 1rem;
     font-weight: 600;
 }
 
 .level-bar {
-    height: 30px;
+    height: 25px; /* Reduzido */
     background-color: #e9ecef;
     border-radius: 15px;
     position: relative;
+    overflow: hidden; /* Garante cantos arredondados no preenchimento */
 }
 
 .level-fill {
     height: 100%;
-    border-radius: 15px;
+    border-radius: 15px 0 0 15px; /* Cantos arredondados só à esquerda */
     transition: width 0.5s ease;
 }
+/* Corrige cantos quando 100% */
+.level-fill[style*="width: 100%"] { border-radius: 15px; }
+
 
 .level-low { background-color: #dc3545; }
 .level-medium { background-color: #ff9800; }
@@ -207,6 +224,7 @@ section {
     transform: translate(-50%, -50%);
     font-weight: bold;
     color: #ffffff;
+    font-size: 0.9rem; /* Reduzido */
     text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.6);
 }
 
@@ -254,6 +272,8 @@ section {
     border-bottom: 1px solid #e9ecef;
 }
 .control-group:last-of-type { border-bottom: none; }
+
+.control-group label { font-weight: 500; } /* Adiciona peso à label */
 
 .control-group input[type="number"] {
     padding: 8px;
@@ -303,46 +323,8 @@ input:checked + .slider:before { transform: translateX(26px); }
 .slider.round { border-radius: 34px; }
 .slider.round:before { border-radius: 50%; }
 
-/* --- TABELAS (PAINEL ADMIN) --- */
-.table-container {
-    max-width: 1200px;
-    overflow-x: auto;
-    background-color: white;
-    border-radius: 10px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-    padding: 1rem;
-    margin: 1rem auto;
-    border-top: 5px solid #2e7d32;
-}
-
-table {
-    width: 100%;
-    border-collapse: collapse;
-}
-th, td {
-    padding: 1rem;
-    text-align: left;
-    border-bottom: 1px solid #e9ecef;
-}
-th {
-    background-color: #f8f9fa;
-    font-weight: 600;
-}
-td button, td select {
-    padding: 6px 12px;
-    border-radius: 5px;
-    border: 1px solid #ced4da;
-    cursor: pointer;
-    margin-right: 5px;
-    font-size: 0.9rem;
-}
-td button {
-    color: white;
-    border: none;
-}
-.btn-blue { background-color: #007bff; }
-.btn-red, .btn-delete { background-color: #dc3545 !important; } /* Vermelho para Excluir/Pausar */
-.btn-green { background-color: #28a745; } /* Verde para Salvar/Retomar */
+/* --- TABELAS (PAINEL ADMIN - REMOVIDO) --- */
+/* Estilos .table-container, table, th, td podem ser removidos se não forem mais usados */
 
 /* --- RODAPÉ (FOOTER) --- */
 footer {
@@ -360,71 +342,78 @@ footer {
     .nav-links li { margin-left: 0; }
     .container { padding: 1rem; }
     .header h2 { font-size: 2rem; }
+    .status-cards { grid-template-columns: 1fr; } /* Empilha cards em telas pequenas */
+    .tank-visualization-container { flex-direction: column; align-items: center; } /* Empilha caixas */
+    .tank { width: 80px; height: 160px; } /* Ajusta tamanho das caixas */
 }
 
-/* --- Estilos para as Novas Funcionalidades --- */
-.settings-card .form-group {
-    margin-bottom: 1rem;
-}
+/* --- Estilos para Novas Funcionalidades --- */
+.settings-card .form-group { margin-bottom: 1rem; }
+.settings-card .form-group label { display: block; margin-bottom: 5px; font-weight: 500; }
+.settings-card .form-group input, .settings-card .form-group select { width: 100%; padding: 8px; border-radius: 5px; border: 1px solid #ccc; }
+.dimension-fields { display: none; }
 
-.settings-card .form-group label {
-    display: block;
-    margin-bottom: 5px;
-    font-weight: 500;
-}
+#btn-ferias { width: 100%; padding: 10px 15px; margin-top: 1rem; border: none; border-radius: 5px; cursor: pointer; font-weight: 500; transition: background-color 0.3s; color: white; }
+#btn-ferias.normal { background-color: #007bff; }
+#btn-ferias.ferias { background-color: #ff9800; }
+#btn-ferias:hover { opacity: 0.85; }
 
-.settings-card .form-group input,
-.settings-card .form-group select {
+/* --- Estilos Visão Cliente Admin --- */
+#cv-auto-mode-status, #cv-ferias-status { font-weight: bold; }
+
+/* --- Estilos para Visualização das Caixas --- */
+.tank-visualization-container {
+    display: flex;
+    justify-content: space-around;
+    align-items: flex-end; /* Alinha as caixas na base */
+    gap: 2rem;
+    margin-top: 2rem;
+    background-color: #f8f9fa;
+    padding: 2rem;
+    border-radius: 8px;
+    min-height: 250px; /* Altura mínima para visualização */
+    border: 1px solid #e9ecef;
+}
+.tank {
+    width: 100px; /* Largura da caixa */
+    height: 200px; /* Altura da caixa */
+    border: 3px solid #6c757d; /* Borda cinza */
+    border-radius: 5px; /* Cantos levemente arredondados */
+    position: relative;
+    background-color: #e9ecef; /* Fundo cinza claro */
+    overflow: hidden; /* Garante que a água não transborde visualmente */
+}
+.water-level {
+    position: absolute;
+    bottom: 0;
+    left: 0;
     width: 100%;
-    padding: 8px;
-    border-radius: 5px;
-    border: 1px solid #ccc;
+    /* Cores definidas inline no HTML/JS */
+    transition: height 0.5s ease; /* Animação suave */
+    border-radius: 0 0 2px 2px; /* Arredonda cantos inferiores da água */
 }
-
-.dimension-fields {
-    display: none; /* Escondido por padrão */
-}
-
-#btn-ferias {
-    width: 100%;
-    padding: 10px 15px;
-    margin-top: 1rem;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    font-weight: 500;
-    transition: background-color 0.3s;
-    color: white;
-}
-
-#btn-ferias.normal {
-    background-color: #007bff; /* Azul para ativar */
-}
-
-#btn-ferias.ferias {
-    background-color: #ff9800; /* Laranja quando ativo */
-}
-
-#btn-ferias:hover {
-    opacity: 0.85;
-}
-
-/* Adicione este código no FINAL do seu arquivo dashboard.css */
-
-.card-main-value {
-    font-size: 2.2rem;
-    color: #2e7d32;
+.tank-label {
     text-align: center;
-    margin: 0.5rem 0 1rem 0;
+    margin-top: 0.5rem;
     font-weight: 600;
+    color: #495057; /* Cor mais escura para label */
 }
+/* Cores específicas para água */
+#admin-water-main, #client-water-main { background-color: #2e7d32; } /* Verde para principal */
+#admin-water-res, #client-water-res { background-color: #007bff; } /* Azul para reservatório */
 
-/* Cor azul para o valor de volume em litros */
-#volume-liters-value {
-    color: #007bff;
-}
 
-/* Cor laranja para o valor de consumo */
-#consumption-value {
-    color: #ff9800;
+/* --- Estilos para Logs --- */
+.log-container {
+    background-color: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    padding: 1.5rem;
+    max-height: 400px;
+    overflow-y: auto;
+    border: 1px solid #e9ecef;
+    margin-top: 1rem; /* Adiciona espaço acima */
 }
+#log-entries { list-style: none; padding: 0; margin: 0; font-family: 'Consolas', 'Monaco', monospace; font-size: 0.9rem; color: #495057; }
+#log-entries li { padding: 0.5rem 0; border-bottom: 1px dashed #e9ecef; }
+#log-entries li:last-child { border-bottom: none; }
