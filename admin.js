@@ -1,5 +1,6 @@
 // ===================================================================
 //   AQUAMONITOR - SCRIPT DO PAINEL DE ADMINISTRADOR (admin.js)
+//   VERSÃO CORRIGIDA - Sem NENHUMA referência à Visão Cliente
 // ===================================================================
 
 document.addEventListener('DOMContentLoaded', function () {
@@ -13,17 +14,23 @@ document.addEventListener('DOMContentLoaded', function () {
         databaseURL: "https://aqua-monitor-login-default-rtdb.firebaseio.com"
     };
     try {
-        firebase.initializeApp(firebaseConfig);
-        console.log("Firebase initialized.");
+        // Evita reinicializar Firebase app se já existir (boa prática)
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        } else {
+            firebase.app(); // Obtém a app já inicializada
+        }
+        console.log("Firebase initialized or retrieved.");
     } catch (e) {
         console.error("Firebase initialization failed:", e);
         alert("Erro crítico ao inicializar a conexão. Verifique a consola.");
-        return;
+        return; // Impede a execução do resto do script
     }
     const auth = firebase.auth();
     const database = firebase.database();
 
-    // --- Referências DOM --- (Obtidas cedo)
+    // --- Referências DOM (Admin Geral) ---
+    // É importante obter as referências *depois* do DOM estar carregado
     const levelCard = document.getElementById('admin-level-card');
     const resLevelCard = document.getElementById('admin-res-level-card');
     const pumpStatusCard = document.getElementById('admin-pump-status-card');
@@ -52,7 +59,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const logsRef = database.ref('logs');
     const lastSeenRef = database.ref('sensorData/lastSeen');
 
-     // --- Variável de estado para evitar adicionar listeners múltiplos ---
+    // --- Variável de estado para evitar adicionar listeners múltiplos ---
      let listenersAttached = false;
 
     // --- Verificação de Admin ---
@@ -63,14 +70,14 @@ document.addEventListener('DOMContentLoaded', function () {
                 if (!snapshot.exists() || snapshot.val().role !== 'admin') {
                     console.warn("User is not admin or data missing.");
                     alert('Acesso negado. Você precisa ser administrador.');
-                    window.location.href = 'index.html';
+                    // Tenta redirecionar para index.html, se falhar (ex: ciclo), vai para login
+                    try { window.location.href = 'index.html'; } catch(e) { window.location.href = 'login.html'; }
                 } else {
                     console.log("Admin verified.");
-                    // Garante que os listeners só são adicionados uma vez
                     if (!listenersAttached) {
                         console.log("Attaching listeners and enabling controls...");
-                        enableAdminControls(); // Habilita botões e adiciona listeners de clique
-                        attachFirebaseListeners(); // Adiciona listeners do Firebase
+                        enableAdminControls();      // Habilita botões e adiciona listeners de clique PRIMEIRO
+                        attachFirebaseListeners();  // Adiciona listeners do Firebase DEPOIS
                         listenersAttached = true;
                     }
                 }
@@ -86,88 +93,109 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // --- Função para Habilitar Controles e Adicionar Listeners de Clique ---
     function enableAdminControls() {
-        // Remove o atributo 'disabled' se existir
-        saveSettingsButton.disabled = false;
-        // toggleCollectionButton será habilitado/desabilitado pelo listener
-        clearHistoryButton.disabled = false;
-        restartEspButton.disabled = false;
-        logoutButton.disabled = false; // Botão de logout
+        // Garante que os elementos existem antes de tentar usá-los
+        if (saveSettingsButton) saveSettingsButton.disabled = false;
+        if (toggleCollectionButton) toggleCollectionButton.disabled = false; // Estado inicial habilitado, será ajustado pelo listener
+        if (clearHistoryButton) clearHistoryButton.disabled = false;
+        if (restartEspButton) restartEspButton.disabled = false;
+        if (logoutButton) logoutButton.disabled = false;
 
         console.log("Admin control buttons potentially enabled.");
 
-        // Adiciona listeners aos botões (se já não existirem - idealmente usar .removeEventListener antes, mas isto simplifica)
-        // Usar .onclick garante que substitui listeners anteriores, se houver
-        logoutButton.onclick = (e) => {
-             e.preventDefault();
-             auth.signOut().then(() => { window.location.href = 'login.html'; });
-        };
-
-        saveSettingsButton.onclick = () => {
-             console.log("Save Settings clicked");
-             const newLow = parseInt(lowLimitInput.value);
-             const newHigh = parseInt(highLimitInput.value);
-             if (isNaN(newLow) || isNaN(newHigh) || newLow < 0 || newHigh > 100 || newLow >= newHigh) {
-                 alert('Valores inválidos para os limites.');
-                 return;
-             }
-             settingsRef.update({ limiteInferior: newLow, limiteSuperior: newHigh })
-                 .then(() => {
-                     settingsFeedback.textContent = 'Configurações salvas!';
-                     setTimeout(() => { settingsFeedback.textContent = ''; }, 3000);
-                 })
-                 .catch(error => {
-                    console.error("Error saving settings:", error);
-                    alert('Erro ao salvar configurações: ' + error.message);
-                 });
-         };
-
-         toggleCollectionButton.onclick = () => {
-             console.log("Toggle Collection clicked");
-             // Desabilita temporariamente para evitar cliques duplos
-             toggleCollectionButton.disabled = true;
-             sensorRef.child('coletaAtiva').get().then(snapshot => {
-                 const isCurrentlyActive = snapshot.val() !== false;
-                 sensorRef.update({ coletaAtiva: !isCurrentlyActive })
-                    .catch(error => {
-                        console.error("Error toggling collection:", error);
-                        alert('Erro ao alterar coleta: ' + error.message);
-                    })
-                    .finally(() => {
-                        // Reabilita o botão após a operação, independentemente do resultado
-                         toggleCollectionButton.disabled = false;
-                    });
-             }).catch(error => {
-                 console.error("Error getting current collection status:", error);
-                 alert('Erro ao ler status da coleta: ' + error.message);
-                 toggleCollectionButton.disabled = false; // Reabilita em caso de erro na leitura
-             });
-         };
-
-         clearHistoryButton.onclick = () => {
-             console.log("Clear History clicked");
-             if (confirm('Tem certeza que deseja apagar TODO o histórico de leituras?')) {
-                 historyRef.remove()
-                     .then(() => alert('Histórico limpo com sucesso!'))
-                     .catch(error => {
-                        console.error("Error clearing history:", error);
-                        alert('Erro ao limpar histórico: ' + error.message);
-                     });
-             }
-         };
-
-         restartEspButton.onclick = () => {
-             console.log("Restart ESP clicked");
-             if (confirm('Tem certeza que deseja reiniciar o ESP8266?')) {
-                 controlRef.update({ comandoRestart: true })
-                     .then(() => alert('Comando enviado.'))
-                     .catch(error => {
-                        console.error("Error sending restart command:", error);
-                        alert('Erro ao enviar comando: ' + error.message);
-                     });
-             }
-         };
+        // Adiciona listeners usando addEventListener para evitar sobrescrever acidentalmente
+        if (logoutButton) {
+            logoutButton.removeEventListener('click', logoutHandler); // Remove listener anterior se existir
+            logoutButton.addEventListener('click', logoutHandler);
+        }
+        if (saveSettingsButton) {
+             saveSettingsButton.removeEventListener('click', saveSettingsHandler);
+             saveSettingsButton.addEventListener('click', saveSettingsHandler);
+        }
+        if (toggleCollectionButton) {
+            toggleCollectionButton.removeEventListener('click', toggleCollectionHandler);
+            toggleCollectionButton.addEventListener('click', toggleCollectionHandler);
+        }
+        if (clearHistoryButton) {
+             clearHistoryButton.removeEventListener('click', clearHistoryHandler);
+             clearHistoryButton.addEventListener('click', clearHistoryHandler);
+        }
+        if (restartEspButton) {
+            restartEspButton.removeEventListener('click', restartEspHandler);
+            restartEspButton.addEventListener('click', restartEspHandler);
+        }
          console.log("Admin button click handlers attached.");
     }
+
+    // --- Handlers dos Botões (separados para clareza) ---
+    function logoutHandler(e) {
+        e.preventDefault();
+        auth.signOut().then(() => { window.location.href = 'login.html'; });
+    }
+
+    function saveSettingsHandler() {
+         console.log("Save Settings clicked");
+         const newLow = parseInt(lowLimitInput.value);
+         const newHigh = parseInt(highLimitInput.value);
+         if (isNaN(newLow) || isNaN(newHigh) || newLow < 0 || newHigh > 100 || newLow >= newHigh) {
+             alert('Valores inválidos para os limites.');
+             return;
+         }
+         settingsRef.update({ limiteInferior: newLow, limiteSuperior: newHigh })
+             .then(() => {
+                 settingsFeedback.textContent = 'Configurações salvas!';
+                 setTimeout(() => { settingsFeedback.textContent = ''; }, 3000);
+             })
+             .catch(error => {
+                console.error("Error saving settings:", error);
+                alert('Erro ao salvar configurações: ' + error.message);
+             });
+     }
+
+     function toggleCollectionHandler() {
+         console.log("Toggle Collection clicked");
+         toggleCollectionButton.disabled = true; // Desabilita temporariamente
+         sensorRef.child('coletaAtiva').get().then(snapshot => {
+             const isCurrentlyActive = snapshot.val() !== false;
+             sensorRef.update({ coletaAtiva: !isCurrentlyActive })
+                .catch(error => {
+                    console.error("Error toggling collection:", error);
+                    alert('Erro ao alterar coleta: ' + error.message);
+                })
+                .finally(() => {
+                    // Reabilita APÓS a operação (mesmo com erro no update)
+                     if (listenersAttached) toggleCollectionButton.disabled = false;
+                });
+         }).catch(error => {
+             console.error("Error getting current collection status:", error);
+             alert('Erro ao ler status da coleta: ' + error.message);
+             if (listenersAttached) toggleCollectionButton.disabled = false; // Reabilita se erro na leitura
+         });
+     }
+
+     function clearHistoryHandler() {
+         console.log("Clear History clicked");
+         if (confirm('Tem certeza que deseja apagar TODO o histórico de leituras?')) {
+             historyRef.remove()
+                 .then(() => alert('Histórico limpo com sucesso!'))
+                 .catch(error => {
+                    console.error("Error clearing history:", error);
+                    alert('Erro ao limpar histórico: ' + error.message);
+                 });
+         }
+     }
+
+     function restartEspHandler() {
+         console.log("Restart ESP clicked");
+         if (confirm('Tem certeza que deseja reiniciar o ESP8266?')) {
+             controlRef.update({ comandoRestart: true })
+                 .then(() => alert('Comando enviado.'))
+                 .catch(error => {
+                    console.error("Error sending restart command:", error);
+                    alert('Erro ao enviar comando: ' + error.message);
+                 });
+         }
+     }
+
 
     // --- Função para Adicionar Listeners do Firebase ---
     function attachFirebaseListeners() {
@@ -190,38 +218,44 @@ document.addEventListener('DOMContentLoaded', function () {
                 isCollectionActive = currentData.coletaAtiva !== false;
                 collectionText = isCollectionActive ? 'ATIVA' : 'PAUSADA';
                 collectionColor = isCollectionActive ? '#28a745' : '#dc3545';
-                // Atualiza o estado visual do botão de coleta
-                toggleCollectionButton.textContent = isCollectionActive ? 'Pausar Coleta' : 'Retomar Coleta';
-                toggleCollectionButton.className = 'btn-action ' + (isCollectionActive ? 'btn-red' : 'btn-green');
-                 // Habilita o botão se houver dados
-                 if (listenersAttached) toggleCollectionButton.disabled = false;
 
+                // Atualiza botão APENAS se ele existe e os listeners já foram anexados
+                if (toggleCollectionButton && listenersAttached) {
+                    toggleCollectionButton.textContent = isCollectionActive ? 'Pausar Coleta' : 'Retomar Coleta';
+                    toggleCollectionButton.className = 'btn-action ' + (isCollectionActive ? 'btn-red' : 'btn-green');
+                    toggleCollectionButton.disabled = false; // Habilita o botão aqui
+                }
 
-                adminWaterMain.style.height = (levelMain !== '--' ? levelMain : 0) + '%'; // Usa 0 se inválido
-                adminWaterRes.style.height = (levelRes !== '--' ? levelRes : 0) + '%'; // Usa 0 se inválido
-                adminLevelPercentMain.textContent = levelMain;
-                adminLevelPercentRes.textContent = levelRes;
+                // Atualiza visualização (verifica se elementos existem)
+                if (adminWaterMain) adminWaterMain.style.height = (levelMain !== '--' ? levelMain : 0) + '%';
+                if (adminWaterRes) adminWaterRes.style.height = (levelRes !== '--' ? levelRes : 0) + '%';
+                if (adminLevelPercentMain) adminLevelPercentMain.textContent = levelMain;
+                if (adminLevelPercentRes) adminLevelPercentRes.textContent = levelRes;
 
             } else {
                  console.warn("Sensor data node does not exist.");
-                 // Mantém o botão desabilitado se não houver dados
-                 toggleCollectionButton.textContent = 'Aguardando...';
-                 toggleCollectionButton.className = 'btn-action';
-                 toggleCollectionButton.disabled = true;
-                 adminWaterMain.style.height = `0%`;
-                 adminWaterRes.style.height = `0%`;
-                 adminLevelPercentMain.textContent = '--';
-                adminLevelPercentRes.textContent = '--';
+                 if (toggleCollectionButton) {
+                     toggleCollectionButton.textContent = 'Aguardando...';
+                     toggleCollectionButton.className = 'btn-action';
+                     toggleCollectionButton.disabled = true;
+                 }
+                 if (adminWaterMain) adminWaterMain.style.height = `0%`;
+                 if (adminWaterRes) adminWaterRes.style.height = `0%`;
+                 if (adminLevelPercentMain) adminLevelPercentMain.textContent = '--';
+                if (adminLevelPercentRes) adminLevelPercentRes.textContent = '--';
             }
 
-            levelCard.textContent = `${levelMain}%`;
-            resLevelCard.textContent = `${levelRes}%`;
-            collectionStatusCard.textContent = collectionText;
-            collectionStatusCard.style.color = collectionColor;
+            // Atualiza cards (verifica se elementos existem)
+            if (levelCard) levelCard.textContent = `${levelMain}%`;
+            if (resLevelCard) resLevelCard.textContent = `${levelRes}%`;
+            if (collectionStatusCard) {
+                collectionStatusCard.textContent = collectionText;
+                collectionStatusCard.style.color = collectionColor;
+            }
 
         }, error => {
              console.error("Error fetching sensor data:", error);
-             toggleCollectionButton.disabled = true; // Desabilita em caso de erro
+             if (toggleCollectionButton) toggleCollectionButton.disabled = true;
         });
 
         // Controle da Bomba (Status)
@@ -237,24 +271,26 @@ document.addEventListener('DOMContentLoaded', function () {
             } else {
                 console.warn("Control data node does not exist.");
             }
-            pumpStatusCard.textContent = pumpStatus;
-            pumpStatusCard.style.color = pumpColor;
+            if (pumpStatusCard) { // Verifica se elemento existe
+                pumpStatusCard.textContent = pumpStatus;
+                pumpStatusCard.style.color = pumpColor;
+            }
 
         }, error => {
             console.error("Error fetching control data:", error);
-            pumpStatusCard.textContent = 'Erro'; // Indica erro na UI
+            if (pumpStatusCard) pumpStatusCard.textContent = 'Erro';
         });
 
         // Configurações (Limites)
         settingsRef.on('value', snapshot => {
             if (snapshot.exists()) {
                 const settings = snapshot.val();
-                lowLimitInput.value = settings.limiteInferior || 50;
-                highLimitInput.value = settings.limiteSuperior || 95;
+                if (lowLimitInput) lowLimitInput.value = settings.limiteInferior || 50;
+                if (highLimitInput) highLimitInput.value = settings.limiteSuperior || 95;
             } else {
                 console.warn("Settings node does not exist, using defaults.");
-                lowLimitInput.value = 50;
-                highLimitInput.value = 95;
+                if (lowLimitInput) lowLimitInput.value = 50;
+                if (highLimitInput) highLimitInput.value = 95;
             }
         }, error => {
              console.error("Error fetching settings data:", error);
@@ -266,62 +302,69 @@ document.addEventListener('DOMContentLoaded', function () {
              console.log("LastSeen data received:", snapshot.val());
              if (snapshot.exists()) {
                  const lastSeenTimestamp = snapshot.val();
-                  // Verifica se é um número válido antes de usar
                  if (typeof lastSeenTimestamp === 'number' && lastSeenTimestamp > 0) {
                      const now = Date.now();
                      const diffMinutes = (now - lastSeenTimestamp) / (1000 * 60);
                      const lastSeenDate = new Date(lastSeenTimestamp);
                      const formattedDate = lastSeenDate.toLocaleString('pt-BR');
 
-                     if (diffMinutes > 5) {
-                         connectionStatusCard.textContent = 'OFFLINE';
-                         connectionStatusCard.style.color = '#dc3545';
-                         lastSeenText.textContent = `Visto: ${formattedDate}`;
-                     } else {
-                         connectionStatusCard.textContent = 'ONLINE';
-                         connectionStatusCard.style.color = '#28a745';
-                         lastSeenText.textContent = `Sinal: ${formattedDate}`;
+                     if (connectionStatusCard) { // Verifica elemento
+                         if (diffMinutes > 5) {
+                             connectionStatusCard.textContent = 'OFFLINE';
+                             connectionStatusCard.style.color = '#dc3545';
+                         } else {
+                             connectionStatusCard.textContent = 'ONLINE';
+                             connectionStatusCard.style.color = '#28a745';
+                         }
                      }
+                     if (lastSeenText) lastSeenText.textContent = `Visto: ${formattedDate}`;
+
                  } else {
                       console.warn("LastSeen timestamp is invalid:", lastSeenTimestamp);
-                      connectionStatusCard.textContent = '??';
-                      connectionStatusCard.style.color = '#6c757d';
-                      lastSeenText.textContent = 'Timestamp inválido.';
+                      if (connectionStatusCard) {
+                          connectionStatusCard.textContent = '??';
+                          connectionStatusCard.style.color = '#6c757d';
+                      }
+                      if (lastSeenText) lastSeenText.textContent = 'Timestamp inválido.';
                  }
              } else {
                  console.warn("LastSeen node does not exist.");
-                 connectionStatusCard.textContent = '??';
-                 connectionStatusCard.style.color = '#6c757d';
-                 lastSeenText.textContent = 'Nenhum sinal.';
+                 if (connectionStatusCard) {
+                     connectionStatusCard.textContent = '??';
+                     connectionStatusCard.style.color = '#6c757d';
+                 }
+                 if (lastSeenText) lastSeenText.textContent = 'Nenhum sinal.';
              }
          }, error => {
               console.error("Error fetching lastSeen data:", error);
-              connectionStatusCard.textContent = 'Erro';
-              lastSeenText.textContent = 'Falha ao carregar.';
+              if (connectionStatusCard) connectionStatusCard.textContent = 'Erro';
+              if (lastSeenText) lastSeenText.textContent = 'Falha ao carregar.';
          });
 
          // Logs
          logsRef.orderByChild('timestamp').limitToLast(50).on('value', snapshot => {
              console.log("Logs received:", snapshot.numChildren(), "entries");
-             logEntriesList.innerHTML = '';
-             if (snapshot.exists()) {
-                 const logs = [];
-                 snapshot.forEach(childSnapshot => { logs.push(childSnapshot.val()); });
-                 logs.reverse().forEach(log => {
-                     const timestamp = (log && typeof log.timestamp === 'number') ? log.timestamp : Date.now();
-                     const message = (log && log.message) ? log.message : "Log inválido";
-                     const date = new Date(timestamp);
-                     const formattedTime = date.toLocaleString('pt-BR');
-                     const listItem = document.createElement('li');
-                     listItem.textContent = `[${formattedTime}] ${message}`;
-                     logEntriesList.appendChild(listItem);
-                 });
-             } else {
-                 logEntriesList.innerHTML = '<li>Nenhum log registrado ainda.</li>';
+              if (logEntriesList) { // Verifica elemento
+                 logEntriesList.innerHTML = ''; // Limpa sempre
+                 if (snapshot.exists()) {
+                     const logs = [];
+                     snapshot.forEach(childSnapshot => { logs.push(childSnapshot.val()); });
+                     logs.reverse().forEach(log => {
+                         const timestamp = (log && typeof log.timestamp === 'number') ? log.timestamp : Date.now();
+                         const message = (log && log.message) ? log.message : "Log inválido";
+                         const date = new Date(timestamp);
+                         const formattedTime = date.toLocaleString('pt-BR');
+                         const listItem = document.createElement('li');
+                         listItem.textContent = `[${formattedTime}] ${message}`;
+                         logEntriesList.appendChild(listItem);
+                     });
+                 } else {
+                     logEntriesList.innerHTML = '<li>Nenhum log registrado ainda.</li>';
+                 }
              }
          }, error => {
               console.error("Error fetching logs:", error);
-              logEntriesList.innerHTML = '<li>Erro ao carregar logs.</li>';
+              if (logEntriesList) logEntriesList.innerHTML = '<li>Erro ao carregar logs.</li>';
          });
 
          console.log("Firebase listeners attached.");
