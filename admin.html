@@ -5,6 +5,43 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Painel do Administrador</title>
     <link rel="stylesheet" href="dashboard.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* Estilos específicos para as caixas d'água no admin */
+        .tank-visualization-container {
+            display: flex;
+            justify-content: space-around;
+            align-items: flex-end; /* Alinha as caixas na base */
+            gap: 2rem;
+            margin-top: 2rem;
+            background-color: #f8f9fa;
+            padding: 2rem;
+            border-radius: 8px;
+            min-height: 250px; /* Altura mínima para visualização */
+        }
+        .tank {
+            width: 100px; /* Largura da caixa */
+            height: 200px; /* Altura da caixa */
+            border: 3px solid #333;
+            position: relative;
+            background-color: #fff;
+            overflow: hidden; /* Garante que a água não transborde visualmente */
+        }
+        .water-level {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background-color: #007bff; /* Cor da água */
+            transition: height 0.5s ease; /* Animação suave */
+        }
+         .tank-label {
+             text-align: center;
+             margin-top: 0.5rem;
+             font-weight: 600;
+             color: #333;
+         }
+    </style>
 </head>
 <body>
     <nav class="navbar">
@@ -14,8 +51,9 @@
         </div>
         <ul class="nav-links">
             <li><a href="#home" class="active">Visão Geral</a></li>
-            <li><a href="#users">Usuários</a></li>
+            <li><a href="#client-view">Visão Cliente</a></li>
             <li><a href="#settings">Configurações</a></li>
+            <li><a href="#logs">Log de Eventos</a></li>
             <li><a href="#" class="logout-button">Sair</a></li>
         </ul>
     </nav>
@@ -27,52 +65,106 @@
                 <p>Gerencie o sistema e monitore o status em tempo real.</p>
             </div>
             <div class="status-cards">
-                <div class="card">
-                    <div class="card-header"><div class="card-title">Nível Atual</div></div>
-                    <h2 id="admin-level-card" style="font-size: 2rem; color: #2e7d32; text-align: center;">--%</h2>
+                 <div class="card">
+                    <div class="card-header"><div class="card-title">Nível Atual (Principal)</div></div>
+                    <h2 id="admin-level-card" class="card-main-value" style="color: #2e7d32;">--%</h2>
+                </div>
+                 <div class="card">
+                    <div class="card-header"><div class="card-title">Nível Reservatório</div></div>
+                    <h2 id="admin-res-level-card" class="card-main-value" style="color: #007bff;">--%</h2>
                 </div>
                 <div class="card">
                     <div class="card-header"><div class="card-title">Status da Bomba</div></div>
-                    <h2 id="admin-pump-status-card" style="font-size: 2rem; text-align: center;">--</h2>
+                    <h2 id="admin-pump-status-card" class="card-main-value">--</h2>
                 </div>
                 <div class="card">
                     <div class="card-header"><div class="card-title">Status da Coleta</div></div>
-                    <h2 id="admin-collection-status-card" style="font-size: 2rem; text-align: center;">--</h2>
+                    <h2 id="admin-collection-status-card" class="card-main-value">--</h2>
+                </div>
+                <div class="card">
+                    <div class="card-header"><div class="card-title">Status da Conexão ESP</div></div>
+                    <h2 id="admin-connection-status" class="card-main-value">--</h2>
+                    <p id="admin-last-seen" style="text-align: center; font-size: 0.9rem; color: #6c757d;">Aguardando sinal...</p>
+                </div>
+            </div>
+
+            <div class="tank-visualization-container">
+                <div>
+                    <div class="tank">
+                        <div id="admin-water-main" class="water-level" style="height: 0%; background-color: #2e7d32;"></div>
+                    </div>
+                    <div class="tank-label">Caixa Principal (<span id="admin-level-percent-main">--</span>%)</div>
+                </div>
+                <div>
+                    <div class="tank">
+                        <div id="admin-water-res" class="water-level" style="height: 0%; background-color: #007bff;"></div>
+                    </div>
+                     <div class="tank-label">Reservatório (<span id="admin-level-percent-res">--</span>%)</div>
                 </div>
             </div>
         </div>
     </section>
 
-    <section id="users">
+    <section id="client-view">
         <div class="container">
-            <h3 class="history-title">Gerenciar Usuários</h3>
-            <div class="table-container">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Nome Completo</th>
-                            <th>Email</th>
-                            <th>Função (Role)</th>
-                            <th>Ações</th>
-                        </tr>
-                    </thead>
-                    <tbody id="users-table-body"></tbody>
-                </table>
+             <h3 class="history-title">Visão do Painel do Cliente</h3>
+             <p style="text-align:center; margin-bottom: 2rem;">Esta é uma réplica dos principais indicadores que o cliente vê.</p>
+
+            <div class="status-cards">
+                 <div class="card">
+                    <div class="card-header"><div class="card-title">Caixa Principal</div></div>
+                    <h2 id="cv-main-level-value" class="card-main-value" style="color: #2e7d32;">--%</h2>
+                    <p id="cv-main-level-liters" style="text-align: center;">-- L</p>
+                </div>
+                <div class="card">
+                    <div class="card-header"><div class="card-title">Reservatório</div></div>
+                    <h2 id="cv-res-level-value" class="card-main-value" style="color: #007bff;">--%</h2>
+                    <p id="cv-res-level-liters" style="text-align: center;">-- L</p>
+                </div>
+                <div class="card"><div class="card-header"><div class="card-title">Status da Bomba</div><div class="card-icon" id="cv-pump-status-icon"><span id="cv-pump-status-value">--</span></div></div><p id="cv-pump-status-text">Aguardando...</p></div>
+                <div class="card"><div class="card-header"><div class="card-title">Modo de Operação</div><div class="card-icon" id="cv-mode-icon"><span id="cv-mode-value">--</span></div></div><p id="cv-mode-text">Aguardando...</p></div>
+                 <div class="card">
+                    <div class="card-header"><div class="card-title">Consumo Médio</div></div>
+                    <h2 id="cv-consumption-value" class="card-main-value" style="color: #ff9800;">--</h2>
+                    <p id="cv-consumption-text">Calculando...</p>
+                </div>
+            </div>
+
+            <div class="level-indicator">
+                <div class="level-title">Caixa Principal (Visão Cliente)</div>
+                <div class="level-bar"><div id="cv-level-fill-main" class="level-fill" style="width: 0%;"></div><div id="cv-level-percentage-main" class="level-percentage">--%</div></div>
+            </div>
+            <div class="level-indicator" style="margin-top: 1.5rem;">
+                <div class="level-title">Reservatório (Visão Cliente)</div>
+                <div class="level-bar"><div id="cv-level-fill-res" class="level-fill" style="width: 0%; background-color: #007bff;"></div><div id="cv-level-percentage-res" class="level-percentage">--%</div></div>
+            </div>
+
+            <div class="chart-container" style="background-color: white; padding: 2rem; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-top: 2rem;">
+                <h3 class="history-title" style="text-align: left; margin-bottom: 1.5rem;">Histórico de Nível (Visão Cliente)</h3>
+                <canvas id="cv-levelChart"></canvas>
+            </div>
+
+            <div class="settings-card" style="margin-top: 2rem;">
+                 <h4>Controle da Bomba (Visão Cliente - Apenas Visualização)</h4>
+                <div class="motor-status-display">Status da Bomba: <span id="cv-motor-status" class="status-indicator-off">--</span></div>
+                <div class="control-group"><label>Modo Automático</label><span id="cv-auto-mode-status">--</span></div>
+                <div class="control-group"><label>Modo Férias</label><span id="cv-ferias-status">--</span></div>
             </div>
         </div>
     </section>
 
     <section id="settings">
         <div class="container">
+            <h3 class="history-title">Configurações e Controle</h3>
              <div class="settings-card">
                 <h4>Configurações do Sistema</h4>
                 <div class="control-group">
                     <label for="low-limit-input">Ligar Bomba Abaixo de (%):</label>
-                    <input type="number" id="low-limit-input">
+                    <input type="number" id="low-limit-input" min="0" max="100">
                 </div>
                 <div class="control-group">
                     <label for="high-limit-input">Desligar Bomba Acima de (%):</label>
-                    <input type="number" id="high-limit-input">
+                    <input type="number" id="high-limit-input" min="0" max="100">
                 </div>
                 <button id="save-settings-button" class="btn-action btn-green" style="width: 100%; margin-top: 1rem;">Salvar Limites</button>
                 <p id="settings-feedback" style="text-align: center; color: green; margin-top: 1rem;"></p>
@@ -90,6 +182,26 @@
                 </div>
                  <p class="settings-info"><b>Pausar/Retomar Coleta:</b> Ativa ou desativa o envio de dados do sensor. <b>Limpar Histórico:</b> Apaga todos os registros de nível do banco de dados.</p>
             </div>
+
+            <div class="settings-card" style="margin-top: 2rem; border-top-color: #dc3545;">
+                <h4>Ações Remotas</h4>
+                <div class="control-group">
+                    <label>Reiniciar o dispositivo ESP8266:</label>
+                    <button id="restart-esp-button" class="btn-action btn-red">Reiniciar ESP</button>
+                </div>
+                 <p class="settings-info"><b>Reiniciar ESP:</b> Força a reinicialização do microcontrolador. Útil em caso de travamentos ou problemas de conexão.</p>
+            </div>
+        </div>
+    </section>
+
+    <section id="logs">
+        <div class="container">
+            <h3 class="history-title">Log de Eventos</h3>
+            <div class="log-container">
+                <ul id="log-entries">
+                    <li>Aguardando logs...</li>
+                </ul>
+            </div>
         </div>
     </section>
 
@@ -98,137 +210,6 @@
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-functions-compat.js"></script>
 
-    <script>
-        const firebaseConfig = {
-            apiKey: "AIzaSyBOBbMzkTO2MvIxExVO8vlCOUgpeZp0rSY",
-            authDomain: "aqua-monitor-login.firebaseapp.com",
-            projectId: "aqua-monitor-login",
-            databaseURL: "https://aqua-monitor-login-default-rtdb.firebaseio.com"
-        };
-        firebase.initializeApp(firebaseConfig);
-        const auth = firebase.auth();
-        const database = firebase.database();
-        const functions = firebase.functions();
-
-        document.addEventListener('DOMContentLoaded', function () {
-            auth.onAuthStateChanged(user => {
-                if (user) {
-                    database.ref('usuarios/' + user.uid).get().then(snapshot => {
-                        if (!snapshot.exists() || snapshot.val().role !== 'admin') {
-                            window.location.href = 'index.html';
-                        }
-                    });
-                } else {
-                    window.location.href = 'login.html';
-                }
-            });
-            document.querySelector('.logout-button').addEventListener('click', e => {
-                e.preventDefault();
-                auth.signOut().then(() => { window.location.href = 'login.html'; });
-            });
-
-            const levelCard = document.getElementById('admin-level-card');
-            const pumpStatusCard = document.getElementById('admin-pump-status-card');
-            const collectionStatusCard = document.getElementById('admin-collection-status-card');
-            const usersTableBody = document.getElementById('users-table-body');
-            const lowLimitInput = document.getElementById('low-limit-input');
-            const highLimitInput = document.getElementById('high-limit-input');
-            const settingsFeedback = document.getElementById('settings-feedback');
-            const toggleCollectionButton = document.getElementById('toggle-collection-button');
-            
-            const sensorRef = database.ref('sensorData');
-            const controlRef = database.ref('bomba/controle');
-            const usersRef = database.ref('usuarios');
-            const settingsRef = database.ref('configuracoes/sistema');
-            const historyRef = database.ref('historico');
-
-            // --- OUVINTES DE DADOS (LISTENERS) ---
-            sensorRef.on('value', snapshot => {
-                if(snapshot.exists()) {
-                    const data = snapshot.val();
-                    levelCard.textContent = data.level !== undefined ? data.level + '%' : '--%';
-                    const isCollectionActive = data.coletaAtiva !== false; // Ativo por padrão se o campo não existir
-                    collectionStatusCard.textContent = isCollectionActive ? 'ATIVA' : 'PAUSADA';
-                    collectionStatusCard.style.color = isCollectionActive ? '#28a745' : '#dc3545';
-                    toggleCollectionButton.textContent = isCollectionActive ? 'Pausar Coleta' : 'Retomar Coleta';
-                    toggleCollectionButton.className = 'btn-action ' + (isCollectionActive ? 'btn-red' : 'btn-green');
-                }
-            });
-
-            controlRef.on('value', snapshot => {
-                if (snapshot.exists()) {
-                    const data = snapshot.val();
-                    pumpStatusCard.textContent = data.statusBomba || '--';
-                    pumpStatusCard.style.color = data.statusBomba === 'LIGADA' ? '#28a745' : '#dc3545';
-                }
-            });
-
-            usersRef.on('value', snapshot => {
-                usersTableBody.innerHTML = '';
-                snapshot.forEach(childSnapshot => {
-                    const userId = childSnapshot.key;
-                    const user = childSnapshot.val();
-                    const isCurrentUser = auth.currentUser && auth.currentUser.uid === userId;
-                    const row = usersTableBody.insertRow();
-                    row.innerHTML = `
-                        <td>${user.nomeCompleto || 'N/A'}</td>
-                        <td>${user.email}</td>
-                        <td>
-                            <select id="role-${userId}" ${isCurrentUser ? 'disabled' : ''}>
-                                <option value="cliente" ${user.role === 'cliente' ? 'selected' : ''}>Cliente</option>
-                                <option value="admin" ${user.role === 'admin' ? 'selected' : ''}>Admin</option>
-                            </select>
-                        </td>
-                        <td>
-                            <button class="btn-action btn-blue" onclick="changeUserRole('${userId}')" ${isCurrentUser ? 'disabled' : ''}>Salvar</button>
-                            <button class="btn-action btn-red" onclick="deleteUser('${userId}', '${user.email}')" ${isCurrentUser ? 'disabled' : ''}>Excluir</button>
-                        </td>
-                    `;
-                });
-            });
-
-            settingsRef.on('value', snapshot => {
-                if (snapshot.exists()) {
-                    const settings = snapshot.val();
-                    lowLimitInput.value = settings.limiteInferior || 50;
-                    highLimitInput.value = settings.limiteSuperior || 95;
-                }
-            });
-            
-            // --- AÇÕES DOS BOTÕES ---
-            document.getElementById('save-settings-button').addEventListener('click', () => {
-                const newLow = parseInt(lowLimitInput.value);
-                const newHigh = parseInt(highLimitInput.value);
-                settingsRef.update({ limiteInferior: newLow, limiteSuperior: newHigh })
-                    .then(() => {
-                        settingsFeedback.textContent = 'Configurações salvas!';
-                        setTimeout(() => { settingsFeedback.textContent = ''; }, 3000);
-                    });
-            });
-            
-            toggleCollectionButton.addEventListener('click', () => {
-                sensorRef.child('coletaAtiva').get().then(snapshot => {
-                    const isCurrentlyActive = snapshot.val() !== false;
-                    sensorRef.update({ coletaAtiva: !isCurrentlyActive });
-                });
-            });
-
-            document.getElementById('clear-history-button').addEventListener('click', () => {
-                if (confirm('Tem certeza que deseja apagar TODO o histórico de leituras? Esta ação não pode ser desfeita.')) {
-                    historyRef.remove().then(() => alert('Histórico limpo com sucesso!'));
-                }
-            });
-        });
-        
-        function changeUserRole(userId) {
-            const newRole = document.getElementById(`role-${userId}`).value;
-            database.ref('usuarios/' + userId).update({ role: newRole });
-        }
-        function deleteUser(userId, userEmail) {
-            if (confirm(`Tem certeza que deseja excluir o usuário ${userEmail}?`)) {
-                database.ref('usuarios/' + userId).remove();
-            }
-        }
-    </script>
+    <script src="admin.js"></script>
 </body>
 </html>
