@@ -153,7 +153,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
      function toggleCollectionHandler() {
          console.log("Toggle Collection clicked");
-         toggleCollectionButton.disabled = true; // Desabilita temporariamente
+         if (toggleCollectionButton) toggleCollectionButton.disabled = true; // Desabilita temporariamente
          sensorRef.child('coletaAtiva').get().then(snapshot => {
              const isCurrentlyActive = snapshot.val() !== false;
              sensorRef.update({ coletaAtiva: !isCurrentlyActive })
@@ -163,12 +163,12 @@ document.addEventListener('DOMContentLoaded', function () {
                 })
                 .finally(() => {
                     // Reabilita APÓS a operação (mesmo com erro no update)
-                     if (listenersAttached) toggleCollectionButton.disabled = false;
+                     if (toggleCollectionButton && listenersAttached) toggleCollectionButton.disabled = false;
                 });
          }).catch(error => {
              console.error("Error getting current collection status:", error);
              alert('Erro ao ler status da coleta: ' + error.message);
-             if (listenersAttached) toggleCollectionButton.disabled = false; // Reabilita se erro na leitura
+             if (toggleCollectionButton && listenersAttached) toggleCollectionButton.disabled = false; // Reabilita se erro na leitura
          });
      }
 
@@ -227,8 +227,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
 
                 // Atualiza visualização (verifica se elementos existem)
-                if (adminWaterMain) adminWaterMain.style.height = (levelMain !== '--' ? levelMain : 0) + '%';
-                if (adminWaterRes) adminWaterRes.style.height = (levelRes !== '--' ? levelRes : 0) + '%';
+                if (adminWaterMain) adminWaterMain.style.height = (levelMain !== '--' ? levelMain : 0) + '%'; // Usa 0 se inválido
+                if (adminWaterRes) adminWaterRes.style.height = (levelRes !== '--' ? levelRes : 0) + '%'; // Usa 0 se inválido
                 if (adminLevelPercentMain) adminLevelPercentMain.textContent = levelMain;
                 if (adminLevelPercentRes) adminLevelPercentRes.textContent = levelRes;
 
@@ -278,7 +278,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         }, error => {
             console.error("Error fetching control data:", error);
-            if (pumpStatusCard) pumpStatusCard.textContent = 'Erro';
+            if (pumpStatusCard) pumpStatusCard.textContent = 'Erro'; // Indica erro na UI
         });
 
         // Configurações (Limites)
@@ -308,7 +308,7 @@ document.addEventListener('DOMContentLoaded', function () {
                      const lastSeenDate = new Date(lastSeenTimestamp);
                      const formattedDate = lastSeenDate.toLocaleString('pt-BR');
 
-                     if (connectionStatusCard) { // Verifica elemento
+                     if (connectionStatusCard) {
                          if (diffMinutes > 5) {
                              connectionStatusCard.textContent = 'OFFLINE';
                              connectionStatusCard.style.color = '#dc3545';
@@ -344,8 +344,8 @@ document.addEventListener('DOMContentLoaded', function () {
          // Logs
          logsRef.orderByChild('timestamp').limitToLast(50).on('value', snapshot => {
              console.log("Logs received:", snapshot.numChildren(), "entries");
-              if (logEntriesList) { // Verifica elemento
-                 logEntriesList.innerHTML = ''; // Limpa sempre
+              if (logEntriesList) {
+                 logEntriesList.innerHTML = '';
                  if (snapshot.exists()) {
                      const logs = [];
                      snapshot.forEach(childSnapshot => { logs.push(childSnapshot.val()); });
