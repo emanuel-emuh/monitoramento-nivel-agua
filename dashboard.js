@@ -20,7 +20,6 @@ document.addEventListener('DOMContentLoaded', function () {
         if (!user) {
             window.location.href = 'login.html';
         } 
-        // Não precisamos mais carregar as configurações do usuário
     });
 
     document.querySelector('.logout-button').addEventListener('click', e => {
@@ -35,14 +34,19 @@ document.addEventListener('DOMContentLoaded', function () {
     const totalVolumeLiters = 1.728;
 
     // --- REFERÊNCIAS AOS ELEMENTOS DO DOM (HTML) ---
-    // Dashboard
-    const levelFill = document.getElementById('level-fill');
-    const levelPercentage = document.getElementById('level-percentage');
-    const levelCardValue = document.getElementById('level-card-value');
-    const levelCardText = document.getElementById('level-card-text');
-    const levelCardIcon = document.getElementById('level-card-icon');
-    const volumeLitersValue = document.getElementById('volume-liters-value');
-    const volumeLitersText = document.getElementById('volume-liters-text');
+    // Dashboard Caixa Principal
+    const mainLevelValue = document.getElementById('main-level-value');
+    const mainLevelLiters = document.getElementById('main-level-liters');
+    const levelFillMain = document.getElementById('level-fill-main');
+    const levelPercentageMain = document.getElementById('level-percentage-main');
+
+    // Dashboard Reservatório
+    const resLevelValue = document.getElementById('res-level-value');
+    const resLevelLiters = document.getElementById('res-level-liters');
+    const levelFillRes = document.getElementById('level-fill-res');
+    const levelPercentageRes = document.getElementById('level-percentage-res');
+
+    // Outros
     const consumptionValue = document.getElementById('consumption-value');
     const consumptionText = document.getElementById('consumption-text');
 
@@ -57,15 +61,14 @@ document.addEventListener('DOMContentLoaded', function () {
     const modeValue = document.getElementById('mode-value');
     const modeText = document.getElementById('mode-text');
 
-    // Configurações da Caixa (REMOVIDAS)
-
     // Modo Férias
     const btnFerias = document.getElementById('btn-ferias');
     const feriasInfo = document.getElementById('ferias-info');
 
 
     // --- REFERÊNCIAS AOS DADOS NO FIREBASE ---
-    const levelRef = database.ref('sensorData/level');
+    // ATUALIZADO: Ouve o nó "sensorData" para obter os dois níveis
+    const sensorDataRef = database.ref('sensorData'); 
     const controlRef = database.ref('bomba/controle');
     const historyRef = database.ref('historico').orderByChild('timestamp').limitToLast(100);
 
@@ -76,7 +79,7 @@ document.addEventListener('DOMContentLoaded', function () {
         data: {
             labels: [],
             datasets: [{
-                label: 'Nível da Água (%)',
+                label: 'Nível Caixa Principal (%)', // Título do gráfico atualizado
                 data: [],
                 borderColor: '#2e7d32',
                 backgroundColor: 'rgba(46, 125, 50, 0.1)',
@@ -104,21 +107,24 @@ document.addEventListener('DOMContentLoaded', function () {
                 const date = new Date(entry.timestamp);
                 const timeString = date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
                 labels.push(timeString);
-                levels.push(entry.nivel);
+                // ATUALIZADO: Gráfico usa o "nivel" (Caixa Principal)
+                levels.push(entry.nivel); 
             });
 
             levelChart.data.labels = labels;
             levelChart.data.datasets[0].data = levels;
             levelChart.update();
             
+            // O cálculo de consumo é baseado no histórico da caixa principal
             calculateAverageConsumption(data);
         }
     });
 
-    levelRef.on('value', snapshot => {
-        const level = snapshot.val();
-        if (level !== null) {
-            updateDashboardUI(level);
+    // ATUALIZADO: Ouve o objeto sensorData
+    sensorDataRef.on('value', snapshot => {
+        const data = snapshot.val();
+        if (data && data.level !== undefined && data.levelReservatorio !== undefined) {
+            updateDashboardUI(data.level, data.levelReservatorio);
         }
     });
 
@@ -131,16 +137,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // --- LÓGICA DAS NOVAS FUNCIONALIDADES ---
 
-    // FUNÇÕES DE CONFIGURAÇÃO DE CAIXA (REMOVIDAS)
-    // - loadTankSettings
-    // - saveTankSettingsButton.addEventListener
-    // - toggleDimensionFields
-    // - updateTankSettingsForm
-    // - calculateTotalVolume
-
-    // Calcula o consumo médio diário em litros
+    // Calcula o consumo médio diário (baseado na caixa principal)
     function calculateAverageConsumption(historyData) {
-        // ATUALIZADO: O volume total é fixo, já não precisamos de verificar se é 0
         if (!historyData) {
             consumptionValue.textContent = '--';
             consumptionText.textContent = 'Calculando...';
@@ -156,7 +154,8 @@ document.addEventListener('DOMContentLoaded', function () {
             const prev = entries[i-1];
             const curr = entries[i];
             
-            if (curr.nivel > prev.nivel) continue;
+            // Usa o 'nivel' (principal) para calcular o consumo
+            if (curr.nivel > prev.nivel) continue; // Ignora recargas
 
             const date = new Date(curr.timestamp).toLocaleDateString('pt-BR');
             if (!consumptionByDay[date]) {
@@ -189,29 +188,37 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // --- FUNÇÕES DE ATUALIZAÇÃO DA INTERFACE ---
 
-    function updateDashboardUI(level) {
-        levelFill.style.width = level + '%';
-        levelPercentage.textContent = level + '%';
-        levelCardValue.textContent = level + '%';
-        
-        if (level <= 50) {
-            levelFill.className = 'level-fill level-low';
-            levelCardIcon.className = 'card-icon icon-red';
-            levelCardText.textContent = 'Nível baixo. Bomba pode ligar.';
-        } else if (level < 95) {
-            levelFill.className = 'level-fill level-medium';
-            levelCardIcon.className = 'card-icon icon-orange';
-            levelCardText.textContent = 'Nível moderado.';
+    // ATUALIZADO: Aceita os dois níveis
+    function updateDashboardUI(levelMain, levelRes) {
+        // --- Caixa Principal ---
+        const currentLitersMain = (totalVolumeLiters * (levelMain / 100)).toFixed(1);
+        mainLevelValue.textContent = `${levelMain}%`;
+        mainLevelLiters.textContent = `${currentLitersMain} L (Total: ${totalVolumeLiters.toFixed(1)} L)`;
+        levelFillMain.style.width = levelMain + '%';
+        levelPercentageMain.textContent = levelMain + '%';
+
+        if (levelMain <= 50) {
+            levelFillMain.className = 'level-fill level-low';
+        } else if (levelMain < 95) {
+            levelFillMain.className = 'level-fill level-medium';
         } else {
-            levelFill.className = 'level-fill level-high';
-            levelCardIcon.className = 'card-icon icon-green';
-            levelCardText.textContent = 'Nível adequado.';
+            levelFillMain.className = 'level-fill level-high';
         }
 
-        // ATUALIZADO: Mostra o volume com base no valor fixo
-        const currentLiters = (totalVolumeLiters * (level / 100)).toFixed(1);
-        volumeLitersValue.textContent = `${currentLiters} L`;
-        volumeLitersText.textContent = `De um total de ${totalVolumeLiters.toFixed(1)} L`;
+        // --- Reservatório ---
+        const currentLitersRes = (totalVolumeLiters * (levelRes / 100)).toFixed(1);
+        resLevelValue.textContent = `${levelRes}%`;
+        resLevelLiters.textContent = `${currentLitersRes} L (Total: ${totalVolumeLiters.toFixed(1)} L)`;
+        levelFillRes.style.width = levelRes + '%';
+        levelPercentageRes.textContent = levelRes + '%';
+        
+        if (levelRes <= 50) {
+            levelFillRes.className = 'level-fill level-low';
+        } else if (levelRes < 95) {
+            levelFillRes.className = 'level-fill level-medium';
+        } else {
+            levelFillRes.className = 'level-fill level-high';
+        }
     }
     
     function updatePumpControlsUI(data) {
