@@ -21,33 +21,42 @@
     <section id="home">
         <div class="container">
             <div class="header"><h2>Monitoramento de Nível de Água</h2><p>Sistema de monitoramento em tempo real do nível da caixa d'água</p></div>
+            
             <div class="status-cards">
-                <div class="card"><div class="card-header"><div class="card-title">Nível Atual</div><div class="card-icon" id="level-card-icon"><span id="level-card-value">--%</span></div></div><p id="level-card-text">Aguardando leitura...</p></div>
-                
                 <div class="card">
-                    <div class="card-header"><div class="card-title">Volume Atual (Litros)</div></div>
-                    <h2 id="volume-liters-value" class="card-main-value">--</h2>
-                    <p id="volume-liters-text">Calculando...</p>
+                    <div class="card-header"><div class="card-title">Caixa Principal</div></div>
+                    <h2 id="main-level-value" class="card-main-value" style="color: #2e7d32;">--%</h2>
+                    <p id="main-level-liters" style="text-align: center;">-- L</p>
                 </div>
-                
+                <div class="card">
+                    <div class="card-header"><div class="card-title">Reservatório</div></div>
+                    <h2 id="res-level-value" class="card-main-value" style="color: #007bff;">--%</h2>
+                    <p id="res-level-liters" style="text-align: center;">-- L</p>
+                </div>
+                <div class="card"><div class="card-header"><div class="card-title">Status da Bomba</div><div class="card-icon" id="pump-status-icon"><span id="pump-status-value">--</span></div></div><p id="pump-status-text">Aguardando status...</p></div>
+                <div class="card"><div class="card-header"><div class="card-title">Modo de Operação</div><div class="card-icon" id="mode-icon"><span id="mode-value">--</span></div></div><p id="mode-text">Aguardando status...</p></div>
                 <div class="card">
                     <div class="card-header"><div class="card-title">Consumo Médio</div></div>
-                    <h2 id="consumption-value" class="card-main-value">--</h2>
+                    <h2 id="consumption-value" class="card-main-value" style="color: #ff9800;">--</h2>
                     <p id="consumption-text">Calculando...</p>
                 </div>
-
-                <div class="card"><div class="card-header"><div class="card-title">Status da Bomba</div><div class="card-icon" id="pump-status-icon"><span id="pump-status-value">--</span></div></div><p id="pump-status-text">Aguardando status...</p></div>
-                
-                <div class="card"><div class="card-header"><div class="card-title">Modo de Operação</div><div class="card-icon" id="mode-icon"><span id="mode-value">--</span></div></div><p id="mode-text">Aguardando status...</p></div>
             </div>
-            <div class="level-indicator"><div class="level-title">Nível da Caixa d'Água</div><div class="level-bar"><div id="level-fill" class="level-fill" style="width: 0%;"></div><div id="level-percentage" class="level-percentage">--%</div></div></div>
+
+            <div class="level-indicator">
+                <div class="level-title">Caixa Principal</div>
+                <div class="level-bar"><div id="level-fill-main" class="level-fill level-high" style="width: 0%;"></div><div id="level-percentage-main" class="level-percentage">--%</div></div>
+            </div>
+            <div class="level-indicator" style="margin-top: 1.5rem;">
+                <div class="level-title">Reservatório</div>
+                <div class="level-bar"><div id="level-fill-res" class="level-fill level-low" style="width: 0%; background-color: #007bff;"></div><div id="level-percentage-res" class="level-percentage">--%</div></div>
+            </div>
         </div>
     </section>
 
     <section id="chart-section">
         <div class="container">
             <div class="chart-container" style="background-color: white; padding: 2rem; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
-                <h3 class="history-title" style="text-align: left; margin-bottom: 1.5rem;">Histórico de Nível (Últimas Leituras)</h3>
+                <h3 class="history-title" style="text-align: left; margin-bottom: 1.5rem;">Histórico de Nível (Caixa Principal)</h3>
                 <canvas id="levelChart"></canvas>
             </div>
         </div>
