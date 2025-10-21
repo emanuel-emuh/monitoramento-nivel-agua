@@ -5,42 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Painel do Administrador</title>
     <link rel="stylesheet" href="dashboard.css">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         /* Estilos específicos para as caixas d'água no admin */
-        .tank-visualization-container {
-            display: flex;
-            justify-content: space-around;
-            align-items: flex-end; /* Alinha as caixas na base */
-            gap: 2rem;
-            margin-top: 2rem;
-            background-color: #f8f9fa;
-            padding: 2rem;
-            border-radius: 8px;
-            min-height: 250px; /* Altura mínima para visualização */
-        }
-        .tank {
-            width: 100px; /* Largura da caixa */
-            height: 200px; /* Altura da caixa */
-            border: 3px solid #333;
-            position: relative;
-            background-color: #fff;
-            overflow: hidden; /* Garante que a água não transborde visualmente */
-        }
-        .water-level {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            background-color: #007bff; /* Cor da água */
-            transition: height 0.5s ease; /* Animação suave */
-        }
-         .tank-label {
-             text-align: center;
-             margin-top: 0.5rem;
-             font-weight: 600;
-             color: #333;
-         }
+        .tank-visualization-container { display: flex; justify-content: space-around; align-items: flex-end; gap: 2rem; margin-top: 2rem; background-color: #f8f9fa; padding: 2rem; border-radius: 8px; min-height: 250px; }
+        .tank { width: 100px; height: 200px; border: 3px solid #6c757d; border-radius: 5px; position: relative; background-color: #e9ecef; overflow: hidden; }
+        .water-level { position: absolute; bottom: 0; left: 0; width: 100%; transition: height 0.5s ease; border-radius: 0 0 2px 2px; }
+        .tank-label { text-align: center; margin-top: 0.5rem; font-weight: 600; color: #495057; }
     </style>
 </head>
 <body>
@@ -51,7 +21,6 @@
         </div>
         <ul class="nav-links">
             <li><a href="#home" class="active">Visão Geral</a></li>
-            <li><a href="#client-view">Visão Cliente</a></li>
             <li><a href="#settings">Configurações</a></li>
             <li><a href="#logs">Log de Eventos</a></li>
             <li><a href="#" class="logout-button">Sair</a></li>
@@ -105,56 +74,8 @@
         </div>
     </section>
 
-    <section id="client-view">
-        <div class="container">
-             <h3 class="history-title">Visão do Painel do Cliente</h3>
-             <p style="text-align:center; margin-bottom: 2rem;">Esta é uma réplica dos principais indicadores que o cliente vê.</p>
-
-            <div class="status-cards">
-                 <div class="card">
-                    <div class="card-header"><div class="card-title">Caixa Principal</div></div>
-                    <h2 id="cv-main-level-value" class="card-main-value" style="color: #2e7d32;">--%</h2>
-                    <p id="cv-main-level-liters" style="text-align: center;">-- L</p>
-                </div>
-                <div class="card">
-                    <div class="card-header"><div class="card-title">Reservatório</div></div>
-                    <h2 id="cv-res-level-value" class="card-main-value" style="color: #007bff;">--%</h2>
-                    <p id="cv-res-level-liters" style="text-align: center;">-- L</p>
-                </div>
-                <div class="card"><div class="card-header"><div class="card-title">Status da Bomba</div><div class="card-icon" id="cv-pump-status-icon"><span id="cv-pump-status-value">--</span></div></div><p id="cv-pump-status-text">Aguardando...</p></div>
-                <div class="card"><div class="card-header"><div class="card-title">Modo de Operação</div><div class="card-icon" id="cv-mode-icon"><span id="cv-mode-value">--</span></div></div><p id="cv-mode-text">Aguardando...</p></div>
-                 <div class="card">
-                    <div class="card-header"><div class="card-title">Consumo Médio</div></div>
-                    <h2 id="cv-consumption-value" class="card-main-value" style="color: #ff9800;">--</h2>
-                    <p id="cv-consumption-text">Calculando...</p>
-                </div>
-            </div>
-
-            <div class="level-indicator">
-                <div class="level-title">Caixa Principal (Visão Cliente)</div>
-                <div class="level-bar"><div id="cv-level-fill-main" class="level-fill" style="width: 0%;"></div><div id="cv-level-percentage-main" class="level-percentage">--%</div></div>
-            </div>
-            <div class="level-indicator" style="margin-top: 1.5rem;">
-                <div class="level-title">Reservatório (Visão Cliente)</div>
-                <div class="level-bar"><div id="cv-level-fill-res" class="level-fill" style="width: 0%; background-color: #007bff;"></div><div id="cv-level-percentage-res" class="level-percentage">--%</div></div>
-            </div>
-
-            <div class="chart-container" style="background-color: white; padding: 2rem; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-top: 2rem;">
-                <h3 class="history-title" style="text-align: left; margin-bottom: 1.5rem;">Histórico de Nível (Visão Cliente)</h3>
-                <canvas id="cv-levelChart"></canvas>
-            </div>
-
-            <div class="settings-card" style="margin-top: 2rem;">
-                 <h4>Controle da Bomba (Visão Cliente - Apenas Visualização)</h4>
-                <div class="motor-status-display">Status da Bomba: <span id="cv-motor-status" class="status-indicator-off">--</span></div>
-                <div class="control-group"><label>Modo Automático</label><span id="cv-auto-mode-status">--</span></div>
-                <div class="control-group"><label>Modo Férias</label><span id="cv-ferias-status">--</span></div>
-            </div>
-        </div>
-    </section>
-
     <section id="settings">
-        <div class="container">
+         <div class="container">
             <h3 class="history-title">Configurações e Controle</h3>
              <div class="settings-card">
                 <h4>Configurações do Sistema</h4>
@@ -205,11 +126,11 @@
         </div>
     </section>
 
+    <footer><div class="footer-content"><p>&copy; 2025 AquaMonitor</p></div></footer>
+
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-functions-compat.js"></script>
-
     <script src="admin.js"></script>
 </body>
 </html>
