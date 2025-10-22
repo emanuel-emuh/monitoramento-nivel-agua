@@ -1,23 +1,23 @@
 // ===================================================================
 //   AQUAMONITOR - SCRIPT DO PAINEL DE ADMINISTRADOR (admin.js)
-//   VERSÃO FINAL CORRIGIDA - Ordem de execução
+//   VERSÃO CORRIGIDA FINAL - Ordem de execução corrigida
 // ===================================================================
 
 document.addEventListener('DOMContentLoaded', function () {
-    console.log("Admin script starting (v10 - Scope Fix)...");
+    console.log("Admin script starting (v10 - Scope Fix)..."); // Nova versão para log
 
     // --- Variáveis Globais (Acessíveis dentro do DOMContentLoaded) ---
     let auth, database;
     let sensorRef, controlRef, settingsRef, historyRef, logsRef, lastSeenRef;
     let listenersAttached = false;
 
-    // Referências DOM
+    // Referências DOM (serão preenchidas depois)
     let levelCard, resLevelCard, pumpStatusCard, collectionStatusCard, connectionStatusCard, lastSeenText,
         lowLimitInput, highLimitInput, settingsFeedback, toggleCollectionButton, restartEspButton,
         logEntriesList, adminWaterMain, adminWaterRes, adminLevelPercentMain, adminLevelPercentRes,
         saveSettingsButton, clearHistoryButton, logoutButton, clearLogsButton;
 
-    // --- FUNÇÕES (Definidas dentro do DOMContentLoaded) ---
+    // --- FUNÇÕES (Definidas aqui dentro) ---
 
     function initializeFirebase() {
         console.log("Initializing Firebase...");
@@ -32,11 +32,11 @@ document.addEventListener('DOMContentLoaded', function () {
             auth = firebase.auth();
             database = firebase.database();
             console.log("Firebase initialized and objects obtained.");
-            return true; // Indica sucesso
+            return true; // Sucesso
         } catch (e) {
             console.error("!!! Firebase initialization FAILED:", e);
             alert("Erro crítico ao inicializar a conexão.");
-            return false; // Indica falha
+            return false; // Falha
         }
     }
 
@@ -63,16 +63,17 @@ document.addEventListener('DOMContentLoaded', function () {
             clearHistoryButton = document.getElementById('clear-history-button');
             logoutButton = document.querySelector('.logout-button');
             clearLogsButton = document.getElementById('clear-logs-button');
+
             console.log("DOM references obtained.");
-            // Verifica se botões essenciais foram encontrados
             if (!saveSettingsButton || !toggleCollectionButton || !clearHistoryButton || !restartEspButton || !logoutButton || !clearLogsButton) {
                  console.error("!!! One or more essential buttons not found in DOM !!!");
                  return false;
             }
-            return true;
+            if (!logEntriesList) { console.error("!!! Log entries UL element not found !!!"); return false;}
+            return true; // Sucesso
         } catch(e) {
              console.error("!!! Error getting DOM references:", e);
-             return false;
+             return false; // Falha
         }
     }
 
@@ -113,12 +114,33 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // --- Handlers dos Botões ---
-    function logoutHandler(e) { /* ... (inalterado) ... */ }
-    function saveSettingsHandler() { /* ... (inalterado) ... */ }
-    function toggleCollectionHandler() { /* ... (inalterado) ... */ }
-    function clearHistoryHandler() { /* ... (inalterado) ... */ }
-    function restartEspHandler() { /* ... (inalterado) ... */ }
-    function clearLogsHandler() { /* ... (inalterado) ... */ }
+    function logoutHandler(e) { e?.preventDefault(); auth?.signOut().then(() => { window.location.href = 'login.html'; }).catch(err => console.error("Logout err:", err)); }
+    function saveSettingsHandler() {
+         const low = parseInt(lowLimitInput?.value); const high = parseInt(highLimitInput?.value);
+         if (isNaN(low) || isNaN(high) || low < 0 || high > 100 || low >= high) { alert('Limites inválidos.'); return; }
+         settingsRef?.update({ limiteInferior: low, limiteSuperior: high })
+             .then(() => { if(settingsFeedback) settingsFeedback.textContent = 'Salvo!'; setTimeout(() => { if(settingsFeedback) settingsFeedback.textContent = ''; }, 3000); })
+             .catch(error => alert('Erro ao salvar: ' + error.message));
+     }
+     function toggleCollectionHandler() {
+         if (!toggleCollectionButton || !sensorRef) return;
+         toggleCollectionButton.disabled = true;
+         sensorRef.child('coletaAtiva').get().then(snap => sensorRef.update({ coletaAtiva: snap.val() === false }))
+            .catch(error => alert('Erro ao alterar: ' + error.message))
+            .finally(() => { /* Listener reabilita */ });
+     }
+     function clearHistoryHandler() {
+         if (!historyRef) return;
+         if (confirm('Apagar TODO o histórico?')) historyRef.remove().then(() => alert('Histórico limpo!')).catch(error => alert('Erro: ' + error.message));
+     }
+     function restartEspHandler() {
+         if (!controlRef) return;
+         if (confirm('Reiniciar o ESP?')) controlRef.update({ comandoRestart: true }).then(() => alert('Comando enviado.')).catch(error => alert('Erro: ' + error.message));
+     }
+     function clearLogsHandler() {
+         if (!logsRef) return;
+         if (confirm('Apagar TODO o log de eventos?')) logsRef.remove().then(() => alert('Log limpo!')).catch(error => alert('Erro: ' + error.message));
+     }
 
     // --- Função para Adicionar Listeners do Firebase ---
     function attachFirebaseListeners() {
@@ -130,40 +152,36 @@ document.addEventListener('DOMContentLoaded', function () {
         settingsRef.on('value', snapshot => { /* ... (inalterado - código para atualizar UI) ... */ }, error => console.error("Erro settingsRef:", error));
         lastSeenRef.on('value', snapshot => { /* ... (inalterado - código para atualizar UI) ... */ }, error => console.error("Erro lastSeenRef:", error));
         logsRef.orderByChild('timestamp').limitToLast(50).on('value', snapshot => { /* ... (inalterado - código para atualizar UI logs) ... */ }, error => { if (logEntriesList) logEntriesList.innerHTML = '<li>Erro logs.</li>'; console.error("Erro logsRef:", error); });
-        historyRef.on('value', snapshot => { /* Dummy listener só para garantir que ref está ok */}, error => console.error("Erro historyRef:", error));
+        historyRef.on('value', snapshot => { /* Dummy */ }, error => console.error("Erro historyRef:", error));
 
         console.log("Firebase listeners attached.");
     }
 
      // --- PONTO DE ENTRADA PRINCIPAL --- (Agora DENTRO do DOMContentLoaded)
-     if (initializeFirebase()) { // Só continua se Firebase inicializar
+     if (initializeFirebase()) { // Chama a inicialização PRIMEIRO
          console.log("Setting up Auth State Change listener...");
-         auth.onAuthStateChanged(user => { // Listener de autenticação
+         // Configura o listener de autenticação DEPOIS da inicialização
+         auth.onAuthStateChanged(user => {
             console.log("Auth state changed. User:", user ? user.uid : 'null');
-            if (user) { // Se houver um utilizador logado
-                // Verifica se é admin no Realtime Database
+            if (user) {
                 database.ref('usuarios/' + user.uid).get().then(snapshot => {
                     if (snapshot.exists() && snapshot.val().role === 'admin') {
                         console.log("Admin role verified.");
-                        // Executa as funções APENAS se for admin e se ainda não foram executadas
                         if (!listenersAttached) {
-                            if (getDomReferences() && getFirebaseReferences()) { // Obtém referências
-                                if (enableAdminControls()) { // Habilita botões e listeners de clique
-                                    attachFirebaseListeners(); // Adiciona listeners Firebase
-                                    listenersAttached = true; // Marca como concluído
-                                } else { alert("Falha ao habilitar controlos."); }
-                            } else { alert("Falha ao obter referências DOM ou Firebase."); }
+                            if (getDomReferences() && getFirebaseReferences()) { // Tenta obter refs
+                                if (enableAdminControls()) { // Tenta habilitar controles
+                                    attachFirebaseListeners(); // Tenta adicionar listeners Firebase
+                                    listenersAttached = true;
+                                } else { console.error("Failed to enable admin controls."); alert("Falha ao habilitar controlos."); }
+                            } else { console.error("Failed to get DOM or Firebase references."); alert("Falha ao obter referências DOM ou Firebase."); }
                         } else { console.log("Listeners already attached."); }
-                    } else { // Se não for admin
-                        console.warn("User is not admin or role data missing. Redirecting...");
+                    } else {
+                        console.warn("User is not admin. Redirecting...");
                         alert('Acesso negado.');
                         try { window.location.href = 'index.html'; } catch(e) { window.location.href = 'login.html'; }
                     }
-                }).catch(error => { // Se houver erro a verificar permissão
-                    console.error("Erro ao verificar permissão:", error);
-                    window.location.href = 'login.html';
-                });
-            } else { // Se não houver utilizador logado
+                }).catch(error => { console.error("Erro permissão:", error); window.location.href = 'login.html'; });
+            } else {
                 console.log("No user logged in, redirecting to login.");
                 window.location.href = 'login.html';
             }
@@ -174,4 +192,4 @@ document.addEventListener('DOMContentLoaded', function () {
      }
 
 }); // Fim do DOMContentLoaded
-console.log("Admin script loaded.");
+console.log("Admin script (v10) loaded.");
