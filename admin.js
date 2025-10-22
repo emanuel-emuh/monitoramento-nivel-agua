@@ -7,6 +7,7 @@ document.addEventListener('DOMContentLoaded', function () {
     console.log("Admin script starting (v9 - Log Fix)...");
 
     // --- INICIALIZAÇÃO E AUTENTICAÇÃO DO FIREBASE ---
+    
     const firebaseConfig = {
         apiKey: "AIzaSyBOBbMzkTO2MvIxExVO8vlCOUgpeZp0rSY",
         authDomain: "aqua-monitor-login.firebaseapp.com",
