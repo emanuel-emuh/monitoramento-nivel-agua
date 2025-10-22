@@ -81,7 +81,7 @@ body {
 }
 
 .logout-button {
-    background-color: #dc3545;
+    background-color: #dc3545 !important; /* Garante cor logout */
     color: white !important;
     padding: 8px 15px;
     border-radius: 5px;
@@ -90,11 +90,13 @@ body {
     cursor: pointer;
     text-decoration: none;
     font-size: 0.9rem;
-    transition: background-color 0.3s;
+    transition: background-color 0.3s, opacity 0.3s;
+    opacity: 1;
 }
 
 .logout-button:hover {
-    background-color: #c82333;
+    background-color: #c82333 !important;
+    opacity: 0.85;
 }
 
 /* --- LAYOUT PRINCIPAL E CABEÇALHO --- */
@@ -122,8 +124,8 @@ section {
 /* --- CARDS DE STATUS --- */
 .status-cards {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); /* Ajuste minmax para caber mais cards */
-    gap: 1.5rem; /* Reduz gap */
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
     margin-bottom: 3rem;
 }
 
@@ -148,19 +150,19 @@ section {
 }
 
 .card-title {
-    font-size: 1.1rem; /* Reduzido */
+    font-size: 1.1rem;
     font-weight: 600;
 }
 
 .card-icon {
-    width: 35px; /* Reduzido */
-    height: 35px; /* Reduzido */
+    width: 35px;
+    height: 35px;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
     color: white;
-    font-size: 0.9rem; /* Reduzido */
+    font-size: 0.9rem;
     font-weight: bold;
     background-color: #6c757d; /* Cinza Padrão */
 }
@@ -169,53 +171,51 @@ section {
 .card-icon.icon-red { background-color: #dc3545; }
 .card-icon.icon-orange { background-color: #ff9800; }
 
-/* Estilo para valores principais nos cards (sem ícone) */
 .card-main-value {
-    font-size: 2rem; /* Reduzido */
+    font-size: 2rem;
     text-align: center;
     margin: 0.5rem 0 1rem 0;
     font-weight: 600;
 }
 /* Cores específicas */
-#volume-liters-value, #cv-res-level-value, #admin-res-level-card, #admin-water-res { color: #007bff; }
-#consumption-value, #cv-consumption-value { color: #ff9800; }
-#admin-level-card, #cv-main-level-value, #admin-water-main { color: #2e7d32; }
+#volume-liters-value, #cv-res-level-value, #admin-res-level-card { color: #007bff; } /* Azul */
+#consumption-value, #cv-consumption-value { color: #ff9800; } /* Laranja */
+#admin-level-card, #cv-main-level-value { color: #2e7d32; } /* Verde */
 
 
 /* --- INDICADOR DE NÍVEL (BARRA DE PROGRESSO) --- */
 .level-indicator {
     background-color: white;
-    padding: 1.5rem 2rem; /* Ajustado */
+    padding: 1.5rem 2rem;
     border-radius: 10px;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
 }
 
 .level-title {
-    font-size: 1.1rem; /* Reduzido */
+    font-size: 1.1rem;
     margin-bottom: 1rem;
     font-weight: 600;
 }
 
 .level-bar {
-    height: 25px; /* Reduzido */
+    height: 25px;
     background-color: #e9ecef;
     border-radius: 15px;
     position: relative;
-    overflow: hidden; /* Garante cantos arredondados no preenchimento */
+    overflow: hidden;
 }
 
 .level-fill {
     height: 100%;
-    border-radius: 15px 0 0 15px; /* Cantos arredondados só à esquerda */
+    border-radius: 15px 0 0 15px;
     transition: width 0.5s ease;
 }
-/* Corrige cantos quando 100% */
 .level-fill[style*="width: 100%"] { border-radius: 15px; }
 
 
-.level-low { background-color: #dc3545; }
-.level-medium { background-color: #ff9800; }
-.level-high { background-color: #28a745; }
+.level-low { background-color: #dc3545; } /* Vermelho */
+.level-medium { background-color: #ff9800; } /* Laranja */
+.level-high { background-color: #28a745; } /* Verde */
 
 .level-percentage {
     position: absolute;
@@ -224,7 +224,7 @@ section {
     transform: translate(-50%, -50%);
     font-weight: bold;
     color: #ffffff;
-    font-size: 0.9rem; /* Reduzido */
+    font-size: 0.9rem;
     text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.6);
 }
 
@@ -273,7 +273,7 @@ section {
 }
 .control-group:last-of-type { border-bottom: none; }
 
-.control-group label { font-weight: 500; } /* Adiciona peso à label */
+.control-group label { font-weight: 500; }
 
 .control-group input[type="number"] {
     padding: 8px;
@@ -292,28 +292,48 @@ section {
 .status-indicator-on { color: #28a745; background-color: #e9f7ec; padding: 5px 10px; border-radius: 5px; }
 .status-indicator-off { color: #dc3545; background-color: #fdeeee; padding: 5px 10px; border-radius: 5px; }
 
-.btn-motor-on { background-color: #dc3545; } /* Vermelho para "Desligar" */
-.btn-motor-off { background-color: #28a745; } /* Verde para "Ligar" */
 
-#save-settings-button, .btn-motor-on, .btn-motor-off, .btn-action {
+/* --- BOTÕES --- */
+/* Estilo Base Comum para botões (exceto logout) */
+.btn-motor-on, .btn-motor-off, .btn-action {
     color: white;
     border: none;
     padding: 10px 15px;
     border-radius: 5px;
     cursor: pointer;
     font-weight: 500;
-    transition: opacity 0.3s;
+    transition: opacity 0.3s, background-color 0.3s;
+    opacity: 1; /* Garante opacidade total por defeito */
 }
-#save-settings-button:hover, .btn-motor-on:hover, .btn-motor-off:hover, .btn-action:hover {
+
+/* Cores específicas para botões ATIVOS (com !important) */
+.btn-motor-on { background-color: #dc3545 !important; } /* Vermelho para "Desligar" */
+.btn-motor-off { background-color: #28a745 !important; } /* Verde para "Ligar" */
+.btn-green { background-color: #28a745 !important; } /* Verde Genérico/Salvar */
+.btn-red { background-color: #dc3545 !important; } /* Vermelho Genérico/Excluir/Pausar */
+.btn-blue { background-color: #007bff !important; } /* Azul */
+#btn-ferias.normal { background-color: #007bff !important; } /* Azul Férias Off */
+#btn-ferias.ferias { background-color: #ff9800 !important; } /* Laranja Férias On */
+
+/* Efeito Hover (APENAS quando NÃO está desabilitado) */
+.btn-motor-on:not(:disabled):hover,
+.btn-motor-off:not(:disabled):hover,
+.btn-action:not(:disabled):hover {
     opacity: 0.85;
 }
 
+/* Estado Desabilitado GERAL para TODOS os botões */
 button:disabled {
-    background-color: #adb5bd !important;
+    background-color: #adb5bd !important; /* Cinzento */
     cursor: not-allowed !important;
-    opacity: 0.7;
+    opacity: 0.65 !important;
+    /* Garante que outros estilos não interfiram */
+    color: white !important;
+    border: none !important;
 }
 
+
+/* --- SWITCH --- */
 .switch { position: relative; display: inline-block; width: 60px; height: 34px; }
 .switch input { opacity: 0; width: 0; height: 0; }
 .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; }
@@ -323,8 +343,6 @@ input:checked + .slider:before { transform: translateX(26px); }
 .slider.round { border-radius: 34px; }
 .slider.round:before { border-radius: 50%; }
 
-/* --- TABELAS (PAINEL ADMIN - REMOVIDO) --- */
-/* Estilos .table-container, table, th, td podem ser removidos se não forem mais usados */
 
 /* --- RODAPÉ (FOOTER) --- */
 footer {
@@ -342,65 +360,53 @@ footer {
     .nav-links li { margin-left: 0; }
     .container { padding: 1rem; }
     .header h2 { font-size: 2rem; }
-    .status-cards { grid-template-columns: 1fr; } /* Empilha cards em telas pequenas */
-    .tank-visualization-container { flex-direction: column; align-items: center; } /* Empilha caixas */
-    .tank { width: 80px; height: 160px; } /* Ajusta tamanho das caixas */
+    .status-cards { grid-template-columns: 1fr; }
+    .tank-visualization-container { flex-direction: column; align-items: center; }
+    .tank { width: 80px; height: 160px; }
 }
 
-/* --- Estilos para Novas Funcionalidades --- */
-.settings-card .form-group { margin-bottom: 1rem; }
-.settings-card .form-group label { display: block; margin-bottom: 5px; font-weight: 500; }
-.settings-card .form-group input, .settings-card .form-group select { width: 100%; padding: 8px; border-radius: 5px; border: 1px solid #ccc; }
-.dimension-fields { display: none; }
-
-#btn-ferias { width: 100%; padding: 10px 15px; margin-top: 1rem; border: none; border-radius: 5px; cursor: pointer; font-weight: 500; transition: background-color 0.3s; color: white; }
-#btn-ferias.normal { background-color: #007bff; }
-#btn-ferias.ferias { background-color: #ff9800; }
-#btn-ferias:hover { opacity: 0.85; }
-
-/* --- Estilos Visão Cliente Admin --- */
+/* --- Estilos Visão Cliente Admin (Status Texto) --- */
 #cv-auto-mode-status, #cv-ferias-status { font-weight: bold; }
 
 /* --- Estilos para Visualização das Caixas --- */
 .tank-visualization-container {
     display: flex;
     justify-content: space-around;
-    align-items: flex-end; /* Alinha as caixas na base */
+    align-items: flex-end;
     gap: 2rem;
     margin-top: 2rem;
     background-color: #f8f9fa;
     padding: 2rem;
     border-radius: 8px;
-    min-height: 250px; /* Altura mínima para visualização */
+    min-height: 250px;
     border: 1px solid #e9ecef;
 }
 .tank {
-    width: 100px; /* Largura da caixa */
-    height: 200px; /* Altura da caixa */
-    border: 3px solid #6c757d; /* Borda cinza */
-    border-radius: 5px; /* Cantos levemente arredondados */
+    width: 100px;
+    height: 200px;
+    border: 3px solid #6c757d;
+    border-radius: 5px;
     position: relative;
-    background-color: #e9ecef; /* Fundo cinza claro */
-    overflow: hidden; /* Garante que a água não transborde visualmente */
+    background-color: #e9ecef;
+    overflow: hidden;
 }
 .water-level {
     position: absolute;
     bottom: 0;
     left: 0;
     width: 100%;
-    /* Cores definidas inline no HTML/JS */
-    transition: height 0.5s ease; /* Animação suave */
-    border-radius: 0 0 2px 2px; /* Arredonda cantos inferiores da água */
+    transition: height 0.5s ease;
+    border-radius: 0 0 2px 2px;
 }
 .tank-label {
     text-align: center;
     margin-top: 0.5rem;
     font-weight: 600;
-    color: #495057; /* Cor mais escura para label */
+    color: #495057;
 }
-/* Cores específicas para água */
-#admin-water-main, #client-water-main { background-color: #2e7d32; } /* Verde para principal */
-#admin-water-res, #client-water-res { background-color: #007bff; } /* Azul para reservatório */
+/* Cores específicas para água (aplicadas no JS/HTML também por segurança) */
+#admin-water-main, #client-water-main { background-color: #2e7d32; } /* Verde */
+#admin-water-res, #client-water-res { background-color: #007bff; } /* Azul */
 
 
 /* --- Estilos para Logs --- */
@@ -412,7 +418,7 @@ footer {
     max-height: 400px;
     overflow-y: auto;
     border: 1px solid #e9ecef;
-    margin-top: 1rem; /* Adiciona espaço acima */
+    margin-top: 1rem;
 }
 #log-entries { list-style: none; padding: 0; margin: 0; font-family: 'Consolas', 'Monaco', monospace; font-size: 0.9rem; color: #495057; }
 #log-entries li { padding: 0.5rem 0; border-bottom: 1px dashed #e9ecef; }
