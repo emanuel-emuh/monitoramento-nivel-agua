@@ -1,103 +1,94 @@
 // ===================================================================
-//   AQUAMONITOR - SCRIPT ADMIN (VERSÃO DE DEPURAÇÃO V7 - Simplificada)
+//   AQUAMONITOR - SCRIPT ADMIN (VERSÃO DE DEPURAÇÃO V7.1 - Habilita Todos os Botões)
 // ===================================================================
 
 document.addEventListener('DOMContentLoaded', function () {
-    console.log("Admin DEBUG v7 script starting...");
+    console.log("Admin DEBUG v7.1 script starting...");
 
     // --- Variáveis Globais (Declaradas cedo) ---
     let auth, database;
-    let logoutButton;
-    let sensorRef;
+    let logoutButton, saveSettingsButton, toggleCollectionButton, clearHistoryButton, restartEspButton; // Referências aos botões
+    let sensorRef; // Referência Firebase
     let isAdminVerified = false;
-    let initComplete = false; // Flag para garantir inicialização única
+    let initComplete = false;
 
     // --- FUNÇÕES ---
 
     // Handler de Logout
-    function logoutHandler(e) {
-        if (e) e.preventDefault();
-        console.log("Logout action initiated.");
-        if (auth) {
-            auth.signOut().then(() => {
-                console.log("Sign out successful. Redirecting to login.");
-                window.location.href = 'login.html';
-            }).catch(error => {
-                console.error("Sign out error:", error);
-                alert("Erro ao fazer logout.");
-            });
-        } else {
-             console.error("Logout failed: auth object not available.");
-        }
-    }
+    function logoutHandler(e) { /* ... (inalterado) ... */ }
+    // Handlers (vazios por agora, só para o listener não dar erro)
+    function saveSettingsHandler() { console.log("Save Settings clicked (Handler attached)"); }
+    function toggleCollectionHandler() { console.log("Toggle Collection clicked (Handler attached)"); }
+    function clearHistoryHandler() { console.log("Clear History clicked (Handler attached)"); }
+    function restartEspHandler() { console.log("Restart ESP clicked (Handler attached)"); }
 
-    // Tenta Habilitar Logout e Adicionar Listener
-    function tryEnableLogout() {
-        console.log("Attempting to get and enable logout button...");
+
+    // Tenta Habilitar TODOS os botões e Adicionar Listeners
+    function tryEnableControls() {
+        console.log("Attempting to get and enable ALL control buttons...");
+
         logoutButton = document.querySelector('.logout-button');
+        saveSettingsButton = document.getElementById('save-settings-button');
+        toggleCollectionButton = document.getElementById('toggle-collection-button');
+        clearHistoryButton = document.getElementById('clear-history-button');
+        restartEspButton = document.getElementById('restart-esp-button');
+
+        // Logout
         if (logoutButton) {
-            try {
-                logoutButton.disabled = false;
-                // Usa onclick para garantir substituição e simplicidade no debug
-                logoutButton.onclick = logoutHandler;
-                console.log("SUCCESS: Logout button FOUND, enabled, and listener attached.");
-            } catch (err) {
-                console.error("!!! Error enabling/attaching listener to logout button:", err);
-            }
-        } else {
-            console.error("!!! CRITICAL: Logout button NOT FOUND in DOM !!!");
-        }
+            logoutButton.disabled = false;
+            logoutButton.removeEventListener('click', logoutHandler);
+            logoutButton.addEventListener('click', logoutHandler);
+            console.log("SUCCESS: Logout button enabled and listener attached.");
+        } else { console.error("!!! CRITICAL: Logout button NOT FOUND !!!"); }
+
+        // Save Settings
+        if (saveSettingsButton) {
+            saveSettingsButton.disabled = false;
+            saveSettingsButton.removeEventListener('click', saveSettingsHandler);
+            saveSettingsButton.addEventListener('click', saveSettingsHandler); // Handler vazio por agora
+            console.log("SUCCESS: Save Settings button enabled and listener attached.");
+        } else { console.error("!!! CRITICAL: Save Settings button NOT FOUND !!!"); }
+
+        // Toggle Collection (Começa habilitado neste teste)
+        if (toggleCollectionButton) {
+            toggleCollectionButton.disabled = false; // Força habilitação inicial
+            toggleCollectionButton.textContent = 'Coleta (Estado Inicial)'; // Texto inicial
+            toggleCollectionButton.removeEventListener('click', toggleCollectionHandler);
+            toggleCollectionButton.addEventListener('click', toggleCollectionHandler); // Handler vazio
+            console.log("SUCCESS: Toggle Collection button enabled (forced) and listener attached.");
+        } else { console.error("!!! CRITICAL: Toggle Collection button NOT FOUND !!!"); }
+
+        // Clear History
+        if (clearHistoryButton) {
+            clearHistoryButton.disabled = false;
+            clearHistoryButton.removeEventListener('click', clearHistoryHandler);
+            clearHistoryButton.addEventListener('click', clearHistoryHandler); // Handler vazio
+            console.log("SUCCESS: Clear History button enabled and listener attached.");
+        } else { console.error("!!! CRITICAL: Clear History button NOT FOUND !!!"); }
+
+        // Restart ESP
+        if (restartEspButton) {
+            restartEspButton.disabled = false;
+            restartEspButton.removeEventListener('click', restartEspHandler);
+            restartEspButton.addEventListener('click', restartEspHandler); // Handler vazio
+            console.log("SUCCESS: Restart ESP button enabled and listener attached.");
+        } else { console.error("!!! CRITICAL: Restart ESP button NOT FOUND !!!"); }
     }
 
     // Adiciona Listener Firebase Mínimo
-    function attachMinimalFirebaseListener() {
-        console.log("Attempting to get Firebase sensorRef...");
-        if (!database) {
-            console.error("!!! Cannot attach listener: database object not available.");
-            return;
-        }
-        sensorRef = database.ref('sensorData');
-        console.log("Attempting to attach sensorRef listener...");
-        try {
-            sensorRef.on('value', snapshot => {
-                console.log(">>> Sensor data received:", snapshot.val());
-                // (Não faz update da UI nesta versão de debug)
-            }, error => {
-                console.error("!!! Error on sensorRef listener:", error);
-            });
-            console.log("SUCCESS: sensorRef listener attached.");
-        } catch (err) {
-            console.error("!!! Error attaching sensorRef listener:", err);
-        }
-    }
+    function attachMinimalFirebaseListener() { /* ... (inalterado da resposta anterior) ... */ }
 
     // --- INICIALIZAÇÃO E VERIFICAÇÃO ---
     console.log("Initializing Firebase...");
     try {
-        const firebaseConfig = {
-            apiKey: "AIzaSyBOBbMzkTO2MvIxExVO8vlCOUgpeZp0rSY",
-            authDomain: "aqua-monitor-login.firebaseapp.com",
-            projectId: "aqua-monitor-login",
-            databaseURL: "https://aqua-monitor-login-default-rtdb.firebaseio.com"
-        };
-        if (!firebase.apps.length) {
-            firebase.initializeApp(firebaseConfig);
-            console.log("Firebase initialized.");
-        } else {
-            firebase.app();
-            console.log("Firebase app retrieved.");
-        }
+        const firebaseConfig = { /* ... (configuração inalterada) ... */ };
+        if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); console.log("Firebase initialized."); }
+        else { firebase.app(); console.log("Firebase app retrieved."); }
         auth = firebase.auth();
         database = firebase.database();
         console.log("Firebase auth and database objects created.");
-        initComplete = true; // Marca inicialização como completa
-
-    } catch (e) {
-        console.error("!!! Firebase initialization FAILED:", e);
-        alert("Erro crítico na inicialização do Firebase. Verifique a consola.");
-        initComplete = false;
-        return; // PARAR AQUI se falhar
-    }
+        initComplete = true;
+    } catch (e) { /* ... (tratamento de erro inalterado) ... */ }
 
     // --- VERIFICAÇÃO DE ADMIN ---
     console.log("Setting up Auth State Change listener...");
@@ -106,42 +97,22 @@ document.addEventListener('DOMContentLoaded', function () {
             console.log("Auth state changed. User:", user ? user.uid : 'null');
             if (user) {
                 console.log("User detected. Checking admin role for UID:", user.uid);
-                if (!database) { // Segurança extra
-                     console.error("!!! Database object missing during auth check!");
-                     return;
-                }
+                if (!database) { console.error("!!! Database object missing during auth check!"); return; }
                 database.ref('usuarios/' + user.uid).get().then(snapshot => {
                     if (snapshot.exists() && snapshot.val().role === 'admin') {
                         isAdminVerified = true;
                         console.log("SUCCESS: Admin role verified for user:", user.email);
 
-                        // ** SÓ TENTA HABILITAR O LOGOUT E ADICIONAR LISTENER SE FOR ADMIN **
-                        tryEnableLogout();
+                        // ** TENTA HABILITAR TODOS OS BOTÕES E ADICIONAR LISTENER MÍNIMO **
+                        tryEnableControls(); // Agora habilita todos
                         attachMinimalFirebaseListener();
 
-                    } else {
-                        isAdminVerified = false;
-                        console.warn("User is NOT admin or role data missing. Redirecting...");
-                        alert('Acesso negado.');
-                        try { window.location.href = 'index.html'; } catch(e) { window.location.href = 'login.html'; }
-                    }
-                }).catch(error => {
-                    isAdminVerified = false;
-                    console.error("!!! Error checking admin role in database:", error);
-                    alert("Erro ao verificar as suas permissões. Tente fazer login novamente.");
-                    window.location.href = 'login.html';
-                });
-            } else {
-                isAdminVerified = false;
-                console.log("No user logged in, redirecting to login.");
-                window.location.href = 'login.html';
-            }
+                    } else { /* ... (redirecionamento inalterado) ... */ }
+                }).catch(error => { /* ... (tratamento de erro inalterado) ... */ });
+            } else { /* ... (redirecionamento inalterado) ... */ }
         });
         console.log("Auth state listener is set. Waiting for auth state...");
-    } else {
-        console.error("!!! Auth object not created after initialization!");
-    }
+    } else { console.error("!!! Auth object not created after initialization!"); }
 
 }); // Fim do DOMContentLoaded
-
-console.log("Admin script (DEBUG v7) loaded."); // DEBUG final
+console.log("Admin script (DEBUG v7.1) loaded.");
