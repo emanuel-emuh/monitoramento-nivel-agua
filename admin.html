@@ -1,145 +1,133 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Painel do Administrador</title>
-    <link rel="stylesheet" href="admin.css">
-    <style>
-        /* Estilos específicos podem ser mantidos aqui ou movidos para admin.css se preferir */
-        .tank-visualization-container { display: flex; justify-content: space-around; align-items: flex-end; gap: 2rem; margin-top: 2rem; background-color: #f8f9fa; padding: 2rem; border-radius: 8px; min-height: 250px; border: 1px solid #e9ecef; }
-        .tank { width: 100px; height: 200px; border: 3px solid #6c757d; border-radius: 5px; position: relative; background-color: #e9ecef; overflow: hidden; }
-        .water-level { position: absolute; bottom: 0; left: 0; width: 100%; transition: height 0.5s ease; border-radius: 0 0 2px 2px; }
-        .tank-label { text-align: center; margin-top: 0.5rem; font-weight: 600; color: #495057; }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AquaMonitor - Painel do Administrador</title>
+  <link rel="stylesheet" href="admin.css">
+  <style>
+    .tank-visualization-container {
+      display: flex; justify-content: space-around; align-items: flex-end;
+      gap: 2rem; margin-top: 2rem; background-color: #f8f9fa;
+      padding: 2rem; border-radius: 8px; min-height: 250px;
+      border: 1px solid #e9ecef;
+    }
+    .tank {
+      width: 100px; height: 200px; border: 3px solid #6c757d;
+      border-radius: 5px; position: relative; background-color: #e9ecef;
+      overflow: hidden;
+    }
+    .water-level { position: absolute; bottom: 0; left: 0; width: 100%; transition: height 0.5s ease; border-radius: 0 0 2px 2px; }
+    .tank-label { text-align: center; margin-top: 0.5rem; font-weight: 600; color: #495057; }
+  </style>
 </head>
 <body>
-    <nav class="navbar">
-        <div class="logo">
-            <div class="logo-icon">AM</div>
-            <h1>AquaMonitor - Admin</h1>
+  <nav class="navbar">
+    <div class="logo">
+      <div class="logo-icon">AM</div>
+      <h1>AquaMonitor - Admin</h1>
+    </div>
+    <ul class="nav-links">
+      <li><a href="#home" class="active">Visão Geral</a></li>
+      <li><a href="#settings">Configurações</a></li>
+      <li><a href="#logs">Log de Eventos</a></li>
+      <li><a href="#" class="logout-button">Sair</a></li>
+    </ul>
+  </nav>
+
+  <section id="home">
+    <div class="container">
+      <div class="header">
+        <h2>Painel do Administrador</h2>
+        <p>Gerencie o sistema e monitore o status em tempo real.</p>
+      </div>
+      <div class="status-cards">
+        <div class="card"><div class="card-header"><div class="card-title">Nível Atual (Principal)</div></div><h2 id="admin-level-card" class="card-main-value" style="color:#2e7d32;">--%</h2></div>
+        <div class="card"><div class="card-header"><div class="card-title">Nível Reservatório</div></div><h2 id="admin-res-level-card" class="card-main-value" style="color:#007bff;">--%</h2></div>
+        <div class="card"><div class="card-header"><div class="card-title">Status da Bomba</div></div><h2 id="admin-pump-status-card" class="card-main-value">--</h2></div>
+        <div class="card"><div class="card-header"><div class="card-title">Status da Coleta</div></div><h2 id="admin-collection-status-card" class="card-main-value">--</h2></div>
+        <div class="card"><div class="card-header"><div class="card-title">Status da Conexão ESP</div></div><h2 id="admin-connection-status" class="card-main-value">--</h2><p id="admin-last-seen" style="text-align:center;font-size:0.9rem;color:#6c757d;">Aguardando sinal...</p></div>
+      </div>
+
+      <div class="tank-visualization-container">
+        <div>
+          <div class="tank"><div id="admin-water-main" class="water-level" style="height:0%;background-color:#2e7d32;"></div></div>
+          <div class="tank-label">Caixa Principal (<span id="admin-level-percent-main">--</span>%)</div>
         </div>
-        <ul class="nav-links">
-            <li><a href="#home" class="active">Visão Geral</a></li>
-            <li><a href="#settings">Configurações</a></li>
-            <li><a href="#logs">Log de Eventos</a></li>
-            <li><a href="#" class="logout-button">Sair</a></li>
-        </ul>
-    </nav>
-
-    <section id="home">
-        <div class="container">
-            <div class="header">
-                <h2>Painel do Administrador</h2>
-                <p>Gerencie o sistema e monitore o status em tempo real.</p>
-            </div>
-            <div class="status-cards">
-                 <div class="card">
-                    <div class="card-header"><div class="card-title">Nível Atual (Principal)</div></div>
-                    <h2 id="admin-level-card" class="card-main-value" style="color: #2e7d32;">--%</h2>
-                </div>
-                 <div class="card">
-                    <div class="card-header"><div class="card-title">Nível Reservatório</div></div>
-                    <h2 id="admin-res-level-card" class="card-main-value" style="color: #007bff;">--%</h2>
-                </div>
-                <div class="card">
-                    <div class="card-header"><div class="card-title">Status da Bomba</div></div>
-                    <h2 id="admin-pump-status-card" class="card-main-value">--</h2>
-                </div>
-                <div class="card">
-                    <div class="card-header"><div class="card-title">Status da Coleta</div></div>
-                    <h2 id="admin-collection-status-card" class="card-main-value">--</h2>
-                </div>
-                <div class="card">
-                    <div class="card-header"><div class="card-title">Status da Conexão ESP</div></div>
-                    <h2 id="admin-connection-status" class="card-main-value">--</h2>
-                    <p id="admin-last-seen" style="text-align: center; font-size: 0.9rem; color: #6c757d;">Aguardando sinal...</p>
-                </div>
-            </div>
-
-            <div class="tank-visualization-container">
-                <div>
-                    <div class="tank">
-                        <div id="admin-water-main" class="water-level" style="height: 0%; background-color: #2e7d32;"></div>
-                    </div>
-                    <div class="tank-label">Caixa Principal (<span id="admin-level-percent-main">--</span>%)</div>
-                </div>
-                <div>
-                    <div class="tank">
-                        <div id="admin-water-res" class="water-level" style="height: 0%; background-color: #007bff;"></div>
-                    </div>
-                     <div class="tank-label">Reservatório (<span id="admin-level-percent-res">--</span>%)</div>
-                </div>
-            </div>
+        <div>
+          <div class="tank"><div id="admin-water-res" class="water-level" style="height:0%;background-color:#007bff;"></div></div>
+          <div class="tank-label">Reservatório (<span id="admin-level-percent-res">--</span>%)</div>
         </div>
-    </section>
+      </div>
+    </div>
+  </section>
 
-    <section id="settings">
-         <div class="container">
-            <h3 class="history-title">Configurações e Controle</h3>
-             <div class="settings-card">
-                <h4>Configurações do Sistema</h4>
-                <div class="control-group">
-                    <label for="low-limit-input">Ligar Bomba Abaixo de (%):</label>
-                    <input type="number" id="low-limit-input" min="0" max="100">
-                </div>
-                <div class="control-group">
-                    <label for="high-limit-input">Desligar Bomba Acima de (%):</label>
-                    <input type="number" id="high-limit-input" min="0" max="100">
-                </div>
-                <button id="save-settings-button" class="btn-action btn-green" style="width: 100%; margin-top: 1rem;">Salvar Limites</button>
-                <p id="settings-feedback" style="text-align: center; color: green; margin-top: 1rem;"></p>
-            </div>
-
-            <div class="settings-card" style="margin-top: 2rem; border-top-color: #ff9800;">
-                <h4>Gerenciamento de Dados</h4>
-                <div class="control-group">
-                    <label>Coleta de dados do sensor:</label>
-                    <button id="toggle-collection-button" class="btn-action">Aguardando...</button>
-                </div>
-                <div class="control-group">
-                    <label>Limpar histórico de consumo:</label>
-                    <button id="clear-history-button" class="btn-action btn-red">Limpar Histórico</button>
-                </div>
-                <div class="control-group">
-                    <label>Limpar log de eventos:</label>
-                    <button id="clear-logs-button" class="btn-action btn-red">Limpar Logs</button>
-                </div>
-                 <p class="settings-info">
-                     <b>Pausar/Retomar Coleta:</b> Ativa/desativa envio de dados.
-                     <b>Limpar Histórico:</b> Apaga registos de nível.
-                     <b>Limpar Logs:</b> Apaga registos de eventos. (Ações irreversíveis)
-                 </p>
-            </div>
-
-            <div class="settings-card" style="margin-top: 2rem; border-top-color: #dc3545;">
-                <h4>Ações Remotas</h4>
-                <div class="control-group">
-                    <label>Reiniciar o dispositivo ESP8266:</label>
-                    <button id="restart-esp-button" class="btn-action btn-red">Reiniciar ESP</button>
-                </div>
-                 <p class="settings-info"><b>Reiniciar ESP:</b> Força a reinicialização do microcontrolador. Útil em caso de travamentos ou problemas de conexão.</p>
-            </div>
+  <section id="settings">
+    <div class="container">
+      <h3 class="history-title">Configurações e Controle</h3>
+      <div class="settings-card">
+        <h4>Configurações do Sistema</h4>
+        <div class="control-group">
+          <label for="low-limit-input">Ligar Bomba Abaixo de (%):</label>
+          <input type="number" id="low-limit-input" min="0" max="100">
         </div>
-    </section>
-
-    <section id="logs">
-        <div class="container">
-            <h3 class="history-title">Log de Eventos</h3>
-            <div class="log-container">
-                <ul id="log-entries">
-                    <li>Aguardando logs...</li>
-                </ul>
-            </div>
+        <div class="control-group">
+          <label for="high-limit-input">Desligar Bomba Acima de (%):</label>
+          <input type="number" id="high-limit-input" min="0" max="100">
         </div>
-    </section>
+        <button id="save-settings-button" class="btn-action btn-green" style="width:100%;margin-top:1rem;">Salvar Limites</button>
+        <p id="settings-feedback" style="text-align:center;color:green;margin-top:1rem;"></p>
+      </div>
 
-    <footer><div class="footer-content"><p>&copy; 2025 AquaMonitor</p></div></footer>
+      <div class="settings-card" style="margin-top:2rem;border-top-color:#ff9800;">
+        <h4>Gerenciamento de Dados</h4>
+        <div class="control-group"><label>Coleta de dados do sensor:</label><button id="toggle-collection-button" class="btn-action">Aguardando...</button></div>
+        <div class="control-group"><label>Limpar histórico de consumo:</label><button id="clear-history-button" class="btn-action btn-red">Limpar Histórico</button></div>
+        <div class="control-group"><label>Limpar log de eventos:</label><button id="clear-logs-button" class="btn-action btn-red">Limpar Logs</button></div>
+        <p class="settings-info"><b>Pausar/Retomar Coleta:</b> Ativa/desativa envio de dados. <b>Limpar Histórico:</b> Apaga registos de nível. <b>Limpar Logs:</b> Apaga registos de eventos.</p>
+      </div>
 
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+      <div class="settings-card" style="margin-top:2rem;border-top-color:#dc3545;">
+        <h4>Ações Remotas</h4>
+        <div class="control-group">
+          <label>Reiniciar o dispositivo ESP8266:</label>
+          <button id="restart-esp-button" class="btn-action btn-red">Reiniciar ESP</button>
+        </div>
+        <p class="settings-info"><b>Reiniciar ESP:</b> Força a reinicialização do microcontrolador.</p>
+      </div>
+    </div>
+  </section>
 
-    <script src="admin.js"></script>
+  <section id="logs">
+    <div class="container">
+      <h3 class="history-title">Log de Eventos</h3>
+      <div class="log-container"><ul id="log-entries"><li>Aguardando logs...</li></ul></div>
+    </div>
+  </section>
+
+  <footer><div class="footer-content"><p>&copy; 2025 AquaMonitor</p></div></footer>
+
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+
+  <!-- Log de carregamento para depuração -->
+  <script>
+    console.log("✅ Firebase SDKs carregados com sucesso. Agora carregando admin.js...");
+  </script>
+
+  <!-- Força nova versão (evita cache) -->
+  <script src="admin.js?v=11"></script>
+
+  <script>
+    console.log("✅ admin.js carregado! Verificando se initializeFirebase existe...");
+    if (typeof initializeFirebase !== 'function') {
+      console.error("🚨 ERRO: initializeFirebase() ainda não foi definida!");
+      alert("Erro: o script admin.js pode não ter carregado corretamente.");
+    } else {
+      console.log("🎉 Tudo certo! initializeFirebase está disponível.");
+    }
+  </script>
 </body>
 </html>
