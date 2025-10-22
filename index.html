@@ -1,111 +1,160 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AquaMonitor - Dashboard</title>
-    <link rel="stylesheet" href="dashboard.css">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AquaMonitor - Dashboard</title>
+
+  <!-- Estilos -->
+  <link rel="stylesheet" href="dashboard.css?v=7"/>
+
+  <!-- (Opcional) Fonte bonita -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet"/>
 </head>
 <body>
-    <nav class="navbar">
-        <div class="logo"><div class="logo-icon">AM</div><h1>AquaMonitor</h1></div>
-        <ul class="nav-links">
-            <li><a href="#home" class="active">Dashboard</a></li>
-            <li><a href="#chart-section">Gráfico</a></li>
-            <li><a href="#configuracoes">Configurações</a></li>
-            <li><a href="#" class="logout-button">Sair</a></li>
-        </ul>
-    </nav>
+  <!-- Navbar -->
+  <nav class="navbar">
+    <div class="logo">
+      <span class="logo-icon">AM</span>
+      <h1>AquaMonitor</h1>
+    </div>
+    <a href="#" class="logout-button">Sair</a>
+  </nav>
 
-    <section id="home">
-        <div class="container">
-            <div class="header"><h2>Monitoramento de Nível de Água</h2><p>Sistema de monitoramento em tempo real do nível da caixa d'água</p></div>
-            
-            <div class="status-cards">
-                 <div class="card">
-                    <div class="card-header"><div class="card-title">Caixa Principal</div></div>
-                    <h2 id="main-level-value" class="card-main-value">--%</h2>
-                    <p id="main-level-liters" style="text-align: center;">-- L</p>
-                </div>
-                <div class="card">
-                    <div class="card-header"><div class="card-title">Reservatório</div></div>
-                    <h2 id="res-level-value" class="card-main-value">--%</h2>
-                    <p id="res-level-liters" style="text-align: center;">-- L</p>
-                </div>
-                <div class="card"><div class="card-header"><div class="card-title">Status da Bomba</div><div class="card-icon" id="pump-status-icon"><span id="pump-status-value">--</span></div></div><p id="pump-status-text">Aguardando...</p></div>
-                <div class="card"><div class="card-header"><div class="card-title">Modo de Operação</div><div class="card-icon" id="mode-icon"><span id="mode-value">--</span></div></div><p id="mode-text">Aguardando...</p></div>
-                 <div class="card">
-                    <div class="card-header"><div class="card-title">Consumo Médio</div></div>
-                    <h2 id="consumption-value" class="card-main-value">--</h2>
-                    <p id="consumption-text">Calculando...</p>
-                </div>
-            </div>
+  <main class="container">
+    <!-- Cabeçalho -->
+    <header style="text-align:center; margin: 18px 0 10px;">
+      <h2>Monitoramento de Nível</h2>
+      <p>Consumo, status da bomba e controle em tempo real.</p>
+    </header>
 
-            <div class="tank-visualization-container">
-                <div>
-                    <div class="tank">
-                        <div id="client-water-main" class="water-level" style="height: 0%;"></div>
-                    </div>
-                    <div class="tank-label">Caixa Principal (<span id="client-level-percent-main">--</span>%)</div>
-                </div>
-                <div>
-                    <div class="tank">
-                        <div id="client-water-res" class="water-level" style="height: 0%;"></div>
-                    </div>
-                     <div class="tank-label">Reservatório (<span id="client-level-percent-res">--</span>%)</div>
-                </div>
-            </div>
+    <!-- ====== Cards de Nível ====== -->
+    <section aria-label="Níveis">
+      <div class="card">
+        <div class="card-icon icon-green">⬆</div>
+        <h3>Caixa Principal</h3>
+        <p id="main-level-value" class="value">--%</p>
+        <p id="main-level-liters" class="subvalue">-- L</p>
 
-            <div class="level-indicator" style="margin-top: 2rem;">
-                <div class="level-title">Nível Caixa Principal</div>
-                <div class="level-bar"><div id="level-fill-main" class="level-fill" style="width: 0%;"></div><div id="level-percentage-main" class="level-percentage">--%</div></div>
-            </div>
-            <div class="level-indicator" style="margin-top: 1.5rem;">
-                <div class="level-title">Nível Reservatório</div>
-                <div class="level-bar"><div id="level-fill-res" class="level-fill" style="width: 0%; background-color: #007bff;"></div><div id="level-percentage-res" class="level-percentage">--%</div></div>
-            </div>
+        <!-- Barra horizontal (seu CSS usa .level-fill) -->
+        <div class="level-bar">
+          <div id="level-fill-main" class="level-fill" style="width:0%"></div>
         </div>
+        <p>Percentual: <b id="level-percentage-main">--%</b></p>
+
+        <!-- Visual do tanque (vertical) -->
+        <div class="tank-visual">
+          <div class="tank">
+            <div id="client-water-main" class="water" style="height:0%"></div>
+          </div>
+          <div class="tank-label">
+            <span>Principal</span> (<span id="client-level-percent-main">--</span>%)
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-icon icon-green">⬇</div>
+        <h3>Reservatório</h3>
+        <p id="res-level-value" class="value">--%</p>
+        <p id="res-level-liters" class="subvalue">-- L</p>
+
+        <div class="level-bar">
+          <div id="level-fill-res" class="level-fill" style="width:0%"></div>
+        </div>
+        <p>Percentual: <b id="level-percentage-res">--%</b></p>
+
+        <div class="tank-visual">
+          <div class="tank">
+            <div id="client-water-res" class="water" style="height:0%"></div>
+          </div>
+          <div class="tank-label">
+            <span>Reservatório</span> (<span id="client-level-percent-res">--</span>%)
+          </div>
+        </div>
+      </div>
     </section>
 
-    <section id="chart-section">
-         <div class="container">
-            <div class="chart-container" style="background-color: white; padding: 2rem; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
-                <h3 class="history-title" style="text-align: left; margin-bottom: 1.5rem;">Histórico de Nível (Caixa Principal)</h3>
-                <canvas id="levelChart"></canvas>
-            </div>
+    <!-- ====== Status e Controles ====== -->
+    <section aria-label="Status e Controles">
+      <div class="card">
+        <div class="card-icon" id="pump-status-icon">⚙</div>
+        <h3>Status da Bomba</h3>
+        <p class="value" id="pump-status-value">--</p>
+        <p class="subvalue" id="pump-status-text">Aguardando...</p>
+      </div>
+
+      <div class="card">
+        <div class="card-icon" id="mode-icon">🛠</div>
+        <h3>Modo de Operação</h3>
+        <p class="value" id="mode-value">--</p>
+        <p class="subvalue" id="mode-text">Aguardando...</p>
+      </div>
+
+      <div class="card settings-card">
+        <h3>Controle da Bomba</h3>
+
+        <!-- Switch Automático -->
+        <div class="control-row">
+          <label for="auto-mode-switch" style="font-weight:600;">Modo Automático</label>
+          <input type="checkbox" id="auto-mode-switch" />
         </div>
+
+        <!-- Botão Manual -->
+        <div class="control-row">
+          <button id="motor-button" class="btn-motor-off">Ligar Bomba</button>
+        </div>
+
+        <!-- Indicador textual atual -->
+        <p>Status atual: <b id="motor-status">--</b></p>
+      </div>
+
+      <!-- ===== Seção: Modo Econômico (Férias) ===== -->
+      <div class="card settings-card" id="sec-modo-economico">
+        <h3>Modo Econômico (Férias)</h3>
+        <p class="settings-hint">
+          Reduz o consumo: aplica limites <b>15%</b> (liga) e <b>50%</b> (desliga) enquanto estiver ativo.
+        </p>
+
+        <div class="control-row">
+          <button id="btn-ferias" class="normal" type="button">Ativar Modo Férias</button>
+        </div>
+
+        <p id="ferias-info" class="settings-info">
+          <b>Modo Férias:</b> Usa limites de 15% a 50% para economizar.
+        </p>
+      </div>
     </section>
 
-    <section id="configuracoes">
-        <div class="container">
-            <h3 class="history-title">Configurações e Controle</h3>
-
-            <div class="settings-card">
-                <h4>Controle da Bomba de Água</h4>
-                <div class="motor-status-display">Status da Bomba: <span id="motor-status" class="status-indicator-off">--</span></div>
-                <div class="control-group"><label for="auto-mode-switch">Modo Automático</label><label class="switch"><input type="checkbox" id="auto-mode-switch"><span class="slider round"></span></label></div>
-                <div class="control-group"><label for="motor-button">Controle Manual</label><button id="motor-button" class="btn-motor-off" disabled>Ligar Bomba</button></div>
-                 <p class="settings-info"><b>Modo Automático:</b> A bomba liga/desliga com base nos limites.<br><b>Modo Manual:</b> Desative o modo automático para o controle manual.</p>
-            </div>
-
-            <div class="settings-card" style="margin-top: 2rem; border-top-color: #ff9800;">
-                <h4>Modo Econômico</h4>
-                <button id="btn-ferias" class="normal">Ativar Modo Férias</button>
-                <p class="settings-info" id="ferias-info"><b>Modo Férias:</b> Usa limites de 15% a 50% para economizar energia durante a sua ausência.</p>
-            </div>
+    <!-- ====== Consumo & Gráfico ====== -->
+    <section aria-label="Consumo">
+      <div class="card">
+        <div class="card-icon">📈</div>
+        <h3>Consumo Estimado</h3>
+        <p id="consumption-value" class="value">-- L/dia</p>
+        <p id="consumption-text" class="subvalue">Calculando...</p>
+        <div style="height:260px; margin-top: 12px;">
+          <canvas id="levelChart"></canvas>
         </div>
+      </div>
     </section>
-    <footer><div class="footer-content"><p>&copy; 2025 AquaMonitor</p></div></footer>
+  </main>
 
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+  <footer style="text-align:center; padding: 24px 0; color:#777;">
+    <small>&copy; 2025 AquaMonitor</small>
+  </footer>
 
-    <script src="dashboard.js"></script>
+  <!-- SDK Firebase (compat) -->
+  <script defer src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+  <script defer src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+  <script defer src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+
+  <!-- (Opcional) Chart.js para o gráfico -->
+  <script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+  <!-- Seu JS principal (depois dos SDKs) -->
+  <script defer src="dashboard.js?v=8"></script>
 </body>
 </html>
-
-
-
-
