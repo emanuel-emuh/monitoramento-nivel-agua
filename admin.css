@@ -1,0 +1,97 @@
+/* ===================================================================
+   AQUAMONITOR - FOLHA DE ESTILO DO ADMIN (admin.css)
+   =================================================================== */
+
+/* --- GERAL E RESET --- */
+* { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+body { background-color: #f4f7f6; color: #333; line-height: 1.6; }
+
+/* --- BARRA DE NAVEGAÇÃO (NAVBAR) --- */
+.navbar { background-color: #ffffff; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 1000; }
+.logo { display: flex; align-items: center; }
+.logo h1 { font-size: 1.5rem; color: #2e7d32; margin-left: 10px; }
+.logo-icon { width: 40px; height: 40px; background-color: #2e7d32; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; }
+.nav-links { display: flex; list-style: none; align-items: center; }
+.nav-links li { margin-left: 2rem; }
+.nav-links a { text-decoration: none; color: #333; font-weight: 500; padding: 5px 0; transition: color 0.3s; }
+.nav-links a:hover { color: #2e7d32; }
+.nav-links a.active { color: #2e7d32; border-bottom: 2px solid #2e7d32; }
+.logout-button { background-color: #dc3545 !important; color: white !important; padding: 8px 15px; border-radius: 5px; font-weight: 500; border: none; cursor: pointer; text-decoration: none; font-size: 0.9rem; transition: background-color 0.3s, opacity 0.3s; opacity: 1; }
+.logout-button:hover:not(:disabled) { background-color: #c82333 !important; opacity: 0.85; }
+
+/* --- LAYOUT PRINCIPAL E CABEÇALHO --- */
+.container { max-width: 1200px; margin: 0 auto; padding: 2rem; }
+.header { text-align: center; margin-bottom: 3rem; }
+.header h2 { font-size: 2.5rem; color: #2e7d32; margin-bottom: 1rem; }
+section { padding-top: 2rem; display: block; /* Garante que secções são visíveis por defeito */ }
+
+/* --- CARDS DE STATUS --- */
+.status-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; margin-bottom: 3rem; }
+.card { background-color: white; border-radius: 10px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05); padding: 1.5rem; transition: transform 0.3s, box-shadow 0.3s; }
+.card:hover { transform: translateY(-5px); box-shadow: 0 8px 12px rgba(0, 0, 0, 0.1); }
+.card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+.card-title { font-size: 1.1rem; font-weight: 600; }
+.card-main-value { font-size: 2rem; text-align: center; margin: 0.5rem 0 1rem 0; font-weight: 600; }
+#admin-res-level-card { color: #007bff; } /* Azul */
+#admin-level-card { color: #2e7d32; } /* Verde */
+
+/* --- SEÇÃO DE CONFIGURAÇÕES E TÍTULOS DE SEÇÃO --- */
+.history-title { font-size: 1.8rem; margin-bottom: 1.5rem; color: #333; text-align: center; font-weight: 600; }
+.settings-card { background-color: white; border-radius: 10px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05); padding: 2rem; max-width: 800px; margin: 1rem auto; border-top: 5px solid #2e7d32; }
+.settings-card h4 { margin-bottom: 1.5rem; font-size: 1.3rem; text-align: center; }
+.settings-info { margin-top: 1.5rem; font-size: 0.9rem; color: #6c757d; background-color: #f8f9fa; padding: 1rem; border-radius: 5px; }
+
+/* --- ELEMENTOS DE FORMULÁRIO (INPUTS, LABELS) --- */
+.control-group { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; padding-bottom: 1.5rem; border-bottom: 1px solid #e9ecef; }
+.control-group:last-of-type { border-bottom: none; }
+.control-group label { font-weight: 500; }
+.control-group input[type="number"] { padding: 8px; border-radius: 5px; border: 1px solid #ccc; width: 80px; }
+
+/* --- BOTÕES --- */
+/* Estilo Base Comum */
+.btn-action {
+    color: white !important; border: none !important; padding: 10px 15px !important; border-radius: 5px !important;
+    cursor: pointer !important; font-weight: 500 !important; transition: opacity 0.3s, background-color 0.3s !important;
+    opacity: 1 !important; text-align: center !important; display: inline-block !important; line-height: normal !important;
+    vertical-align: middle !important; touch-action: manipulation !important; text-decoration: none !important;
+}
+/* Cores Ativas */
+.btn-green { background-color: #28a745 !important; }
+.btn-red { background-color: #dc3545 !important; }
+.btn-blue { background-color: #007bff !important; }
+/* Hover Ativo */
+.btn-action:not(:disabled):hover { opacity: 0.85 !important; }
+/* Estado Desabilitado GERAL */
+button:disabled, .btn-action:disabled {
+    background-color: #adb5bd !important; cursor: not-allowed !important; opacity: 0.65 !important;
+    color: white !important; border: none !important;
+}
+
+/* --- VISUALIZAÇÃO DAS CAIXAS --- */
+.tank-visualization-container { display: flex; justify-content: space-around; align-items: flex-end; gap: 2rem; margin-top: 2rem; background-color: #f8f9fa; padding: 2rem; border-radius: 8px; min-height: 250px; border: 1px solid #e9ecef; }
+.tank { width: 100px; height: 200px; border: 3px solid #6c757d; border-radius: 5px; position: relative; background-color: #e9ecef; overflow: hidden; }
+.water-level { position: absolute; bottom: 0; left: 0; width: 100%; transition: height 0.5s ease; border-radius: 0 0 2px 2px; }
+.tank-label { text-align: center; margin-top: 0.5rem; font-weight: 600; color: #495057; }
+#admin-water-main { background-color: #2e7d32 !important; } /* Verde */
+#admin-water-res { background-color: #007bff !important; } /* Azul */
+
+/* --- LOGS --- */
+.log-container { background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); padding: 1.5rem; max-height: 400px; overflow-y: auto; border: 1px solid #e9ecef; margin-top: 1rem; }
+#log-entries { list-style: none; padding: 0; margin: 0; font-family: 'Consolas', 'Monaco', monospace; font-size: 0.9rem; color: #495057; }
+#log-entries li { padding: 0.5rem 0; border-bottom: 1px dashed #e9ecef; }
+#log-entries li:last-child { border-bottom: none; }
+
+/* --- RODAPÉ --- */
+footer { background-color: #2e7d32; color: white; text-align: center; padding: 2rem; margin-top: 3rem; }
+
+/* --- RESPONSIVIDADE --- */
+@media (max-width: 768px) {
+    .navbar { flex-direction: column; padding: 1rem; }
+    .nav-links { margin-top: 1rem; width: 100%; justify-content: space-around; }
+    .nav-links li { margin-left: 0; }
+    .container { padding: 1rem; }
+    .header h2 { font-size: 2rem; }
+    .status-cards { grid-template-columns: 1fr; }
+    .tank-visualization-container { flex-direction: column; align-items: center; }
+    .tank { width: 80px; height: 160px; }
+}
