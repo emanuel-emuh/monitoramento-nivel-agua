@@ -1,425 +1,129 @@
-/* ===================================================================
-   AQUAMONITOR - FOLHA DE ESTILO PRINCIPAL (dashboard.css)
-   Versão Organizada
-   =================================================================== */
+/* =====================================
+   AQUAMONITOR - DASHBOARD STYLE FIXED
+   ===================================== */
 
-/* --- GERAL E RESET --- */
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-}
-
+/* ===== Layout Base ===== */
 body {
-    background-color: #f4f7f6;
-    color: #333;
-    line-height: 1.6;
+  font-family: 'Poppins', sans-serif;
+  background-color: #f9fafb;
+  color: #333;
+  margin: 0;
+  padding: 0;
 }
 
-/* --- BARRA DE NAVEGAÇÃO (NAVBAR) --- */
-.navbar {
-    background-color: #ffffff;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    padding: 1rem 2rem;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    position: sticky;
-    top: 0;
-    z-index: 1000;
-}
-
-.logo {
-    display: flex;
-    align-items: center;
-}
-
-.logo h1 {
-    font-size: 1.5rem;
-    color: #2e7d32;
-    margin-left: 10px;
-}
-
-.logo-icon {
-    width: 40px;
-    height: 40px;
-    background-color: #2e7d32;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    font-weight: bold;
-}
-
-.nav-links {
-    display: flex;
-    list-style: none;
-    align-items: center;
-}
-
-.nav-links li {
-    margin-left: 2rem;
-}
-
-.nav-links a {
-    text-decoration: none;
-    color: #333;
-    font-weight: 500;
-    padding: 5px 0;
-    transition: color 0.3s;
-}
-
-.nav-links a:hover {
-    color: #2e7d32;
-}
-
-.nav-links a.active {
-    color: #2e7d32;
-    border-bottom: 2px solid #2e7d32;
-}
-
-.logout-button {
-    background-color: #dc3545 !important; /* Garante cor logout */
-    color: white !important;
-    padding: 8px 15px;
-    border-radius: 5px;
-    font-weight: 500;
-    border: none;
-    cursor: pointer;
-    text-decoration: none;
-    font-size: 0.9rem;
-    transition: background-color 0.3s, opacity 0.3s;
-    opacity: 1;
-}
-
-.logout-button:hover {
-    background-color: #c82333 !important;
-    opacity: 0.85;
-}
-
-/* --- LAYOUT PRINCIPAL E CABEÇALHO --- */
 .container {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 2rem;
+  max-width: 1000px;
+  margin: auto;
+  padding: 20px;
 }
 
-.header {
-    text-align: center;
-    margin-bottom: 3rem;
+header {
+  text-align: center;
+  margin-bottom: 30px;
 }
 
-.header h2 {
-    font-size: 2.5rem;
-    color: #2e7d32;
-    margin-bottom: 1rem;
+header h1 {
+  color: #2e7d32;
+  font-weight: 700;
 }
 
-section {
-    padding-top: 2rem;
-}
-
-/* --- CARDS DE STATUS --- */
-.status-cards {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 1.5rem;
-    margin-bottom: 3rem;
-}
-
+/* ===== Cards ===== */
 .card {
-    background-color: white;
-    border-radius: 10px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-    padding: 1.5rem;
-    transition: transform 0.3s, box-shadow 0.3s;
+  background-color: #fff;
+  border-radius: 10px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  padding: 15px;
+  margin: 10px;
+  text-align: center;
 }
 
-.card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 8px 12px rgba(0, 0, 0, 0.1);
+.card .card-icon {
+  font-size: 32px;
+  margin-bottom: 8px;
 }
 
-.card-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1rem;
+.icon-green { color: #2e7d32; }
+.icon-orange { color: #ff9800; }
+.icon-red { color: #dc3545; }
+
+/* ===== Botões ===== */
+button {
+  border: none;
+  cursor: pointer;
+  border-radius: 6px;
+  padding: 10px 18px;
+  font-weight: 600;
+  transition: 0.3s ease;
 }
 
-.card-title {
-    font-size: 1.1rem;
-    font-weight: 600;
+/* Modo Férias */
+#btn-ferias.normal {
+  background-color: #2e7d32;
+  color: #fff;
 }
 
-.card-icon {
-    width: 35px;
-    height: 35px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    font-size: 0.9rem;
-    font-weight: bold;
-    background-color: #6c757d; /* Cinza Padrão */
+#btn-ferias.normal:hover {
+  background-color: #1b5e20;
 }
 
-.card-icon.icon-green { background-color: #28a745; }
-.card-icon.icon-red { background-color: #dc3545; }
-.card-icon.icon-orange { background-color: #ff9800; }
-
-.card-main-value {
-    font-size: 2rem;
-    text-align: center;
-    margin: 0.5rem 0 1rem 0;
-    font-weight: 600;
-}
-/* Cores específicas */
-#volume-liters-value, #cv-res-level-value, #admin-res-level-card { color: #007bff; } /* Azul */
-#consumption-value, #cv-consumption-value { color: #ff9800; } /* Laranja */
-#admin-level-card, #cv-main-level-value { color: #2e7d32; } /* Verde */
-
-
-/* --- INDICADOR DE NÍVEL (BARRA DE PROGRESSO) --- */
-.level-indicator {
-    background-color: white;
-    padding: 1.5rem 2rem;
-    border-radius: 10px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+#btn-ferias.ferias {
+  background-color: #ff9800;
+  color: #fff;
 }
 
-.level-title {
-    font-size: 1.1rem;
-    margin-bottom: 1rem;
-    font-weight: 600;
+#btn-ferias.ferias:hover {
+  background-color: #f57c00;
 }
 
-.level-bar {
-    height: 25px;
-    background-color: #e9ecef;
-    border-radius: 15px;
-    position: relative;
-    overflow: hidden;
+/* Botões da bomba */
+.btn-motor-on {
+  background-color: #dc3545;
+  color: #fff;
 }
 
+.btn-motor-off {
+  background-color: #2e7d32;
+  color: #fff;
+}
+
+.btn-motor-on:hover { background-color: #b71c1c; }
+.btn-motor-off:hover { background-color: #1b5e20; }
+
+/* ===== Indicadores ===== */
+.status-indicator-on {
+  color: #2e7d32;
+  font-weight: 600;
+}
+
+.status-indicator-off {
+  color: #dc3545;
+  font-weight: 600;
+}
+
+/* ===== Níveis de Água ===== */
 .level-fill {
-    height: 100%;
-    border-radius: 15px 0 0 15px;
-    transition: width 0.5s ease;
-}
-.level-fill[style*="width: 100%"] { border-radius: 15px; }
-
-
-.level-low { background-color: #dc3545; } /* Vermelho */
-.level-medium { background-color: #ff9800; } /* Laranja */
-.level-high { background-color: #28a745; } /* Verde */
-
-.level-percentage {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    font-weight: bold;
-    color: #ffffff;
-    font-size: 0.9rem;
-    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.6);
+  height: 20px;
+  border-radius: 5px;
+  transition: width 0.5s ease;
 }
 
-/* --- SEÇÃO DE CONFIGURAÇÕES E TÍTULOS DE SEÇÃO --- */
-.history-title {
-    font-size: 1.8rem;
-    margin-bottom: 1.5rem;
-    color: #333;
-    text-align: center;
-    font-weight: 600;
+.level-low { background-color: #dc3545; }
+.level-medium { background-color: #ff9800; }
+.level-high { background-color: #2e7d32; }
+
+/* ===== Gráfico ===== */
+canvas {
+  width: 100%;
+  max-height: 250px;
 }
 
-.settings-card {
-    background-color: white;
-    border-radius: 10px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-    padding: 2rem;
-    max-width: 800px;
-    margin: 1rem auto;
-    border-top: 5px solid #2e7d32;
-}
-
-.settings-card h4 {
-    margin-bottom: 1.5rem;
-    font-size: 1.3rem;
-    text-align: center;
-}
-
-.settings-info {
-    margin-top: 1.5rem;
-    font-size: 0.9rem;
-    color: #6c757d;
-    background-color: #f8f9fa;
-    padding: 1rem;
-    border-radius: 5px;
-}
-
-/* --- ELEMENTOS DE FORMULÁRIO (BOTÕES, SWITCH) --- */
-.control-group {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1.5rem;
-    padding-bottom: 1.5rem;
-    border-bottom: 1px solid #e9ecef;
-}
-.control-group:last-of-type { border-bottom: none; }
-
-.control-group label { font-weight: 500; }
-
-.control-group input[type="number"] {
-    padding: 8px;
-    border-radius: 5px;
-    border: 1px solid #ccc;
-    width: 80px;
-}
-
-.motor-status-display {
-    text-align: center;
-    margin-bottom: 2rem;
-    font-size: 1.2rem;
-    font-weight: bold;
-}
-
-.status-indicator-on { color: #28a745; background-color: #e9f7ec; padding: 5px 10px; border-radius: 5px; }
-.status-indicator-off { color: #dc3545; background-color: #fdeeee; padding: 5px 10px; border-radius: 5px; }
-
-
-/* --- BOTÕES --- */
-/* Estilo Base Comum para botões (exceto logout) */
-.btn-motor-on, .btn-motor-off, .btn-action {
-    color: white;
-    border: none;
-    padding: 10px 15px;
-    border-radius: 5px;
-    cursor: pointer;
-    font-weight: 500;
-    transition: opacity 0.3s, background-color 0.3s;
-    opacity: 1; /* Garante opacidade total por defeito */
-}
-
-/* Cores específicas para botões ATIVOS (com !important) */
-.btn-motor-on { background-color: #dc3545 !important; } /* Vermelho para "Desligar" */
-.btn-motor-off { background-color: #28a745 !important; } /* Verde para "Ligar" */
-.btn-green { background-color: #28a745 !important; } /* Verde Genérico/Salvar */
-.btn-red { background-color: #dc3545 !important; } /* Vermelho Genérico/Excluir/Pausar */
-.btn-blue { background-color: #007bff !important; } /* Azul */
-#btn-ferias.normal { background-color: #007bff !important; } /* Azul Férias Off */
-#btn-ferias.ferias { background-color: #ff9800 !important; } /* Laranja Férias On */
-
-/* Efeito Hover (APENAS quando NÃO está desabilitado) */
-.btn-motor-on:not(:disabled):hover,
-.btn-motor-off:not(:disabled):hover,
-.btn-action:not(:disabled):hover {
-    opacity: 0.85;
-}
-
-/* Estado Desabilitado GERAL para TODOS os botões */
-button:disabled {
-    background-color: #adb5bd !important; /* Cinzento */
-    cursor: not-allowed !important;
-    opacity: 0.65 !important;
-    /* Garante que outros estilos não interfiram */
-    color: white !important;
-    border: none !important;
-}
-
-
-/* --- SWITCH --- */
-.switch { position: relative; display: inline-block; width: 60px; height: 34px; }
-.switch input { opacity: 0; width: 0; height: 0; }
-.slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; }
-.slider:before { position: absolute; content: ""; height: 26px; width: 26px; left: 4px; bottom: 4px; background-color: white; transition: .4s; }
-input:checked + .slider { background-color: #2e7d32; }
-input:checked + .slider:before { transform: translateX(26px); }
-.slider.round { border-radius: 34px; }
-.slider.round:before { border-radius: 50%; }
-
-
-/* --- RODAPÉ (FOOTER) --- */
-footer {
-    background-color: #2e7d32;
-    color: white;
-    text-align: center;
-    padding: 2rem;
-    margin-top: 3rem;
-}
-
-/* --- RESPONSIVIDADE --- */
+/* ===== Responsividade ===== */
 @media (max-width: 768px) {
-    .navbar { flex-direction: column; padding: 1rem; }
-    .nav-links { margin-top: 1rem; width: 100%; justify-content: space-around; }
-    .nav-links li { margin-left: 0; }
-    .container { padding: 1rem; }
-    .header h2 { font-size: 2rem; }
-    .status-cards { grid-template-columns: 1fr; }
-    .tank-visualization-container { flex-direction: column; align-items: center; }
-    .tank { width: 80px; height: 160px; }
-}
-
-/* --- Estilos Visão Cliente Admin (Status Texto) --- */
-#cv-auto-mode-status, #cv-ferias-status { font-weight: bold; }
-
-/* --- Estilos para Visualização das Caixas --- */
-.tank-visualization-container {
-    display: flex;
-    justify-content: space-around;
-    align-items: flex-end;
-    gap: 2rem;
-    margin-top: 2rem;
-    background-color: #f8f9fa;
-    padding: 2rem;
-    border-radius: 8px;
-    min-height: 250px;
-    border: 1px solid #e9ecef;
-}
-.tank {
-    width: 100px;
-    height: 200px;
-    border: 3px solid #6c757d;
-    border-radius: 5px;
-    position: relative;
-    background-color: #e9ecef;
-    overflow: hidden;
-}
-.water-level {
-    position: absolute;
-    bottom: 0;
-    left: 0;
+  .container {
+    padding: 10px;
+  }
+  button {
     width: 100%;
-    transition: height 0.5s ease;
-    border-radius: 0 0 2px 2px;
+    margin-bottom: 10px;
+  }
 }
-.tank-label {
-    text-align: center;
-    margin-top: 0.5rem;
-    font-weight: 600;
-    color: #495057;
-}
-/* Cores específicas para água (aplicadas no JS/HTML também por segurança) */
-#admin-water-main, #client-water-main { background-color: #2e7d32; } /* Verde */
-#admin-water-res, #client-water-res { background-color: #007bff; } /* Azul */
-
-
-/* --- Estilos para Logs --- */
-.log-container {
-    background-color: #ffffff;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-    padding: 1.5rem;
-    max-height: 400px;
-    overflow-y: auto;
-    border: 1px solid #e9ecef;
-    margin-top: 1rem;
-}
-#log-entries { list-style: none; padding: 0; margin: 0; font-family: 'Consolas', 'Monaco', monospace; font-size: 0.9rem; color: #495057; }
-#log-entries li { padding: 0.5rem 0; border-bottom: 1px dashed #e9ecef; }
-#log-entries li:last-child { border-bottom: none; }
