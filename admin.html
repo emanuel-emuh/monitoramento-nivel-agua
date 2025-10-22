@@ -6,8 +6,8 @@
     <title>Painel do Administrador</title>
     <link rel="stylesheet" href="admin.css">
     <style>
-        /* Estilos específicos para as caixas d'água no admin */
-        .tank-visualization-container { display: flex; justify-content: space-around; align-items: flex-end; gap: 2rem; margin-top: 2rem; background-color: #f8f9fa; padding: 2rem; border-radius: 8px; min-height: 250px; }
+        /* Estilos específicos podem ser mantidos aqui ou movidos para admin.css se preferir */
+        .tank-visualization-container { display: flex; justify-content: space-around; align-items: flex-end; gap: 2rem; margin-top: 2rem; background-color: #f8f9fa; padding: 2rem; border-radius: 8px; min-height: 250px; border: 1px solid #e9ecef; }
         .tank { width: 100px; height: 200px; border: 3px solid #6c757d; border-radius: 5px; position: relative; background-color: #e9ecef; overflow: hidden; }
         .water-level { position: absolute; bottom: 0; left: 0; width: 100%; transition: height 0.5s ease; border-radius: 0 0 2px 2px; }
         .tank-label { text-align: center; margin-top: 0.5rem; font-weight: 600; color: #495057; }
@@ -101,7 +101,15 @@
                     <label>Limpar histórico de consumo:</label>
                     <button id="clear-history-button" class="btn-action btn-red">Limpar Histórico</button>
                 </div>
-                 <p class="settings-info"><b>Pausar/Retomar Coleta:</b> Ativa ou desativa o envio de dados do sensor. <b>Limpar Histórico:</b> Apaga todos os registros de nível do banco de dados.</p>
+                <div class="control-group">
+                    <label>Limpar log de eventos:</label>
+                    <button id="clear-logs-button" class="btn-action btn-red">Limpar Logs</button>
+                </div>
+                 <p class="settings-info">
+                     <b>Pausar/Retomar Coleta:</b> Ativa/desativa envio de dados.
+                     <b>Limpar Histórico:</b> Apaga registos de nível.
+                     <b>Limpar Logs:</b> Apaga registos de eventos. (Ações irreversíveis)
+                 </p>
             </div>
 
             <div class="settings-card" style="margin-top: 2rem; border-top-color: #dc3545;">
@@ -131,7 +139,7 @@
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+
     <script src="admin.js"></script>
 </body>
 </html>
-
