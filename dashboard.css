@@ -1,129 +1,151 @@
-/* =====================================
-   AQUAMONITOR - DASHBOARD STYLE FIXED
-   ===================================== */
+/* ===========================
+   AQUAMONITOR - DASHBOARD CSS
+   =========================== */
 
-/* ===== Layout Base ===== */
 body {
   font-family: 'Poppins', sans-serif;
-  background-color: #f9fafb;
-  color: #333;
+  background-color: #f7f9fa;
+  color: #222;
   margin: 0;
   padding: 0;
 }
 
-.container {
-  max-width: 1000px;
-  margin: auto;
-  padding: 20px;
+.navbar {
+  background-color: #2e7d32;
+  padding: 10px 20px;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
-header {
-  text-align: center;
-  margin-bottom: 30px;
+.logo {
+  display: flex;
+  align-items: center;
 }
 
-header h1 {
-  color: #2e7d32;
-  font-weight: 700;
+.logo h1 {
+  margin-left: 10px;
+  font-size: 20px;
+  color: #fff;
 }
 
-/* ===== Cards ===== */
+/* ====== Cards ====== */
 .card {
   background-color: #fff;
   border-radius: 10px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.08);
   padding: 15px;
-  margin: 10px;
+  margin: 15px auto;
   text-align: center;
+  max-width: 600px;
 }
 
 .card .card-icon {
-  font-size: 32px;
+  font-size: 28px;
   margin-bottom: 8px;
 }
 
 .icon-green { color: #2e7d32; }
 .icon-orange { color: #ff9800; }
-.icon-red { color: #dc3545; }
+.icon-red { color: #d32f2f; }
 
-/* ===== Botões ===== */
+/* ====== Botões ====== */
 button {
   border: none;
   cursor: pointer;
-  border-radius: 6px;
+  border-radius: 8px;
   padding: 10px 18px;
   font-weight: 600;
   transition: 0.3s ease;
 }
 
-/* Modo Férias */
-#btn-ferias.normal {
-  background-color: #2e7d32;
-  color: #fff;
-}
-
-#btn-ferias.normal:hover {
-  background-color: #1b5e20;
-}
-
-#btn-ferias.ferias {
-  background-color: #ff9800;
-  color: #fff;
-}
-
-#btn-ferias.ferias:hover {
-  background-color: #f57c00;
-}
-
-/* Botões da bomba */
+/* Botão da bomba */
 .btn-motor-on {
   background-color: #dc3545;
   color: #fff;
 }
+.btn-motor-on:hover { background-color: #b71c1c; }
 
 .btn-motor-off {
   background-color: #2e7d32;
   color: #fff;
 }
-
-.btn-motor-on:hover { background-color: #b71c1c; }
 .btn-motor-off:hover { background-color: #1b5e20; }
 
-/* ===== Indicadores ===== */
+/* Botão modo férias */
+#btn-ferias.normal {
+  background-color: #2e7d32;
+  color: #fff;
+}
+#btn-ferias.normal:hover { background-color: #1b5e20; }
+
+#btn-ferias.ferias {
+  background-color: #ff9800;
+  color: #fff;
+}
+#btn-ferias.ferias:hover { background-color: #f57c00; }
+
+/* ====== Indicadores ====== */
 .status-indicator-on {
   color: #2e7d32;
   font-weight: 600;
 }
-
 .status-indicator-off {
-  color: #dc3545;
+  color: #d32f2f;
   font-weight: 600;
 }
 
-/* ===== Níveis de Água ===== */
+/* ====== Barras de Nível ====== */
 .level-fill {
-  height: 20px;
+  height: 18px;
   border-radius: 5px;
   transition: width 0.5s ease;
 }
-
 .level-low { background-color: #dc3545; }
 .level-medium { background-color: #ff9800; }
 .level-high { background-color: #2e7d32; }
 
-/* ===== Gráfico ===== */
+/* ====== Gráfico ====== */
 canvas {
   width: 100%;
-  max-height: 250px;
+  max-height: 300px;
+  margin-top: 20px;
 }
 
-/* ===== Responsividade ===== */
+/* ====== Configurações ====== */
+.settings-card {
+  background-color: #fff;
+  border-left: 5px solid #2e7d32;
+  border-radius: 10px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  padding: 15px;
+  margin: 15px auto;
+  max-width: 600px;
+}
+
+.settings-card h4 {
+  color: #2e7d32;
+}
+
+.btn-action {
+  background-color: #2e7d32;
+  color: white;
+  padding: 8px 15px;
+  border-radius: 6px;
+  transition: 0.3s;
+}
+
+.btn-action:hover {
+  background-color: #1b5e20;
+}
+
+/* ====== Responsividade ====== */
 @media (max-width: 768px) {
-  .container {
-    padding: 10px;
+  .card, .settings-card {
+    width: 90%;
   }
   button {
     width: 100%;
-    margin-bottom: 10px;
   }
 }
