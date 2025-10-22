@@ -189,6 +189,90 @@
   <!-- Força recarregar a versão mais nova -->
   <script src="admin.js?v=11"></script>
 
+  <script>
+(() => {
+  // refs dos controles já existentes no seu HTML
+  const autoSwitch = document.getElementById('auto-mode-switch');
+  const motorBtn   = document.getElementById('motor-button');
+  const motorText  = document.getElementById('motor-status'); // mostra LIGADA/DESLIGADA
+
+  // evita erro se o dashboard.js ainda não montou Firebase
+  if (!window.firebase || !firebase.apps.length) {
+    console.warn('Firebase ainda não está pronto. Patch manual não inicializado.');
+    return;
+  }
+
+  const db = firebase.database();
+  const ctrlRef = db.ref('bomba/controle');
+
+  // helper: muda modo no RTDB e espelha no UI
+  async function setModoManual() {
+    try {
+      // marca manual no banco
+      await ctrlRef.update({ modo: 'manual' });
+      // espelha no UI: desliga o auto e habilita botão manual
+      if (autoSwitch) autoSwitch.checked = false;
+      if (motorBtn)   motorBtn.disabled = false;
+    } catch (e) {
+      console.error('Falha ao setar modo manual:', e);
+    }
+  }
+
+  // click do botão manual
+  motorBtn?.addEventListener('click', async () => {
+    try {
+      motorBtn.disabled = true;
+
+      // 1) garante modo manual
+      await setModoManual();
+
+      // 2) decide comando baseado no texto do status atual (ou classe do botão)
+      const statusAtual = (motorText?.textContent || '').trim().toUpperCase();
+      // Se a bomba ESTÁ ligada -> comando é DESLIGAR, senão LIGAR
+      const comando = statusAtual === 'LIGADA' ? 'DESLIGAR' : 'LIGAR';
+
+      // 3) escreve o comando manual
+      await ctrlRef.update({ comandoManual: comando });
+
+      // 4) pequena espera para o ESP ler e agir, então limpa (opcional: o ESP já limpa)
+      setTimeout(() => {
+        ctrlRef.update({ comandoManual: 'NENHUM' }).catch(()=>{});
+      }, 1200);
+
+      // feedback visual: troca texto do botão
+      if (comando === 'LIGAR') {
+        motorBtn.textContent = 'Desligar Bomba';
+        motorBtn.classList.remove('btn-motor-off');
+        motorBtn.classList.add('btn-motor-on');
+      } else {
+        motorBtn.textContent = 'Ligar Bomba';
+        motorBtn.classList.remove('btn-motor-on');
+        motorBtn.classList.add('btn-motor-off');
+      }
+    } catch (e) {
+      console.error('Falha no comando manual:', e);
+    } finally {
+      // reabilita depois de um curto intervalo pra evitar duplo clique
+      setTimeout(() => (motorBtn.disabled = false), 800);
+    }
+  });
+
+  // quando o usuário ligar o modo automático no switch, só espelha no banco
+  autoSwitch?.addEventListener('change', async (ev) => {
+    const on = ev.target.checked;
+    try {
+      await ctrlRef.update({ modo: on ? 'automatico' : 'manual' });
+      // se voltou pro manual, garante que o botão fique habilitado
+      if (!on && motorBtn) motorBtn.disabled = false;
+      if (on && motorBtn)  motorBtn.disabled = true;
+    } catch (e) {
+      console.error('Falha ao atualizar modo:', e);
+    }
+  });
+})();
+</script>
+
 </body>
 </html>
+
 
