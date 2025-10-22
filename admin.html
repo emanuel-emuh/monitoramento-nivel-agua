@@ -173,10 +173,13 @@
     <div class="footer-content"><p>&copy; 2025 AquaMonitor</p></div>
   </footer>
 
-  <!-- Firebase SDKs -->
-  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+  <!-- Firebase SDKs (com defer e ordem garantida) -->
+<script defer src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+<script defer src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+<script defer src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+
+<!-- Seu script principal (força versão pra quebrar cache) -->
+<script defer src="admin.js?v=12"></script>
 
   <!-- Log para confirmar carregamento -->
   <script>
@@ -186,14 +189,6 @@
   <!-- Força recarregar a versão mais nova -->
   <script src="admin.js?v=11"></script>
 
-  <script>
-    console.log("✅ admin.js carregado. Verificando função initializeFirebase...");
-    if (typeof initializeFirebase !== "function") {
-      console.error("🚨 ERRO: initializeFirebase() não encontrada! O arquivo admin.js pode não ter sido carregado corretamente.");
-      alert("Erro: o painel não carregou corretamente. Pressione Ctrl+F5 e tente novamente.");
-    } else {
-      console.log("🎉 Tudo certo! initializeFirebase() detectada, painel pronto.");
-    }
-  </script>
 </body>
 </html>
+
