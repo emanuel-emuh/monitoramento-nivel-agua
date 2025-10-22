@@ -1,45 +1,42 @@
 // ===================================================================
 //   AQUAMONITOR - SCRIPT DO PAINEL DE ADMINISTRADOR (admin.js)
-//   VERSÃO CORRIGIDA FINAL - Ordem de execução corrigida
+//   VERSÃO FINAL REVISADA - Foco em Atualização Segura da UI
 // ===================================================================
 
 document.addEventListener('DOMContentLoaded', function () {
-    console.log("Admin script starting (v10 - Scope Fix)..."); // Nova versão para log
+    console.log("Admin script starting (v11 - UI Update Focus)...");
 
-    // --- Variáveis Globais (Acessíveis dentro do DOMContentLoaded) ---
+    // --- INICIALIZAÇÃO E AUTENTICAÇÃO DO FIREBASE ---
+    const firebaseConfig = {
+        apiKey: "AIzaSyBOBbMzkTO2MvIxExVO8vlCOUgpeZp0rSY",
+        authDomain: "aqua-monitor-login.firebaseapp.com",
+        projectId: "aqua-monitor-login",
+        databaseURL: "https://aqua-monitor-login-default-rtdb.firebaseio.com"
+    };
     let auth, database;
-    let sensorRef, controlRef, settingsRef, historyRef, logsRef, lastSeenRef;
-    let listenersAttached = false;
+    try {
+        if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); } else { firebase.app(); }
+        auth = firebase.auth();
+        database = firebase.database();
+        console.log("Firebase initialized and objects created.");
+    } catch (e) {
+        console.error("!!! Firebase initialization FAILED:", e);
+        alert("Erro crítico ao inicializar a conexão.");
+        return;
+    }
 
-    // Referências DOM (serão preenchidas depois)
+    // --- Referências DOM --- (Declaradas aqui, preenchidas depois)
     let levelCard, resLevelCard, pumpStatusCard, collectionStatusCard, connectionStatusCard, lastSeenText,
         lowLimitInput, highLimitInput, settingsFeedback, toggleCollectionButton, restartEspButton,
         logEntriesList, adminWaterMain, adminWaterRes, adminLevelPercentMain, adminLevelPercentRes,
         saveSettingsButton, clearHistoryButton, logoutButton, clearLogsButton;
 
-    // --- FUNÇÕES (Definidas aqui dentro) ---
+    // --- Referências Firebase --- (Declaradas aqui, preenchidas depois)
+    let sensorRef, controlRef, settingsRef, historyRef, logsRef, lastSeenRef;
 
-    function initializeFirebase() {
-        console.log("Initializing Firebase...");
-        const firebaseConfig = {
-            apiKey: "AIzaSyBOBbMzkTO2MvIxExVO8vlCOUgpeZp0rSY",
-            authDomain: "aqua-monitor-login.firebaseapp.com",
-            projectId: "aqua-monitor-login",
-            databaseURL: "https://aqua-monitor-login-default-rtdb.firebaseio.com"
-        };
-        try {
-            if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); } else { firebase.app(); }
-            auth = firebase.auth();
-            database = firebase.database();
-            console.log("Firebase initialized and objects obtained.");
-            return true; // Sucesso
-        } catch (e) {
-            console.error("!!! Firebase initialization FAILED:", e);
-            alert("Erro crítico ao inicializar a conexão.");
-            return false; // Falha
-        }
-    }
+    let listenersAttached = false; // Controla adição de listeners
 
+    // --- Função para obter referências DOM ---
     function getDomReferences() {
         console.log("Getting DOM references...");
         try {
@@ -65,18 +62,23 @@ document.addEventListener('DOMContentLoaded', function () {
             clearLogsButton = document.getElementById('clear-logs-button');
 
             console.log("DOM references obtained.");
+            // Verifica se botões essenciais foram encontrados
             if (!saveSettingsButton || !toggleCollectionButton || !clearHistoryButton || !restartEspButton || !logoutButton || !clearLogsButton) {
                  console.error("!!! One or more essential buttons not found in DOM !!!");
-                 return false;
+                 return false; // Indica falha
             }
-            if (!logEntriesList) { console.error("!!! Log entries UL element not found !!!"); return false;}
-            return true; // Sucesso
+             if (!logEntriesList) { // Verifica se UL dos logs existe
+                console.error("!!! Log entries UL element ('log-entries') not found !!!");
+                // return false; // Não crítico para habilitar botões
+            }
+            return true; // Indica sucesso
         } catch(e) {
              console.error("!!! Error getting DOM references:", e);
-             return false; // Falha
+             return false; // Indica falha
         }
     }
 
+     // --- Função para obter referências Firebase ---
      function getFirebaseReferences() {
          console.log("Getting Firebase references...");
          try {
@@ -96,15 +98,25 @@ document.addEventListener('DOMContentLoaded', function () {
          }
      }
 
+    // --- Função para Habilitar Controles e Adicionar Listeners de Clique ---
     function enableAdminControls() {
         console.log("Enabling admin controls and attaching listeners...");
         try {
-            if (saveSettingsButton) { saveSettingsButton.disabled = false; saveSettingsButton.removeEventListener('click', saveSettingsHandler); saveSettingsButton.addEventListener('click', saveSettingsHandler); }
-            if (toggleCollectionButton) { toggleCollectionButton.disabled = true; toggleCollectionButton.textContent = 'Aguard...'; toggleCollectionButton.removeEventListener('click', toggleCollectionHandler); toggleCollectionButton.addEventListener('click', toggleCollectionHandler); }
-            if (clearHistoryButton) { clearHistoryButton.disabled = false; clearHistoryButton.removeEventListener('click', clearHistoryHandler); clearHistoryButton.addEventListener('click', clearHistoryHandler); }
-            if (restartEspButton) { restartEspButton.disabled = false; restartEspButton.removeEventListener('click', restartEspHandler); restartEspButton.addEventListener('click', restartEspHandler); }
-            if (logoutButton) { logoutButton.disabled = false; logoutButton.removeEventListener('click', logoutHandler); logoutButton.addEventListener('click', logoutHandler); }
-            if (clearLogsButton) { clearLogsButton.disabled = false; clearLogsButton.removeEventListener('click', clearLogsHandler); clearLogsButton.addEventListener('click', clearLogsHandler); }
+            // Habilita botões se as referências DOM foram obtidas com sucesso
+            if (saveSettingsButton) saveSettingsButton.disabled = false;
+            if (toggleCollectionButton) toggleCollectionButton.disabled = true; // Começa desabilitado
+            if (clearHistoryButton) clearHistoryButton.disabled = false;
+            if (restartEspButton) restartEspButton.disabled = false;
+            if (logoutButton) logoutButton.disabled = false;
+            if (clearLogsButton) clearLogsButton.disabled = false;
+
+            // Adiciona listeners (com remoção prévia)
+            if (logoutButton) { logoutButton.removeEventListener('click', logoutHandler); logoutButton.addEventListener('click', logoutHandler); }
+            if (saveSettingsButton) { saveSettingsButton.removeEventListener('click', saveSettingsHandler); saveSettingsButton.addEventListener('click', saveSettingsHandler); }
+            if (toggleCollectionButton) { toggleCollectionButton.removeEventListener('click', toggleCollectionHandler); toggleCollectionButton.addEventListener('click', toggleCollectionHandler); }
+            if (clearHistoryButton) { clearHistoryButton.removeEventListener('click', clearHistoryHandler); clearHistoryButton.addEventListener('click', clearHistoryHandler); }
+            if (restartEspButton) { restartEspButton.removeEventListener('click', restartEspHandler); restartEspButton.addEventListener('click', restartEspHandler); }
+            if (clearLogsButton) { clearLogsButton.removeEventListener('click', clearLogsHandler); clearLogsButton.addEventListener('click', clearLogsHandler); }
             console.log("Admin controls enabled and listeners attached.");
             return true;
         } catch(e) {
@@ -126,8 +138,8 @@ document.addEventListener('DOMContentLoaded', function () {
          if (!toggleCollectionButton || !sensorRef) return;
          toggleCollectionButton.disabled = true;
          sensorRef.child('coletaAtiva').get().then(snap => sensorRef.update({ coletaAtiva: snap.val() === false }))
-            .catch(error => alert('Erro ao alterar: ' + error.message))
-            .finally(() => { /* Listener reabilita */ });
+            .catch(error => { alert('Erro ao alterar: ' + error.message); if (listenersAttached && toggleCollectionButton) toggleCollectionButton.disabled = false; }) // Reabilita se erro
+            // O listener Firebase reabilitará em caso de sucesso
      }
      function clearHistoryHandler() {
          if (!historyRef) return;
@@ -144,52 +156,120 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // --- Função para Adicionar Listeners do Firebase ---
     function attachFirebaseListeners() {
-        if (!sensorRef || !controlRef || !settingsRef || !logsRef || !lastSeenRef || !historyRef) { console.error("Missing Firebase refs for listeners."); return; }
+        if (!sensorRef || !controlRef || !settingsRef || !logsRef || !lastSeenRef) { console.error("Missing Firebase refs for listeners."); return; }
         console.log("Attaching Firebase listeners...");
 
-        sensorRef.on('value', snapshot => { /* ... (inalterado - código para atualizar UI) ... */ }, error => console.error("Erro sensorRef:", error));
-        controlRef.on('value', snapshot => { /* ... (inalterado - código para atualizar UI) ... */ }, error => console.error("Erro controlRef:", error));
-        settingsRef.on('value', snapshot => { /* ... (inalterado - código para atualizar UI) ... */ }, error => console.error("Erro settingsRef:", error));
-        lastSeenRef.on('value', snapshot => { /* ... (inalterado - código para atualizar UI) ... */ }, error => console.error("Erro lastSeenRef:", error));
-        logsRef.orderByChild('timestamp').limitToLast(50).on('value', snapshot => { /* ... (inalterado - código para atualizar UI logs) ... */ }, error => { if (logEntriesList) logEntriesList.innerHTML = '<li>Erro logs.</li>'; console.error("Erro logsRef:", error); });
-        historyRef.on('value', snapshot => { /* Dummy */ }, error => console.error("Erro historyRef:", error));
+        // Sensor Data (Níveis, Coleta) - COM VERIFICAÇÃO DE ELEMENTOS
+        sensorRef.on('value', snapshot => {
+            console.log("Sensor data received:", snapshot.val());
+            let levelMain = '--', levelRes = '--', isCollectionActive = false, collectionText = '??', collectionColor = '#6c757d';
+            if(snapshot.exists()) {
+                const d = snapshot.val();
+                levelMain = d.level ?? '--'; levelRes = d.levelReservatorio ?? '--'; isCollectionActive = d.coletaAtiva !== false;
+                collectionText = isCollectionActive ? 'ATIVA' : 'PAUSADA'; collectionColor = isCollectionActive ? '#28a745' : '#dc3545';
 
-        console.log("Firebase listeners attached.");
+                // Atualiza botão APENAS se ele existe E listeners já foram anexados
+                if (toggleCollectionButton && listenersAttached) {
+                    toggleCollectionButton.textContent = isCollectionActive ? 'Pausar Coleta' : 'Retomar Coleta';
+                    toggleCollectionButton.className = 'btn-action ' + (isCollectionActive ? 'btn-red' : 'btn-green');
+                    toggleCollectionButton.disabled = false; // Habilita aqui
+                    console.log("toggleCollectionButton state updated and enabled by listener.");
+                }
+
+                // Atualiza visualização (com verificações)
+                if (adminWaterMain) adminWaterMain.style.height = `${levelMain !== '--' ? levelMain : 0}%`; else console.warn("adminWaterMain missing");
+                if (adminWaterRes) adminWaterRes.style.height = `${levelRes !== '--' ? levelRes : 0}%`; else console.warn("adminWaterRes missing");
+                if (adminLevelPercentMain) adminLevelPercentMain.textContent = levelMain; else console.warn("adminLevelPercentMain missing");
+                if (adminLevelPercentRes) adminLevelPercentRes.textContent = levelRes; else console.warn("adminLevelPercentRes missing");
+
+            } else {
+                 console.warn("Sensor data node does not exist.");
+                 if (toggleCollectionButton) { toggleCollectionButton.textContent = 'Aguard...'; toggleCollectionButton.className = 'btn-action'; toggleCollectionButton.disabled = true; }
+                 if (adminWaterMain) adminWaterMain.style.height = `0%`; if (adminWaterRes) adminWaterRes.style.height = `0%`;
+                 if (adminLevelPercentMain) adminLevelPercentMain.textContent = '--'; if (adminLevelPercentRes) adminLevelPercentRes.textContent = '--';
+            }
+            // Atualiza cards (com verificações)
+            if (levelCard) levelCard.textContent = `${levelMain}%`; else console.warn("levelCard missing");
+            if (resLevelCard) resLevelCard.textContent = `${levelRes}%`; else console.warn("resLevelCard missing");
+            if (collectionStatusCard) { collectionStatusCard.textContent = collectionText; collectionStatusCard.style.color = collectionColor; } else console.warn("collectionStatusCard missing");
+
+        }, error => {
+             console.error("Error fetching sensor data:", error);
+             if (toggleCollectionButton) toggleCollectionButton.disabled = true;
+        });
+
+        // Controle da Bomba (Status) - COM VERIFICAÇÃO
+        controlRef.on('value', snapshot => {
+            let pumpStatus = '--', pumpColor = '#6c757d';
+            if (snapshot.exists()) { const d = snapshot.val(); pumpStatus = d.statusBomba || '--'; pumpColor = d.statusBomba === 'LIGADA' ? '#28a745' : '#dc3545'; }
+            if (pumpStatusCard) { pumpStatusCard.textContent = pumpStatus; pumpStatusCard.style.color = pumpColor; }
+            else { console.warn("pumpStatusCard missing"); }
+        }, error => {
+             console.error("Erro controlRef:", error);
+             if (pumpStatusCard) pumpStatusCard.textContent = 'Erro';
+        });
+
+        // Configurações (Limites) - COM VERIFICAÇÃO
+        settingsRef.on('value', snapshot => {
+            if (snapshot.exists()) { const s = snapshot.val(); if (lowLimitInput) lowLimitInput.value = s.limiteInferior || 50; if (highLimitInput) highLimitInput.value = s.limiteSuperior || 95; }
+            else { if (lowLimitInput) lowLimitInput.value = 50; if (highLimitInput) highLimitInput.value = 95; }
+        }, error => console.error("Erro settingsRef:", error));
+
+        // Last Seen (Status Conexão) - COM VERIFICAÇÃO
+        lastSeenRef.on('value', snapshot => {
+             if (!connectionStatusCard || !lastSeenText) { console.warn("Connection status elements missing"); return; }
+             if (snapshot.exists()) {
+                 const ts = snapshot.val();
+                 if (typeof ts === 'number' && ts > 0) {
+                     const now = Date.now(), diffM = (now - ts) / 6e4, dt = new Date(ts), fmtDate = dt.toLocaleString('pt-BR');
+                     connectionStatusCard.textContent = diffM > 5 ? 'OFFLINE' : 'ONLINE';
+                     connectionStatusCard.style.color = diffM > 5 ? '#dc3545' : '#28a745';
+                     lastSeenText.textContent = `Visto: ${fmtDate}`;
+                 } else { connectionStatusCard.textContent = '??'; connectionStatusCard.style.color = '#6c757d'; lastSeenText.textContent = 'Inválido.'; }
+             } else { connectionStatusCard.textContent = '??'; connectionStatusCard.style.color = '#6c757d'; lastSeenText.textContent = 'Nenhum sinal.'; }
+         }, error => {
+             console.error("Erro lastSeenRef:", error);
+             if(connectionStatusCard) connectionStatusCard.textContent = 'Erro'; if(lastSeenText) lastSeenText.textContent = 'Falha.';
+         });
+
+         // Logs - COM VERIFICAÇÃO
+         logsRef.orderByChild('timestamp').limitToLast(50).on('value', snapshot => {
+              if (!logEntriesList) { console.error("logEntriesList element not found."); return; }
+              logEntriesList.innerHTML = '';
+              if (snapshot.exists()) {
+                  const logs = []; snapshot.forEach(cs => { const d = cs.val(); if(d && typeof d==='object' && typeof d.timestamp==='number' && typeof d.message==='string') logs.push(d); });
+                  logs.sort((a, b) => b.timestamp - a.timestamp);
+                  if (logs.length > 0) {
+                      logs.forEach(log => {
+                          const dt = new Date(log.timestamp), fmtTime = dt.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'medium'});
+                          const li = document.createElement('li'); li.textContent = `[${fmtTime}] ${log.message}`;
+                          logEntriesList.appendChild(li);
+                      });
+                  } else { logEntriesList.innerHTML = '<li>Nenhum log válido.</li>'; }
+              } else { logEntriesList.innerHTML = '<li>Nenhum log registrado.</li>'; }
+         }, error => { if (logEntriesList) logEntriesList.innerHTML = '<li>Erro logs.</li>'; console.error("Erro logsRef:", error); });
+
+         console.log("Firebase listeners attached.");
     }
 
-     // --- PONTO DE ENTRADA PRINCIPAL --- (Agora DENTRO do DOMContentLoaded)
-     if (initializeFirebase()) { // Chama a inicialização PRIMEIRO
-         console.log("Setting up Auth State Change listener...");
-         // Configura o listener de autenticação DEPOIS da inicialização
+     // --- Verificação de Admin e Ponto de Entrada ---
+     if (initializeFirebase()) {
          auth.onAuthStateChanged(user => {
-            console.log("Auth state changed. User:", user ? user.uid : 'null');
             if (user) {
                 database.ref('usuarios/' + user.uid).get().then(snapshot => {
                     if (snapshot.exists() && snapshot.val().role === 'admin') {
-                        console.log("Admin role verified.");
                         if (!listenersAttached) {
-                            if (getDomReferences() && getFirebaseReferences()) { // Tenta obter refs
-                                if (enableAdminControls()) { // Tenta habilitar controles
-                                    attachFirebaseListeners(); // Tenta adicionar listeners Firebase
+                            if (getDomReferences() && getFirebaseReferences()) { // Tenta obter refs PRIMEIRO
+                                if (enableAdminControls()) { // Tenta habilitar/adicionar listeners DEPOIS
+                                    attachFirebaseListeners(); // Só adiciona listeners FB se tudo correu bem
                                     listenersAttached = true;
-                                } else { console.error("Failed to enable admin controls."); alert("Falha ao habilitar controlos."); }
-                            } else { console.error("Failed to get DOM or Firebase references."); alert("Falha ao obter referências DOM ou Firebase."); }
-                        } else { console.log("Listeners already attached."); }
-                    } else {
-                        console.warn("User is not admin. Redirecting...");
-                        alert('Acesso negado.');
-                        try { window.location.href = 'index.html'; } catch(e) { window.location.href = 'login.html'; }
-                    }
+                                } else { alert("Falha ao habilitar controlos."); }
+                            } else { alert("Falha ao obter referências DOM ou Firebase."); }
+                        }
+                    } else { alert('Acesso negado.'); try { window.location.href = 'index.html'; } catch(e) { window.location.href = 'login.html'; } }
                 }).catch(error => { console.error("Erro permissão:", error); window.location.href = 'login.html'; });
-            } else {
-                console.log("No user logged in, redirecting to login.");
-                window.location.href = 'login.html';
-            }
+            } else { window.location.href = 'login.html'; }
         });
-        console.log("Auth state listener is set. Waiting for auth state...");
-     } else {
-        console.error("Execution stopped due to Firebase initialization failure.");
-     }
+     } else { console.error("Execution stopped: Firebase init failed."); }
 
 }); // Fim do DOMContentLoaded
-console.log("Admin script (v10) loaded.");
