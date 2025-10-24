@@ -5,25 +5,22 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>AquaMonitor – Dashboard</title>
 
-  <!-- Fonte opcional -->
+  <!-- Fonte e CSS -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet" />
-
-  <!-- Seu CSS principal -->
-<link rel="stylesheet" href="dashboard.css">
+  <link rel="stylesheet" href="./dashboard.css?v=2.0.0" />
 </head>
 <body>
-  <!-- ===== TOPO / NAV ===== -->
+  <!-- ===== NAV / HEADER ===== -->
   <header class="am-header" role="banner" aria-label="Barra superior">
     <div class="am-brand">
       <div class="am-logo" aria-hidden="true">AM</div>
       <span class="am-title">AquaMonitor</span>
     </div>
 
-    <!-- Indicador (opcional) de conexão RTDB -->
-    <small id="conn-dot" class="conn">
-      <span id="conn-led" class="conn-led"></span>
+    <small id="conn-dot" class="conn" aria-live="polite">
+      <span id="conn-led" class="conn-led" aria-hidden="true"></span>
       <span id="conn-txt" class="conn-txt">Conectando...</span>
     </small>
 
@@ -44,9 +41,7 @@
 
         <div class="kpi">
           <div class="kpi-value" id="main-level-value">--%</div>
-          <div class="kpi-sub">
-            <span id="main-level-liters">-- L</span>
-          </div>
+          <div class="kpi-sub"><span id="main-level-liters">-- L</span></div>
         </div>
 
         <div class="bar">
@@ -57,9 +52,7 @@
           <div class="tank-body">
             <div id="client-water-main" class="tank-water" style="height:0%"></div>
           </div>
-          <div class="tank-caption">
-            Principal (<span id="client-level-percent-main">0</span>%)
-          </div>
+          <div class="tank-caption">Principal (<span id="client-level-percent-main">0</span>%)</div>
         </div>
       </article>
 
@@ -69,9 +62,7 @@
 
         <div class="kpi">
           <div class="kpi-value" id="res-level-value">--%</div>
-          <div class="kpi-sub">
-            <span id="res-level-liters">-- L</span>
-          </div>
+          <div class="kpi-sub"><span id="res-level-liters">-- L</span></div>
         </div>
 
         <div class="bar">
@@ -82,9 +73,7 @@
           <div class="tank-body">
             <div id="client-water-res" class="tank-water" style="height:0%"></div>
           </div>
-          <div class="tank-caption">
-            Reservatório (<span id="client-level-percent-res">0</span>%)
-          </div>
+          <div class="tank-caption">Reservatório (<span id="client-level-percent-res">0</span>%)</div>
         </div>
       </article>
     </section>
@@ -94,18 +83,14 @@
       <!-- Status da Bomba -->
       <article class="card subtle" aria-labelledby="h-status-bomba">
         <h2 id="h-status-bomba" class="card-title">Status da Bomba</h2>
-        <div class="status-pill">
-          <span id="pump-status-value" class="pill">--</span>
-        </div>
+        <div class="status-pill"><span id="pump-status-value" class="pill">--</span></div>
         <p id="pump-status-text" class="muted">A bomba está --.</p>
       </article>
 
       <!-- Modo de Operação -->
       <article class="card subtle" aria-labelledby="h-modo-op">
         <h2 id="h-modo-op" class="card-title">Modo de Operação</h2>
-        <div class="status-pill">
-          <span id="mode-value" class="pill">--</span>
-        </div>
+        <div class="status-pill"><span id="mode-value" class="pill">--</span></div>
         <p id="mode-text" class="muted">Operando em modo --.</p>
       </article>
 
@@ -122,9 +107,7 @@
           <button id="motor-button" type="button" class="btn btn-danger">Desligar Bomba</button>
         </div>
 
-        <p class="muted">
-          Status atual: <b id="motor-status">--</b>
-        </p>
+        <p class="muted">Status atual: <b id="motor-status">--</b></p>
       </article>
     </section>
 
@@ -155,9 +138,7 @@
       <!-- Consumo -->
       <article class="card" aria-labelledby="h-consumo">
         <h2 id="h-consumo" class="card-title">Consumo Estimado</h2>
-        <div class="kpi">
-          <div id="consumption-value" class="kpi-value">-- L/dia</div>
-        </div>
+        <div class="kpi"><div id="consumption-value" class="kpi-value">-- L/dia</div></div>
         <p id="consumption-text" class="muted">Estimando pelo histórico...</p>
 
         <div class="exporter">
@@ -206,19 +187,10 @@
   <noscript>Ative o JavaScript para usar o painel.</noscript>
 
   <!-- ===== SCRIPTS ===== -->
-  <!-- Firebase (compat) -->
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
-
-  <!-- Chart.js (opcional, se for usar o gráfico) -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-
-  <!-- Lógica do painel -->
-  <script src="./dashboard.js"></script>
+  <script src="./dashboard.js?v=2.0.0"></script>
 </body>
 </html>
-
-
-
-
