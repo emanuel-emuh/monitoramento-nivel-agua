@@ -6,9 +6,9 @@
   <title>AquaMonitor - Dashboard</title>
 
   <!-- Estilos -->
-  <link rel="stylesheet" href="dashboard.css?v=7"/>
+  <link rel="stylesheet" href="dashboard.css?v=9"/>
 
-  <!-- (Opcional) Fonte bonita -->
+  <!-- Fonte (opcional) -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet"/>
@@ -24,34 +24,23 @@
   </nav>
 
   <main class="container">
-    <!-- Cabeçalho -->
     <header style="text-align:center; margin: 18px 0 10px;">
       <h2>Monitoramento de Nível</h2>
       <p>Consumo, status da bomba e controle em tempo real.</p>
     </header>
 
-    <!-- ====== Cards de Nível ====== -->
+    <!-- ===== Níveis ===== -->
     <section aria-label="Níveis">
       <div class="card">
         <div class="card-icon icon-green">⬆</div>
         <h3>Caixa Principal</h3>
         <p id="main-level-value" class="value">--%</p>
         <p id="main-level-liters" class="subvalue">-- L</p>
-
-        <!-- Barra horizontal (seu CSS usa .level-fill) -->
-        <div class="level-bar">
-          <div id="level-fill-main" class="level-fill" style="width:0%"></div>
-        </div>
+        <div class="level-bar"><div id="level-fill-main" class="level-fill" style="width:0%"></div></div>
         <p>Percentual: <b id="level-percentage-main">--%</b></p>
-
-        <!-- Visual do tanque (vertical) -->
         <div class="tank-visual">
-          <div class="tank">
-            <div id="client-water-main" class="water" style="height:0%"></div>
-          </div>
-          <div class="tank-label">
-            <span>Principal</span> (<span id="client-level-percent-main">--</span>%)
-          </div>
+          <div class="tank"><div id="client-water-main" class="water" style="height:0%"></div></div>
+          <div class="tank-label"><span>Principal</span> (<span id="client-level-percent-main">--</span>%)</div>
         </div>
       </div>
 
@@ -60,24 +49,16 @@
         <h3>Reservatório</h3>
         <p id="res-level-value" class="value">--%</p>
         <p id="res-level-liters" class="subvalue">-- L</p>
-
-        <div class="level-bar">
-          <div id="level-fill-res" class="level-fill" style="width:0%"></div>
-        </div>
+        <div class="level-bar"><div id="level-fill-res" class="level-fill" style="width:0%"></div></div>
         <p>Percentual: <b id="level-percentage-res">--%</b></p>
-
         <div class="tank-visual">
-          <div class="tank">
-            <div id="client-water-res" class="water" style="height:0%"></div>
-          </div>
-          <div class="tank-label">
-            <span>Reservatório</span> (<span id="client-level-percent-res">--</span>%)
-          </div>
+          <div class="tank"><div id="client-water-res" class="water" style="height:0%"></div></div>
+          <div class="tank-label"><span>Reservatório</span> (<span id="client-level-percent-res">--</span>%)</div>
         </div>
       </div>
     </section>
 
-    <!-- ====== Status e Controles ====== -->
+    <!-- ===== Status e Controles ===== -->
     <section aria-label="Status e Controles">
       <div class="card">
         <div class="card-icon" id="pump-status-icon">⚙</div>
@@ -107,34 +88,43 @@
           <button id="motor-button" class="btn-motor-off">Ligar Bomba</button>
         </div>
 
-        <!-- Indicador textual atual -->
         <p>Status atual: <b id="motor-status">--</b></p>
       </div>
 
-      <!-- ===== Seção: Modo Econômico (Férias) ===== -->
+      <!-- Modo Econômico (Férias) -->
       <div class="card settings-card" id="sec-modo-economico">
         <h3>Modo Econômico (Férias)</h3>
         <p class="settings-hint">
-          Reduz o consumo: aplica limites <b>15%</b> (liga) e <b>50%</b> (desliga) enquanto estiver ativo.
+          Reduz o consumo: aplica limites <b>15%</b> (liga) e <b>50%</b> (desliga) enquanto ativo.
         </p>
-
         <div class="control-row">
           <button id="btn-ferias" class="normal" type="button">Ativar Modo Férias</button>
         </div>
-
         <p id="ferias-info" class="settings-info">
           <b>Modo Férias:</b> Usa limites de 15% a 50% para economizar.
         </p>
       </div>
     </section>
 
-    <!-- ====== Consumo & Gráfico ====== -->
+    <!-- ===== Consumo / Gráfico + Exportação ===== -->
     <section aria-label="Consumo">
       <div class="card">
         <div class="card-icon">📈</div>
         <h3>Consumo Estimado</h3>
         <p id="consumption-value" class="value">-- L/dia</p>
         <p id="consumption-text" class="subvalue">Calculando...</p>
+
+        <!-- Controles de exportação CSV -->
+        <div class="export-row" style="display:flex; gap:10px; align-items:center; margin-top:8px; flex-wrap:wrap;">
+          <label for="export-range" style="font-weight:600;">Exportar histórico:</label>
+          <select id="export-range" aria-label="Período para exportação" style="padding:8px 10px; border-radius:8px; border:1px solid #d5dde3;">
+            <option value="7">Últimos 7 dias</option>
+            <option value="30">Últimos 30 dias</option>
+          </select>
+          <button id="btn-export-csv" class="btn-export" type="button">Exportar CSV</button>
+          <small id="export-hint" class="subvalue">Gera .csv com data, nível da caixa e do reservatório.</small>
+        </div>
+
         <div style="height:260px; margin-top: 12px;">
           <canvas id="levelChart"></canvas>
         </div>
@@ -146,15 +136,15 @@
     <small>&copy; 2025 AquaMonitor</small>
   </footer>
 
-  <!-- SDK Firebase (compat) -->
+  <!-- Firebase compat -->
   <script defer src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
   <script defer src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
   <script defer src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
 
-  <!-- (Opcional) Chart.js para o gráfico -->
+  <!-- Chart.js (opcional) -->
   <script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
-  <!-- Seu JS principal (depois dos SDKs) -->
-  <script defer src="dashboard.js?v=8"></script>
+  <!-- App -->
+  <script defer src="dashboard.js?v=12"></script>
 </body>
 </html>
