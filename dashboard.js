@@ -417,14 +417,10 @@
     attachListeners();
   });
 
-  // =======================================================
-//  EXPORTAÇÃO CSV DO HISTÓRICO (últimos 7/30 dias)
-//  - Lê /historico por timestamp e gera um .csv (UTF-8 com BOM)
-//  - Colunas: data_hora, timestamp_ms, nivel_caixa_percent, nivel_reservatorio_percent
 // =======================================================
-
+//  EXPORTAÇÃO CSV DO HISTÓRICO (revisado p/ Excel PT-BR)
+// =======================================================
 (function setupCsvExport() {
-  // garante DOM disponível
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', wire);
   } else {
@@ -433,16 +429,21 @@
 
   function wire() {
     const btn = document.getElementById('btn-export-csv');
-    const sel = document.getElementById('export-range');
-    if (!btn || !sel || !firebase?.database) return;
+    const selDays = document.getElementById('export-range');
+    const selFmt  = document.getElementById('export-format');
+    const selSep  = document.getElementById('export-sep');
+    if (!btn || !selDays || !selFmt || !selSep || !firebase?.database) return;
 
     btn.addEventListener('click', async () => {
-      const days = parseInt(sel.value, 10) || 7;
+      const days      = parseInt(selDays.value, 10) || 7;
+      const formato   = selFmt.value || 'simple';   // 'simple' | 'full'
+      const separador = selSep.value || ';';        // ';' | ','
+
       const oldTxt = btn.textContent;
       btn.disabled = true; btn.textContent = 'Gerando...';
 
       try {
-        const csv = await exportHistoryCsv(days);
+        const csv = await exportHistoryCsv(days, { formato, separador });
         if (!csv) {
           alert('Sem dados no período selecionado.');
         } else {
@@ -453,8 +454,9 @@
           const y = today.getFullYear();
           const m = String(today.getMonth()+1).padStart(2, '0');
           const d = String(today.getDate()).padStart(2, '0');
+          const suffix = (formato === 'full') ? '_full' : '_simple';
           a.href = url;
-          a.download = `historico_${days}d_${y}-${m}-${d}.csv`;
+          a.download = `historico_${days}d${suffix}_${y}-${m}-${d}.csv`;
           document.body.appendChild(a);
           a.click();
           document.body.removeChild(a);
@@ -469,7 +471,13 @@
     });
   }
 
-  async function exportHistoryCsv(days) {
+  /**
+   * Lê /historico (orderByChild('timestamp')) e gera CSV.
+   * Formatos:
+   *  - simple:  Data ; Hora ; Caixa_% ; Reservatorio_%
+   *  - full:    Data ; Hora ; Timestamp_ms ; Caixa_% ; Reservatorio_%
+   */
+  async function exportHistoryCsv(days, { formato = 'simple', separador = ';' } = {}) {
     const db = firebase.database();
     const ref = db.ref('historico');
 
@@ -484,36 +492,64 @@
 
     if (!snap.exists()) return '';
 
-    // Cabeçalho
-    const rows = [['data_hora', 'timestamp_ms', 'nivel_caixa_percent', 'nivel_reservatorio_percent']];
-
+    // Junta e ordena (asc)
+    const arr = [];
     snap.forEach(child => {
       const v = child.val() || {};
       const ts = Number(v.timestamp) || 0;
-      const nivel = (v.nivel ?? v.level ?? null);
-      const nivelRes = (v.nivelReservatorio ?? v.levelReservatorio ?? null);
-      if (!ts || nivel === null || nivelRes === null) return;
-      rows.push([
-        new Date(ts).toLocaleString('pt-BR'),
-        String(ts),
-        String(nivel),
-        String(nivelRes)
-      ]);
+      const nivel  = toNumber(v.nivel ?? v.level);
+      const nivelR = toNumber(v.nivelReservatorio ?? v.levelReservatorio);
+      if (!ts || nivel == null || nivelR == null) return;
+      arr.push({ ts, nivel, nivelR });
     });
+    if (!arr.length) return '';
+    arr.sort((a,b) => a.ts - b.ts);
 
-    if (rows.length <= 1) return '';
+    // Cabeçalhos
+    const headersSimple = ['data', 'hora', 'caixa_percent', 'reservatorio_percent'];
+    const headersFull   = ['data', 'hora', 'timestamp_ms', 'caixa_percent', 'reservatorio_percent'];
+    const headers = (formato === 'full') ? headersFull : headersSimple;
 
-    // CSV com BOM (excel-friendly)
+    // Linhas
+    const rows = [headers];
+    for (const r of arr) {
+      const dt = new Date(r.ts);
+      const data = dt.toLocaleDateString('pt-BR');            // 24/10/2025
+      const hora = dt.toLocaleTimeString('pt-BR');            // 16:09:46
+      const caixa = roundStr(r.nivel, 0);                     // "78" (ou "78,5" se quiser 1 casa)
+      const reserv = roundStr(r.nivelR, 0);
+
+      if (formato === 'full') {
+        rows.push([data, hora, String(r.ts), caixa, reserv]);
+      } else {
+        rows.push([data, hora, caixa, reserv]);
+      }
+    }
+
+    // Gera CSV com separador escolhido + BOM + CRLF (Excel-friendly)
     const bom = '\uFEFF';
-    const csv = bom + rows.map(r => r.map(csvEscape).join(',')).join('\n');
+    const csv = bom + rows.map(line => line.map(s => csvEscape(s, separador)).join(separador)).join('\r\n');
     return csv;
   }
 
-  function csvEscape(val) {
-    const s = (val ?? '').toString();
-    return /[",\n;]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  function toNumber(v) {
+    const n = Number(v);
+    return Number.isFinite(n) ? n : null;
   }
-})();
 
+  // arredonda e retorna string com separador decimal local (vírgula)
+  function roundStr(n, casas = 0) {
+    if (!Number.isFinite(n)) return '';
+    const val = (casas > 0) ? n.toFixed(casas) : Math.round(n).toString();
+    // Para ficar visualmente PT-BR, troque ponto por vírgula:
+    return val.replace('.', ',');
+  }
 
+  // Escapa campos que contenham separador/aspas/quebra de linha
+  function csvEscape(val, sep) {
+    const s = (val ?? '').toString();
+    const precisaAspas = s.includes('"') || s.includes('\n') || s.includes('\r') || s.includes(sep);
+    if (!precisaAspas) return s;
+    return `"${s.replace(/"/g, '""')}"`;
+  }
 })();
