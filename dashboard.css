@@ -168,3 +168,27 @@ button:active { transform: translateY(1px); }
   .control-row { flex-wrap: wrap; }
   button { width: 100%; }
 }
+
+/* ==== Espaçamento entre cards (override) ==== */
+
+/* Dashboard */
+.container section {
+  gap: 28px;         
+}
+
+.card {
+  padding: 18px;        /* se quiser ainda mais, use 20–22px */
+}
+
+.grid {
+  gap: 28px;
+}
+
+@media (max-width: 768px) {
+  .container section,
+  .grid {
+    gap: 18px;
+  }
+}
+
+
