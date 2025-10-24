@@ -417,4 +417,103 @@
     attachListeners();
   });
 
+  // =======================================================
+//  EXPORTAÇÃO CSV DO HISTÓRICO (últimos 7/30 dias)
+//  - Lê /historico por timestamp e gera um .csv (UTF-8 com BOM)
+//  - Colunas: data_hora, timestamp_ms, nivel_caixa_percent, nivel_reservatorio_percent
+// =======================================================
+
+(function setupCsvExport() {
+  // garante DOM disponível
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', wire);
+  } else {
+    wire();
+  }
+
+  function wire() {
+    const btn = document.getElementById('btn-export-csv');
+    const sel = document.getElementById('export-range');
+    if (!btn || !sel || !firebase?.database) return;
+
+    btn.addEventListener('click', async () => {
+      const days = parseInt(sel.value, 10) || 7;
+      const oldTxt = btn.textContent;
+      btn.disabled = true; btn.textContent = 'Gerando...';
+
+      try {
+        const csv = await exportHistoryCsv(days);
+        if (!csv) {
+          alert('Sem dados no período selecionado.');
+        } else {
+          const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          const today = new Date();
+          const y = today.getFullYear();
+          const m = String(today.getMonth()+1).padStart(2, '0');
+          const d = String(today.getDate()).padStart(2, '0');
+          a.href = url;
+          a.download = `historico_${days}d_${y}-${m}-${d}.csv`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+        }
+      } catch (e) {
+        console.error('Erro ao exportar CSV:', e);
+        alert('Erro ao exportar CSV. Veja o console para detalhes.');
+      } finally {
+        btn.disabled = false; btn.textContent = oldTxt;
+      }
+    });
+  }
+
+  async function exportHistoryCsv(days) {
+    const db = firebase.database();
+    const ref = db.ref('historico');
+
+    const now = Date.now();
+    const cutoff = now - days * 24 * 60 * 60 * 1000;
+
+    const snap = await ref
+      .orderByChild('timestamp')
+      .startAt(cutoff)
+      .endAt(now)
+      .once('value');
+
+    if (!snap.exists()) return '';
+
+    // Cabeçalho
+    const rows = [['data_hora', 'timestamp_ms', 'nivel_caixa_percent', 'nivel_reservatorio_percent']];
+
+    snap.forEach(child => {
+      const v = child.val() || {};
+      const ts = Number(v.timestamp) || 0;
+      const nivel = (v.nivel ?? v.level ?? null);
+      const nivelRes = (v.nivelReservatorio ?? v.levelReservatorio ?? null);
+      if (!ts || nivel === null || nivelRes === null) return;
+      rows.push([
+        new Date(ts).toLocaleString('pt-BR'),
+        String(ts),
+        String(nivel),
+        String(nivelRes)
+      ]);
+    });
+
+    if (rows.length <= 1) return '';
+
+    // CSV com BOM (excel-friendly)
+    const bom = '\uFEFF';
+    const csv = bom + rows.map(r => r.map(csvEscape).join(',')).join('\n');
+    return csv;
+  }
+
+  function csvEscape(val) {
+    const s = (val ?? '').toString();
+    return /[",\n;]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  }
+})();
+
+
 })();
