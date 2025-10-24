@@ -114,16 +114,29 @@
         <p id="consumption-value" class="value">-- L/dia</p>
         <p id="consumption-text" class="subvalue">Calculando...</p>
 
-        <!-- Controles de exportação CSV -->
-        <div class="export-row" style="display:flex; gap:10px; align-items:center; margin-top:8px; flex-wrap:wrap;">
-          <label for="export-range" style="font-weight:600;">Exportar histórico:</label>
-          <select id="export-range" aria-label="Período para exportação" style="padding:8px 10px; border-radius:8px; border:1px solid #d5dde3;">
-            <option value="7">Últimos 7 dias</option>
-            <option value="30">Últimos 30 dias</option>
-          </select>
-          <button id="btn-export-csv" class="btn-export" type="button">Exportar CSV</button>
-          <small id="export-hint" class="subvalue">Gera .csv com data, nível da caixa e do reservatório.</small>
-        </div>
+       <!-- Controles de exportação CSV (substitua o bloco antigo por este) -->
+<div class="export-row" style="display:flex; gap:10px; align-items:center; margin-top:8px; flex-wrap:wrap;">
+  <label for="export-range" style="font-weight:600;">Exportar histórico:</label>
+  <select id="export-range" aria-label="Período" style="padding:8px 10px; border-radius:8px; border:1px solid #d5dde3;">
+    <option value="7">Últimos 7 dias</option>
+    <option value="30">Últimos 30 dias</option>
+  </select>
+
+  <label for="export-format" style="font-weight:600;">Formato:</label>
+  <select id="export-format" aria-label="Formato" style="padding:8px 10px; border-radius:8px; border:1px solid #d5dde3;">
+    <option value="simple" selected>Simples (Data; Hora; Caixa%; Reservatório%)</option>
+    <option value="full">Completo (+ timestamp_ms)</option>
+  </select>
+
+  <label for="export-sep" style="font-weight:600;">Separador:</label>
+  <select id="export-sep" aria-label="Separador" style="padding:8px 10px; border-radius:8px; border:1px solid #d5dde3;">
+    <option value=";" selected>Ponto e vírgula (;)</option>
+    <option value=",">Vírgula (,)</option>
+  </select>
+
+  <button id="btn-export-csv" class="btn-export" type="button">Exportar CSV</button>
+  <small id="export-hint" class="subvalue">CSV pronto para Excel/Sheets.</small>
+</div>
 
         <div style="height:260px; margin-top: 12px;">
           <canvas id="levelChart"></canvas>
@@ -148,3 +161,4 @@
   <script defer src="dashboard.js?v=12"></script>
 </body>
 </html>
+
