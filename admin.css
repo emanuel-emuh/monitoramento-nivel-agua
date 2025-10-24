@@ -107,3 +107,24 @@ body {
   .card-logs { grid-column: auto; }
   .tank { height: 130px; }
 }
+
+/* ==== Espaçamento entre cards (override) ==== */
+
+.container section {
+  gap: 28px;            
+}
+
+.card {
+  padding: 18px;        /* se quiser ainda mais, use 20–22px */
+}
+
+.grid {
+  gap: 28px;
+}
+
+@media (max-width: 768px) {
+  .container section,
+  .grid {
+    gap: 18px;
+  }
+}
