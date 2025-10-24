@@ -1,206 +1,74 @@
-/* =========================================================
-   AQUAMONITOR – DASHBOARD CSS (atualizado e estruturado)
-   ========================================================= */
+/* ===========================
+   Bridge de seletores p/ index
+   =========================== */
 
-/* -------- Base / Reset leve -------- */
-* { box-sizing: border-box; }
-html, body { height: 100%; }
-body {
-  margin: 0;
-  font-family: 'Poppins', system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
-  background: #f7f9fa;
-  color: #222;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
+/* Header / brand */
+.am-header{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:12px 20px;background:#2e7d32;color:#fff;position:sticky;top:0;z-index:10}
+.am-brand{display:flex;align-items:center;gap:10px}
+.am-logo{display:grid;place-items:center;width:36px;height:36px;border-radius:10px;background:rgba(255,255,255,.15);font-weight:800}
+.am-title{font-size:18px;font-weight:700}
 
-/* -------- Navbar -------- */
-.navbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 12px 20px;
-  background: #2e7d32; /* verde principal */
-  color: #fff;
-  position: sticky;
-  top: 0;
-  z-index: 10;
-}
-.logo { display: flex; align-items: center; gap: 10px; }
-.logo-icon {
-  display: grid;
-  place-items: center;
-  width: 36px; height: 36px;
-  background: rgba(255,255,255,0.15);
-  border-radius: 10px;
-  font-weight: 700;
-  letter-spacing: .5px;
-}
-.navbar h1 { margin: 0; font-size: 18px; color: #fff; }
-.logout-button {
-  color: #fff; text-decoration: none; font-weight: 600;
-  padding: 8px 12px; border-radius: 8px; background: rgba(255,255,255,0.18);
-  transition: background .2s ease, transform .05s ease;
-}
-.logout-button:hover { background: rgba(255,255,255,0.28); }
-.logout-button:active { transform: translateY(1px); }
+/* Container principal */
+.am-container{max-width:1100px;margin:0 auto;padding:18px 14px 32px}
 
-/* -------- Layout principal -------- */
-.container {
-  max-width: 1100px;
-  margin: 0 auto;
-  padding: 18px 14px 32px;
-}
-section { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+/* Título de página */
+.am-h1{margin:12px 0 18px;font-size:18px;color:#334155}
 
-/* -------- Cards -------- */
-.card {
-  background: #fff;
-  border: 1px solid #e8ecef;
-  border-radius: 12px;
-  padding: 16px;
-  box-shadow: 0 2px 6px rgba(0,0,0,.06);
-}
-.card h3 { margin: 8px 0 10px; font-size: 18px; }
-.card .card-icon {
-  font-size: 28px; line-height: 1; margin-bottom: 6px;
-}
-.icon-green  { color: #2e7d32; }
-.icon-orange { color: #ff9800; }
-.icon-red    { color: #d32f2f; }
+/* Grids responsivos */
+.grid{display:grid;gap:28px}
+.grid-1{grid-template-columns:1fr}
+.grid-2{grid-template-columns:repeat(2,minmax(280px,1fr))}
+.grid-3{grid-template-columns:repeat(3,minmax(280px,1fr))}
+@media (max-width:768px){.grid-2,.grid-3{grid-template-columns:1fr} .grid{gap:18px}}
 
-.value   { font-size: 28px; font-weight: 700; margin: 2px 0; }
-.subvalue{ font-size: 13px; color: #60707c; margin: 0 0 8px; }
+/* Cards já existem (.card), só garantir uma variante */
+.card.subtle{border-left:5px solid #e5e7eb}
+.card.outlined{border-left:5px solid #2e7d32}
+.card.hint{border-left:5px solid #ff9800}
+.card .dot-live{display:inline-block;width:8px;height:8px;border-radius:50%;background:#22c55e;box-shadow:0 0 0 6px rgba(34,197,94,.15)}
 
-/* -------- Barras de nível (horizontais) -------- */
-.level-bar {
-  width: 100%; height: 12px;
-  background: #eef2f4; border-radius: 999px; overflow: hidden;
-  margin: 8px 0 6px;
-}
-.level-fill {
-  height: 100%; width: 0%;
-  background: #2e7d32; /* default */
-  transition: width .45s ease;
-}
-.level-low    { background: #dc3545 !important; }  /* vermelho */
-.level-medium { background: #ff9800 !important; }  /* laranja  */
-.level-high   { background: #2e7d32 !important; }  /* verde    */
+/* Texto utilitário */
+.muted{color:#64748b}
+.small{font-size:12px}
 
-/* -------- Tanques verticais -------- */
-.tank-visual {
-  display: grid; place-items: center; gap: 8px; margin-top: 10px;
-}
-.tank {
-  width: 90px; height: 160px;
-  border: 3px solid #90a4ae; border-radius: 8px;
-  background: #f1f5f7; position: relative; overflow: hidden;
-}
-.water {
-  position: absolute; left: 0; bottom: 0; width: 100%;
-  background: linear-gradient(180deg, rgba(46,125,50,.8), rgba(46,125,50,1));
-  height: 0%;
-  transition: height .45s ease;
-}
-.tank-label { font-size: 13px; color: #4f5b66; }
+/* Indicador de conexão (opcional) */
+.conn{display:inline-flex;align-items:center;gap:6px;color:#94a3b8}
+.conn-led{width:8px;height:8px;border-radius:50%;background:#bbb}
 
-/* -------- Settings / Controles -------- */
-.settings-card {
-  border-left: 5px solid #2e7d32;
-}
-.control-row {
-  display: flex; align-items: center; justify-content: space-between;
-  gap: 12px; margin: 10px 0;
-}
+/* Botões utilitários (além dos de motor já existentes) */
+.btn{appearance:none;border:none;border-radius:10px;padding:10px 16px;font-weight:700;cursor:pointer;box-shadow:0 2px 5px rgba(0,0,0,.10);transition:background .2s,transform .05s}
+.btn:active{transform:translateY(1px)}
+.btn-ghost{background:rgba(255,255,255,.18);color:#fff}
+.btn-ghost:hover{background:rgba(255,255,255,.28)}
+.btn-primary{background:#2e7d32;color:#fff}
+.btn-primary:hover{background:#1b5e20}
+.btn-secondary{background:#0d47a1;color:#fff}
+.btn-secondary:hover{background:#0b3b86}
+.btn-danger{background:#dc3545;color:#fff}
+.btn-danger:hover{background:#b71c1c}
 
-/* -------- Botões principais -------- */
-button {
-  border: none; cursor: pointer;
-  border-radius: 10px; padding: 10px 16px;
-  font-weight: 700; letter-spacing: .2px;
-  box-shadow: 0 2px 5px rgba(0,0,0,.10);
-  transition: background .2s ease, opacity .2s ease, transform .05s ease;
-}
-button:active { transform: translateY(1px); }
+/* Pills de status */
+.status-pill .pill{display:inline-block;padding:6px 10px;border-radius:999px;font-weight:700;background:#eef2f7;color:#334155}
 
-/* Botão Ligar/Desligar (classe alterada pelo JS conforme status) */
-.btn-motor-on  { background: #dc3545; color: #fff; }   /* ligado -> botão desliga */
-.btn-motor-on:hover { background: #b71c1c; }
-.btn-motor-off { background: #2e7d32; color: #fff; }   /* desligado -> botão liga */
-.btn-motor-off:hover { background: #1b5e20; }
+/* Barras horizontais usadas no index */
+.bar{width:100%;height:12px;background:#eef2f4;border-radius:999px;overflow:hidden;margin:8px 0 6px}
+.bar-fill{height:100%;width:0;background:#2e7d32;transition:width .45s ease}
+.bar-fill.level-low{background:#dc3545!important}
+.bar-fill.level-medium{background:#ff9800!important}
+.bar-fill.level-high{background:#2e7d32!important}
 
-/* Modo Automático (switch nativo do HTML pode ser custom se quiser) */
-#auto-mode-switch { width: 22px; height: 22px; }
+/* Tanque vertical (alias para .tank/.water) */
+.tank-body{width:90px;height:160px;border:3px solid #90a4ae;border-radius:8px;background:#f1f5f7;position:relative;overflow:hidden}
+.tank-water{position:absolute;left:0;bottom:0;width:100%;background:linear-gradient(180deg,rgba(46,125,50,.8),rgba(46,125,50,1));height:0;transition:height .45s ease}
+.tank-caption{font-size:13px;color:#4f5b66;margin-top:6px}
 
-/* -------- Modo Férias -------- */
-#sec-modo-economico { border-left-color: #ff9800; }
-#btn-ferias {
-  min-width: 180px;
-}
-/* estado DESATIVADO (normal) = verde */
-#btn-ferias.normal {
-  background: #2e7d32; color: #fff;
-}
-#btn-ferias.normal:hover { background: #1b5e20; }
-/* estado ATIVADO (ferias) = laranja */
-#btn-ferias.ferias {
-  background: #ff9800; color: #fff;
-}
-#btn-ferias.ferias:hover { background: #f57c00; }
+/* Exportador / formulário */
+.input{display:block;width:100%;padding:8px 10px;border:1px solid #e5e7eb;border-radius:10px;background:#fff}
+.exporter{margin-top:10px}
+.export-title{font-weight:600;margin-bottom:6px}
+.export-row{display:grid;grid-template-columns:repeat(4,minmax(120px,1fr));gap:10px;align-items:end}
+@media (max-width:900px){.export-row{grid-template-columns:1fr 1fr;}}
+@media (max-width:560px){.export-row{grid-template-columns:1fr;}}
 
-.settings-hint, .settings-info { color: #4f5b66; font-size: 13px; }
-
-/* -------- Estados / Texto -------- */
-.status-indicator-on  { color: #2e7d32; font-weight: 700; }
-.status-indicator-off { color: #d32f2f; font-weight: 700; }
-
-/* -------- Utilitários -------- */
-.mt-0 { margin-top: 0 !important; }
-.mb-0 { margin-bottom: 0 !important; }
-
-/* -------- Responsivo -------- */
-@media (max-width: 768px) {
-  .navbar { padding: 12px 14px; }
-  .container { padding: 16px 10px 28px; }
-  section { grid-template-columns: 1fr; }
-  .tank { height: 150px; }
-  .control-row { flex-wrap: wrap; }
-  button { width: 100%; }
-}
-
-/* ==== Espaçamento entre cards (override) ==== */
-
-/* Dashboard */
-.container section {
-  gap: 28px;         
-}
-
-.card {
-  padding: 18px;        /* se quiser ainda mais, use 20–22px */
-}
-
-.grid {
-  gap: 28px;
-}
-
-@media (max-width: 768px) {
-  .container section,
-  .grid {
-    gap: 18px;
-  }
-}
-
-/* ===== Exportação CSV ===== */
-.btn-export {
-  background: #0d47a1; color:#fff; border:none; border-radius:10px;
-  padding:10px 16px; font-weight:700; cursor:pointer;
-  box-shadow: 0 2px 5px rgba(0,0,0,.10);
-  transition: background .2s ease, transform .05s ease, opacity .2s ease;
-}
-.btn-export:hover { background:#0b3b86; }
-.btn-export:active { transform: translateY(1px); }
-
-
-
-
+/* Canvas do gráfico */
+.chart-wrap{min-height:260px}
