@@ -191,4 +191,16 @@ button:active { transform: translateY(1px); }
   }
 }
 
+/* ===== Exportação CSV ===== */
+.btn-export {
+  background: #0d47a1; color:#fff; border:none; border-radius:10px;
+  padding:10px 16px; font-weight:700; cursor:pointer;
+  box-shadow: 0 2px 5px rgba(0,0,0,.10);
+  transition: background .2s ease, transform .05s ease, opacity .2s ease;
+}
+.btn-export:hover { background:#0b3b86; }
+.btn-export:active { transform: translateY(1px); }
+
+
+
 
