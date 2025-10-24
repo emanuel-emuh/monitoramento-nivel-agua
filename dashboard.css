@@ -1,74 +1,110 @@
-/* ===========================
-   Bridge de seletores p/ index
-   =========================== */
+/* ================================
+   POLISH PACK – tipografia & layout
+   Cole no FINAL do dashboard.css
+   ================================ */
 
-/* Header / brand */
-.am-header{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:12px 20px;background:#2e7d32;color:#fff;position:sticky;top:0;z-index:10}
-.am-brand{display:flex;align-items:center;gap:10px}
-.am-logo{display:grid;place-items:center;width:36px;height:36px;border-radius:10px;background:rgba(255,255,255,.15);font-weight:800}
-.am-title{font-size:18px;font-weight:700}
+/* 1) Tipografia global */
+html, body, button, input, select, textarea {
+  font-family: "Poppins", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif !important;
+  color: #1f2937;
+}
+h1, h2, h3 { font-family: inherit; font-weight: 700; margin: 0 0 8px; }
+h1 { font-size: 22px; }
+h2 { font-size: 18px; }
 
-/* Container principal */
-.am-container{max-width:1100px;margin:0 auto;padding:18px 14px 32px}
+/* 2) Container e espaçamentos base */
+.am-container{
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 20px 16px 32px;
+}
+.am-h1{ margin: 8px 0 18px; color: #334155; }
 
-/* Título de página */
-.am-h1{margin:12px 0 18px;font-size:18px;color:#334155}
+/* 3) Grids com respiro */
+.grid{ display: grid; gap: 24px; }
+.grid-1{ grid-template-columns: 1fr; }
+.grid-2{ grid-template-columns: repeat(2, minmax(280px, 1fr)); }
+.grid-3{ grid-template-columns: repeat(3, minmax(280px, 1fr)); }
+@media (max-width: 980px){ .grid-3{ grid-template-columns: repeat(2, minmax(280px, 1fr)); } }
+@media (max-width: 760px){ .grid-2, .grid-3{ grid-template-columns: 1fr; } .grid{ gap: 16px; } }
 
-/* Grids responsivos */
-.grid{display:grid;gap:28px}
-.grid-1{grid-template-columns:1fr}
-.grid-2{grid-template-columns:repeat(2,minmax(280px,1fr))}
-.grid-3{grid-template-columns:repeat(3,minmax(280px,1fr))}
-@media (max-width:768px){.grid-2,.grid-3{grid-template-columns:1fr} .grid{gap:18px}}
+/* 4) Card: visual consistente */
+.card{
+  background: #fff;
+  border-radius: 16px;
+  padding: 16px;
+  box-shadow: 0 8px 24px rgba(2,6,23,.06), 0 2px 8px rgba(2,6,23,.05);
+  border: 1px solid #e5e7eb;
+}
+.card.subtle{border-left: 5px solid #e5e7eb;}
+.card.outlined{border-left: 5px solid #2e7d32;}
+.card.hint{border-left: 5px solid #ff9800;}
+.card .card-title{ margin-bottom: 10px; color: #1f2937; }
 
-/* Cards já existem (.card), só garantir uma variante */
-.card.subtle{border-left:5px solid #e5e7eb}
-.card.outlined{border-left:5px solid #2e7d32}
-.card.hint{border-left:5px solid #ff9800}
-.card .dot-live{display:inline-block;width:8px;height:8px;border-radius:50%;background:#22c55e;box-shadow:0 0 0 6px rgba(34,197,94,.15)}
+/* 5) Texto auxiliar */
+.muted{ color: #64748b; }
+.small{ font-size: 12px; color: #6b7280; }
 
-/* Texto utilitário */
-.muted{color:#64748b}
-.small{font-size:12px}
+/* 6) KPI e barras */
+.kpi{ display: flex; align-items: baseline; gap: 10px; margin: 4px 0 8px; }
+.kpi-value{ font-size: 22px; font-weight: 700; }
+.kpi-sub{ font-size: 12px; color: #6b7280; }
 
-/* Indicador de conexão (opcional) */
-.conn{display:inline-flex;align-items:center;gap:6px;color:#94a3b8}
-.conn-led{width:8px;height:8px;border-radius:50%;background:#bbb}
+.bar{ width: 100%; height: 12px; background: #eef2f4; border-radius: 999px; overflow: hidden; margin: 8px 0 10px; }
+.bar-fill{ height: 100%; width: 0; background: #2e7d32; transition: width .4s ease; }
+.bar-fill.level-low{ background:#dc3545 !important; }
+.bar-fill.level-medium{ background:#ff9800 !important; }
+.bar-fill.level-high{ background:#2e7d32 !important; }
 
-/* Botões utilitários (além dos de motor já existentes) */
-.btn{appearance:none;border:none;border-radius:10px;padding:10px 16px;font-weight:700;cursor:pointer;box-shadow:0 2px 5px rgba(0,0,0,.10);transition:background .2s,transform .05s}
-.btn:active{transform:translateY(1px)}
-.btn-ghost{background:rgba(255,255,255,.18);color:#fff}
-.btn-ghost:hover{background:rgba(255,255,255,.28)}
-.btn-primary{background:#2e7d32;color:#fff}
-.btn-primary:hover{background:#1b5e20}
-.btn-secondary{background:#0d47a1;color:#fff}
-.btn-secondary:hover{background:#0b3b86}
-.btn-danger{background:#dc3545;color:#fff}
-.btn-danger:hover{background:#b71c1c}
+/* 7) Tanque vertical */
+.tank{ display: grid; place-items: center; margin-top: 6px; }
+.tank-body{ width: 92px; height: 160px; border: 3px solid #90a4ae; border-radius: 8px; background:#f7fafc; position: relative; overflow: hidden; }
+.tank-water{ position:absolute; left:0; bottom:0; width:100%; height:0; background: linear-gradient(180deg, rgba(46,125,50,.85), rgba(46,125,50,1)); transition: height .45s ease; }
+.tank-caption{ font-size: 12px; color:#4b5563; margin-top: 6px; }
 
-/* Pills de status */
-.status-pill .pill{display:inline-block;padding:6px 10px;border-radius:999px;font-weight:700;background:#eef2f7;color:#334155}
+/* 8) Botões e inputs */
+.btn{ appearance:none; border:none; border-radius: 12px; padding: 10px 16px; font-weight:700; cursor:pointer; box-shadow:0 2px 6px rgba(0,0,0,.08); transition: background .2s, transform .05s; }
+.btn:active{ transform: translateY(1px); }
+.btn-primary{ background:#2e7d32; color:#fff; }
+.btn-primary:hover{ background:#1b5e20; }
+.btn-secondary{ background:#0d47a1; color:#fff; }
+.btn-secondary:hover{ background:#0b3b86; }
+.btn-danger{ background:#dc3545; color:#fff; }
+.btn-danger:hover{ background:#b71c1c; }
+.btn-ghost{ background:rgba(255,255,255,.18); color:#fff; }
+.btn-ghost:hover{ background:rgba(255,255,255,.28); }
 
-/* Barras horizontais usadas no index */
-.bar{width:100%;height:12px;background:#eef2f4;border-radius:999px;overflow:hidden;margin:8px 0 6px}
-.bar-fill{height:100%;width:0;background:#2e7d32;transition:width .45s ease}
-.bar-fill.level-low{background:#dc3545!important}
-.bar-fill.level-medium{background:#ff9800!important}
-.bar-fill.level-high{background:#2e7d32!important}
+.input{ width:100%; padding: 10px 12px; border:1px solid #e5e7eb; border-radius: 10px; background:#fff; }
 
-/* Tanque vertical (alias para .tank/.water) */
-.tank-body{width:90px;height:160px;border:3px solid #90a4ae;border-radius:8px;background:#f1f5f7;position:relative;overflow:hidden}
-.tank-water{position:absolute;left:0;bottom:0;width:100%;background:linear-gradient(180deg,rgba(46,125,50,.8),rgba(46,125,50,1));height:0;transition:height .45s ease}
-.tank-caption{font-size:13px;color:#4f5b66;margin-top:6px}
+/* 9) Switch/checkbox bonitinho */
+.switch{ display:flex; align-items:center; gap:8px; margin: 6px 0 10px; }
+.switch input[type="checkbox"]{ width:18px; height:18px; accent-color:#2e7d32; }
 
-/* Exportador / formulário */
-.input{display:block;width:100%;padding:8px 10px;border:1px solid #e5e7eb;border-radius:10px;background:#fff}
-.exporter{margin-top:10px}
-.export-title{font-weight:600;margin-bottom:6px}
-.export-row{display:grid;grid-template-columns:repeat(4,minmax(120px,1fr));gap:10px;align-items:end}
-@media (max-width:900px){.export-row{grid-template-columns:1fr 1fr;}}
-@media (max-width:560px){.export-row{grid-template-columns:1fr;}}
+/* 10) “Pílulas” (ON/OFF / AUTO/MAN) */
+.status-pill .pill{
+  display:inline-block; padding:6px 10px; border-radius:999px;
+  background:#eef2f7; color:#334155; font-weight:700; font-size:13px;
+}
 
-/* Canvas do gráfico */
-.chart-wrap{min-height:260px}
+/* 11) Exportador/Gráfico */
+.exporter{ margin-top: 8px; }
+.export-title{ font-weight: 600; margin-bottom: 6px; }
+.export-row{ display:grid; grid-template-columns: repeat(4, minmax(120px, 1fr)); gap:10px; align-items: end; }
+@media (max-width: 960px){ .export-row{ grid-template-columns: 1fr 1fr; } }
+@media (max-width: 560px){ .export-row{ grid-template-columns: 1fr; } }
+
+.chart-wrap{ min-height: 260px; }
+
+/* 12) Header/nav */
+.am-header{
+  display:flex; align-items:center; justify-content:space-between; gap:16px;
+  padding: 12px 20px; background:#2e7d32; color:#fff; position: sticky; top:0; z-index: 10;
+}
+.am-brand{ display:flex; align-items:center; gap:10px; }
+.am-logo{ display:grid; place-items:center; width:36px; height:36px; border-radius: 10px; background: rgba(255,255,255,.14); font-weight:800; }
+.am-title{ font-weight:700; font-size: 18px; }
+.conn{ display:inline-flex; align-items:center; gap:6px; color:#d1fae5; font-size:12px; }
+.conn-led{ width:8px; height:8px; border-radius:50%; background:#bbb; }
+
+/* 13) Linhas divisórias invisíveis (remover “barras verdes” vistas no print) */
+.card.outlined, .card.subtle, .card.hint { border-right: 1px solid #e5e7eb; }
