@@ -1,10 +1,11 @@
 // ===================================================================
-//  AQUAMONITOR – DASHBOARD (v12, sem notificações)
+//  AQUAMONITOR – DASHBOARD (v13, com login anônimo)
 //  - Firebase compat
 //  - Auto/Manual + comandoManual
 //  - Modo Férias
 //  - Chart.js (opcional)
 //  - Exportar CSV do histórico (últimos 7/30 dias)
+//  - Reconexão e monitor de conectividade
 // ===================================================================
 
 (function () {
@@ -18,15 +19,13 @@
     projectId: "aqua-monitor-login",
   };
 
-  // Chart options
-  const MAX_POINTS = 60; // pontos mostrados no gráfico
+  const MAX_POINTS = 60; // pontos no gráfico
 
   // ---------------------------------------------------------------
   // 1) ESTADO
   // ---------------------------------------------------------------
-  let db;
+  let auth, db;
   let sensorRef, controlRef, settingsRef, historicoRef;
-
   let ultimoStatusBomba = null; // "LIGADA"/"DESLIGADA"
   let modoAtual = "automatico"; // "automatico"/"manual"
   let modoOperacao = "normal";  // "normal"/"ferias"
@@ -41,7 +40,6 @@
   // 2) DOM HELPERS
   // ---------------------------------------------------------------
   const $ = (id) => document.getElementById(id);
-
   const el = {
     // níveis
     mainValue: $("main-level-value"),
@@ -81,6 +79,10 @@
     exportRange: $("export-range"),
     exportFormat: $("export-format"),
     exportSep: $("export-sep"),
+
+    // opcional: indicadores de conexão
+    connLed: $("conn-led"),
+    connTxt: $("conn-txt"),
   };
 
   // ---------------------------------------------------------------
@@ -91,22 +93,42 @@
   function boot() {
     // Firebase
     if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
-    db = firebase.database();
+    auth = firebase.auth();
+    db   = firebase.database();
+
+    // desabilita controles até autenticar (anon)
+    setControlsEnabled(false);
+
+    // login anônimo
+    auth.onAuthStateChanged((user) => {
+      if (user) {
+        console.log("[auth] anônimo ok:", user.uid);
+        setControlsEnabled(true);
+      } else {
+        auth.signInAnonymously().catch((e) => {
+          console.error("[auth] anon erro:", e);
+          alert("Falha ao autenticar (anônimo). Verifique sua internet e recarregue a página.");
+        });
+      }
+    });
 
     // refs
-    sensorRef = db.ref("sensorData");
-    controlRef = db.ref("bomba/controle");
+    sensorRef   = db.ref("sensorData");
+    controlRef  = db.ref("bomba/controle");
     settingsRef = db.ref("configuracoes/sistema");
-    historicoRef = db.ref("historico");
-
-    // UI handlers
-    wireControls();
+    historicoRef= db.ref("historico");
 
     // listeners
     attachListeners();
 
     // gráfico
     initChart();
+
+    // monitor de conexão
+    setupConnectionMonitor();
+
+    // fallback de polling (destrava sockets zumbis)
+    setupPollingFallback();
 
     console.log("[Dashboard] iniciado.");
   }
@@ -120,7 +142,7 @@
       "value",
       (snap) => {
         const d = snap.val() || {};
-        const level = num(d.level);
+        const level    = num(d.level);
         const levelRes = num(d.levelReservatorio);
         coletaAtiva = d.coletaAtiva !== false;
 
@@ -138,7 +160,6 @@
         ultimoStatusBomba = c.statusBomba || ultimoStatusBomba || "--";
         modoAtual = c.modo || modoAtual;
         modoOperacao = c.modoOperacao || modoOperacao;
-
         renderControl();
       },
       (err) => console.error("[controlRef] erro:", err)
@@ -227,9 +248,6 @@
     el.motorBtn.className = ligada ? "btn-motor-on" : "btn-motor-off";
     el.motorBtn.textContent = ligada ? "Desligar Bomba" : "Ligar Bomba";
     el.motorStatus.textContent = ligada ? "LIGADA" : "DESLIGADA";
-
-    // No modo automático, botão manual continua habilitado, mas ao clicar
-    // já trocamos o modo para "manual" antes de enviar o comando.
   }
 
   function updateFeriasButton() {
@@ -247,58 +265,55 @@
   // ---------------------------------------------------------------
   // 6) UI HANDLERS
   // ---------------------------------------------------------------
-  function wireControls() {
-    // Switch Auto/Manual
-    el.autoSwitch &&
-      el.autoSwitch.addEventListener("change", (e) => {
-        const auto = !!e.target.checked;
-        controlRef
-          .update({ modo: auto ? "automatico" : "manual" })
-          .catch((err) => alert("Erro ao mudar modo: " + err.message));
-      });
-
-    // Botão Ligar/Desligar (garante manual antes do comando)
-    el.motorBtn &&
-      el.motorBtn.addEventListener("click", async () => {
-        if (!controlRef) return;
-        try {
-          el.motorBtn.disabled = true;
-
-          // se estiver em auto, muda para manual
-          if (modoAtual !== "manual") {
-            await controlRef.update({ modo: "manual" });
-            modoAtual = "manual";
-          }
-
-          const comando = (ultimoStatusBomba === "LIGADA") ? "DESLIGAR" : "LIGAR";
-          await controlRef.update({ comandoManual: comando });
-
-          // otimista: atualiza UI (o ESP vai confirmar em poucos segundos)
-          el.motorBtn.textContent = (comando === "DESLIGAR") ? "Desligar Bomba" : "Ligar Bomba";
-        } catch (err) {
-          alert("Falha ao enviar comando: " + err.message);
-        } finally {
-          el.motorBtn.disabled = false;
-        }
-      });
-
-    // Botão Modo Férias
-    el.feriasBtn &&
-      el.feriasBtn.addEventListener("click", async () => {
-        if (!controlRef) return;
-        try {
-          const novo = modoOperacao === "ferias" ? "normal" : "ferias";
-          await controlRef.update({ modoOperacao: novo });
-          modoOperacao = novo;
-          updateFeriasButton();
-        } catch (err) {
-          alert("Erro ao alterar Modo Férias: " + err.message);
-        }
-      });
-
-    // Exportar CSV
-    setupCsvExport();
+  // habilita/desabilita os controles (usado com auth anon)
+  function setControlsEnabled(enabled) {
+    ["auto-mode-switch", "motor-button", "btn-ferias"].forEach(id => {
+      const e = document.getElementById(id);
+      if (e) e.disabled = !enabled;
+    });
   }
+
+  // Switch Auto/Manual
+  el.autoSwitch &&
+    el.autoSwitch.addEventListener("change", (e) => {
+      const auto = !!e.target.checked;
+      controlRef
+        .update({ modo: auto ? "automatico" : "manual" })
+        .catch((err) => alert("Erro ao mudar modo: " + err.message));
+    });
+
+  // Botão Ligar/Desligar (garante manual antes do comando)
+  el.motorBtn &&
+    el.motorBtn.addEventListener("click", async () => {
+      if (!controlRef) return;
+      try {
+        el.motorBtn.disabled = true;
+        if (modoAtual !== "manual") {
+          await controlRef.update({ modo: "manual" });
+          modoAtual = "manual";
+        }
+        const comando = (ultimoStatusBomba === "LIGADA") ? "DESLIGAR" : "LIGAR";
+        await controlRef.update({ comandoManual: comando });
+      } catch (err) {
+        alert("Falha ao enviar comando: " + err.message);
+      } finally {
+        el.motorBtn.disabled = false;
+      }
+    });
+
+  // Botão Modo Férias
+  el.feriasBtn &&
+    el.feriasBtn.addEventListener("click", async () => {
+      if (!controlRef) return;
+      try {
+        const novo = modoOperacao === "ferias" ? "normal" : "ferias";
+        await controlRef.update({ modoOperacao: novo });
+        modoOperacao = novo;
+        updateFeriasButton();
+      } catch (err) {
+        alert("Erro ao alterar Modo Férias: " + err.message);
+      }
+    });
 
   // ---------------------------------------------------------------
   // 7) GRÁFICO
@@ -343,60 +358,50 @@
   }
 
   function updateConsumption(level, levelRes) {
-    // Placeholder simples: mostre info de cálculo/estimativa aqui se quiser.
     if (el.consumptionValue) el.consumptionValue.textContent = "-- L/dia";
     if (el.consumptionText) el.consumptionText.textContent = "Estimando pelo histórico...";
   }
 
   // ---------------------------------------------------------------
-  // 8) EXPORTAÇÃO CSV (Simples/Completo; ; ou ,)
+  // 8) EXPORTAÇÃO CSV
   // ---------------------------------------------------------------
-  function setupCsvExport() {
-    const btn = el.exportBtn;
-    const selDays = el.exportRange;
-    const selFmt = el.exportFormat;
-    const selSep = el.exportSep;
+  el.exportBtn && el.exportBtn.addEventListener("click", async () => {
+    const days = parseInt(el.exportRange?.value || "7", 10);
+    const formato = el.exportFormat ? el.exportFormat.value : "simple"; // 'simple' | 'full'
+    const separador = el.exportSep ? el.exportSep.value : ";";          // ';' | ','
 
-    if (!btn || !selDays || !firebase?.database) return;
+    const oldTxt = el.exportBtn.textContent;
+    el.exportBtn.disabled = true;
+    el.exportBtn.textContent = "Gerando...";
 
-    btn.addEventListener("click", async () => {
-      const days = parseInt(selDays.value, 10) || 7;
-      const formato = selFmt ? selFmt.value : "simple"; // 'simple' | 'full'
-      const separador = selSep ? selSep.value : ";";    // ';' | ','
-
-      const oldTxt = btn.textContent;
-      btn.disabled = true;
-      btn.textContent = "Gerando...";
-
-      try {
-        const csv = await exportHistoryCsv(days, { formato, separador });
-        if (!csv) {
-          alert("Sem dados no período selecionado.");
-        } else {
-          const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement("a");
-          const now = new Date();
-          const y = now.getFullYear();
-          const m = String(now.getMonth() + 1).padStart(2, "0");
-          const d = String(now.getDate()).padStart(2, "0");
-          const suffix = (formato === "full") ? "_full" : "_simple";
-          a.href = url;
-          a.download = `historico_${days}d${suffix}_${y}-${m}-${d}.csv`;
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-          URL.revokeObjectURL(url);
-        }
-      } catch (e) {
-        console.error("Erro ao exportar CSV:", e);
-        alert("Erro ao exportar CSV. Veja o console para detalhes.");
-      } finally {
-        btn.disabled = false;
-        btn.textContent = oldTxt;
+    try {
+      const csv = await exportHistoryCsv(days, { formato, separador });
+      if (!csv) {
+        alert("Sem dados no período selecionado.");
+      } else {
+        const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        const now = new Date();
+        const y = now.getFullYear();
+        const m = String(now.getMonth() + 1).padStart(2, "0");
+        const d = String(now.getDate()).padStart(2, "0");
+        const suffix = (formato === "full") ? "_full" : "_simple";
+        a.href = url;
+        a.download = `historico_${days}d${suffix}_${y}-${m}-${d}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
       }
-    });
-  }
+    } catch (e) {
+      console.error("Erro ao exportar CSV:", e);
+      alert("Erro ao exportar CSV. Veja o console para detalhes.");
+    } finally {
+      el.exportBtn.disabled = false;
+      el.exportBtn.textContent = oldTxt;
+    }
+  });
 
   async function exportHistoryCsv(days, { formato = "simple", separador = ";" } = {}) {
     const ref = db.ref("historico");
@@ -425,7 +430,7 @@
     rows.sort((a, b) => a.ts - b.ts);
 
     const headersSimple = ["data", "hora", "caixa_percent", "reservatorio_percent"];
-    const headersFull = ["data", "hora", "timestamp_ms", "caixa_percent", "reservatorio_percent"];
+    const headersFull   = ["data", "hora", "timestamp_ms", "caixa_percent", "reservatorio_percent"];
     const headers = (formato === "full") ? headersFull : headersSimple;
 
     const lines = [headers];
@@ -436,11 +441,8 @@
       const caixa = roundStr(r.nivel, 0).replace(".", ",");
       const reserv = roundStr(r.nivelR, 0).replace(".", ",");
 
-      if (formato === "full") {
-        lines.push([data, hora, String(r.ts), caixa, reserv]);
-      } else {
-        lines.push([data, hora, caixa, reserv]);
-      }
+      if (formato === "full") lines.push([data, hora, String(r.ts), caixa, reserv]);
+      else lines.push([data, hora, caixa, reserv]);
     }
 
     const bom = "\uFEFF"; // Excel-friendly
@@ -448,7 +450,38 @@
   }
 
   // ---------------------------------------------------------------
-  // 9) UTILS
+  // 9) CONEXÃO / RECONEXÃO
+  // ---------------------------------------------------------------
+  function setupConnectionMonitor() {
+    const infoConnectedRef = firebase.database().ref(".info/connected");
+    infoConnectedRef.on("value", (snap) => {
+      const ok = !!snap.val();
+      console.log(ok ? "[RTDB] conectado" : "[RTDB] desconectado");
+      if (el.connLed) el.connLed.style.background = ok ? "#22c55e" : "#f43f5e";
+      if (el.connTxt) el.connTxt.textContent = ok ? "Online" : "Offline";
+    });
+
+    document.addEventListener("visibilitychange", () => {
+      if (!document.hidden) {
+        try {
+          console.log("[RTDB] aba visível → goOnline()");
+          firebase.database().goOnline();
+        } catch (e) {}
+      }
+    });
+  }
+
+  function setupPollingFallback() {
+    setInterval(() => {
+      if (document.hidden) return;
+      sensorRef.limitToFirst(1).once("value").catch(()=>{});
+      controlRef.limitToFirst(1).once("value").catch(()=>{});
+      // historicoRef.orderByChild("timestamp").limitToLast(1).once("value").catch(()=>{});
+    }, 30000);
+  }
+
+  // ---------------------------------------------------------------
+  // 10) UTILS
   // ---------------------------------------------------------------
   function setFillClass(elm, level) {
     elm.classList.remove("level-low", "level-medium", "level-high");
@@ -466,7 +499,7 @@
   function num(v) {
     const n = Number(v);
     return Number.isFinite(n) ? n : null;
-  }
+    }
 
   function clamp(v, a, b) {
     return Math.max(a, Math.min(b, v));
