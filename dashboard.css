@@ -1,6 +1,5 @@
 /* =========================================================
-   AQUAMONITOR – DASHBOARD CSS (v2.0)
-   Estilo limpo, responsivo e alinhado ao dashboard.js
+   AQUAMONITOR – DASHBOARD CSS (v3.0.4)
    ========================================================= */
 
 /* Base / Reset leve */
@@ -107,3 +106,30 @@ body{
 
 /* Acessibilidade/Focus */
 a,button,input,select{outline-color:#9ccc9b;outline-offset:2px}
+
+/* ===== FIXES DE PRIORIDADE (garantem cores) ===== */
+.am-header { background:#2e7d32 !important; color:#fff !important; }
+.bar { background:#eef2f4 !important; }
+.bar-fill.level-low    { background:#dc3545 !important; }
+.bar-fill.level-medium { background:#ff9800 !important; }
+.bar-fill.level-high   { background:#2e7d32 !important; }
+.btn-primary  { background:#2e7d32 !important; color:#fff !important; }
+.btn-secondary{ background:#0d47a1 !important; color:#fff !important; }
+.btn-danger   { background:#dc3545 !important; color:#fff !important; }
+.tank-water { background:linear-gradient(180deg, rgba(46,125,50,.85), rgba(46,125,50,1)) !important; }
+
+/* Botão Ligar/Desligar controlado pelo dashboard.js */
+.btn-motor-on, .btn-motor-off {
+  appearance:none;border:none;border-radius:12px;padding:10px 16px;font-weight:700;
+  box-shadow:0 2px 6px rgba(0,0,0,.08); transition:background .2s, transform .05s;
+  color:#fff; cursor:pointer;
+}
+.btn-motor-on  { background:#dc3545 !important; }
+.btn-motor-on:hover  { background:#b71c1c !important; }
+.btn-motor-off { background:#2e7d32 !important; }
+.btn-motor-off:hover { background:#1b5e20 !important; }
+
+/* Família consistente (mesmo se outro CSS vazar) */
+html, body, button, input, select {
+  font-family:"Poppins", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif !important;
+}
