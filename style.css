@@ -1,142 +1,24 @@
-/* Arquivo de Estilo Unificado - style.css */
-
-@import url('https://fonts.googleapis.com/css2?family=Segoe+UI:wght@400;500;600&display=swap');
-
-/* Reset Básico e Configurações Globais */
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+/* Login – simples e limpo */
+*{box-sizing:border-box}
+body{
+  margin:0; min-height:100vh; display:grid; place-items:center;
+  background:#f6f8fb; color:#1f2937;
+  font-family:"Poppins",system-ui,-apple-system,"Segoe UI",Roboto,Arial,Helvetica,sans-serif;
 }
-
-body {
-    background-color: #f4f7f6;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    min-height: 100vh;
-    padding: 20px;
+.login-container{width:100%; padding:24px}
+.login-card{
+  width:100%; max-width:360px; margin:0 auto; background:#fff; border:1px solid #e5e7eb;
+  border-radius:16px; padding:22px; box-shadow:0 8px 24px rgba(2,6,23,.06),0 2px 8px rgba(2,6,23,.05);
 }
+.login-title{margin:0 0 4px; font-size:22px; font-weight:700}
+.login-subtitle{margin:0 0 18px; color:#64748b}
 
-/* Estilo do Contêiner Principal (Login e Cadastro) */
-.container {
-    background-color: white;
-    border-radius: 10px;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-    width: 100%;
-    max-width: 420px;
-    padding: 40px 30px;
-    position: relative;
-    overflow: hidden;
-}
+label{display:block; font-weight:600; margin:10px 0 6px}
+.input{display:block; width:100%; padding:10px 12px; border:1px solid #e5e7eb; border-radius:10px; background:#fff}
 
-.container::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 5px;
-    background: linear-gradient(to right, #2e7d32, #28a745);
-}
+.btn{appearance:none;border:none;border-radius:12px;padding:10px 16px;font-weight:700;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,.08);transition:background .2s,transform .05s;margin-top:14px;width:100%}
+.btn:active{transform:translateY(1px)}
+.btn-primary{background:#2e7d32;color:#fff}
+.btn-primary:hover{background:#1b5e20}
 
-/* Logo e Cabeçalho */
-.logo {
-    text-align: center;
-    margin-bottom: 30px;
-}
-
-.logo h1 {
-    color: #2e7d32;
-    font-size: 28px;
-    font-weight: 600;
-}
-
-.logo p {
-    color: #6c757d;
-    font-size: 14px;
-    margin-top: 5px;
-}
-
-/* Grupos de Formulário */
-.form-group {
-    margin-bottom: 20px;
-    position: relative;
-}
-
-.form-group label {
-    display: block;
-    margin-bottom: 8px;
-    color: #495057;
-    font-weight: 500;
-    font-size: 14px;
-}
-
-.form-control {
-    width: 100%;
-    padding: 12px 15px;
-    border: 1px solid #ced4da;
-    border-radius: 5px;
-    font-size: 16px;
-    transition: all 0.3s;
-}
-
-.form-control:focus {
-    outline: none;
-    border-color: #28a745;
-    box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.2);
-}
-
-.password-toggle {
-    position: absolute;
-    right: 15px;
-    top: 38px;
-    background: none;
-    border: none;
-    color: #6c757d;
-    cursor: pointer;
-    font-size: 14px;
-}
-
-.btn {
-    width: 100%;
-    padding: 12px;
-    background-color: #28a745;
-    color: white;
-    border: none;
-    border-radius: 5px;
-    font-size: 16px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background-color 0.3s, transform 0.2s;
-    margin-top: 10px;
-    margin-bottom: 20px;
-}
-
-.btn:hover {
-    background-color: #218838;
-}
-
-.btn:active {
-    transform: scale(0.98);
-}
-
-.bottom-link {
-    text-align: center;
-    font-size: 14px;
-    color: #6c757d;
-}
-
-.bottom-link a {
-    color: #2e7d32;
-    text-decoration: none;
-    font-weight: 500;
-}
-
-.error-message {
-    color: #dc3545;
-    font-size: 14px;
-    margin-top: 5px;
-    display: none;
-}
+.msg{margin-top:10px;color:#dc2626;font-size:13px}
