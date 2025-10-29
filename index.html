@@ -2,6 +2,10 @@
 <html lang="pt-BR">
 <head>
   <meta charset="utf-8" />
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
+  <meta name="color-scheme" content="light" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>AquaMonitor – Dashboard</title>
 
@@ -9,7 +13,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="./dashboard.css?v=2.0.0" />
+  <link rel="stylesheet" href="./dashboard.css?v=3.0.4" />
 </head>
 <body>
   <!-- ===== NAV / HEADER ===== -->
@@ -25,7 +29,7 @@
     </small>
 
     <nav class="am-actions" aria-label="Ações">
-      <a class="btn btn-ghost" href="login.html">Sair</a>
+      <a id="btn-sair" class="btn btn-ghost" href="login.html">Sair</a>
     </nav>
   </header>
 
@@ -80,21 +84,18 @@
 
     <!-- === Linha: STATUS / MODO / CONTROLE === -->
     <section class="grid grid-3">
-      <!-- Status da Bomba -->
       <article class="card subtle" aria-labelledby="h-status-bomba">
         <h2 id="h-status-bomba" class="card-title">Status da Bomba</h2>
         <div class="status-pill"><span id="pump-status-value" class="pill">--</span></div>
         <p id="pump-status-text" class="muted">A bomba está --.</p>
       </article>
 
-      <!-- Modo de Operação -->
       <article class="card subtle" aria-labelledby="h-modo-op">
         <h2 id="h-modo-op" class="card-title">Modo de Operação</h2>
         <div class="status-pill"><span id="mode-value" class="pill">--</span></div>
         <p id="mode-text" class="muted">Operando em modo --.</p>
       </article>
 
-      <!-- Controle da Bomba -->
       <article class="card outlined" aria-labelledby="h-controle">
         <h2 id="h-controle" class="card-title">Controle da Bomba</h2>
 
@@ -135,7 +136,6 @@
 
     <!-- === Linha: CONSUMO / GRÁFICO === -->
     <section class="grid grid-2">
-      <!-- Consumo -->
       <article class="card" aria-labelledby="h-consumo">
         <h2 id="h-consumo" class="card-title">Consumo Estimado</h2>
         <div class="kpi"><div id="consumption-value" class="kpi-value">-- L/dia</div></div>
@@ -174,7 +174,6 @@
         </div>
       </article>
 
-      <!-- Gráfico -->
       <article class="card" aria-labelledby="h-grafico">
         <h2 id="h-grafico" class="card-title">Histórico de Nível (Caixa Principal)</h2>
         <div class="chart-wrap">
@@ -191,6 +190,19 @@
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <script src="./dashboard.js?v=2.0.0"></script>
+  <script src="./dashboard.js?v=3.0.4"></script>
+
+  <!-- Logout REAL: encerra sessão (inclui anônimo) e só depois vai ao login -->
+  <script>
+    document.addEventListener('DOMContentLoaded', function(){
+      const sair = document.getElementById('btn-sair');
+      if (!sair) return;
+      sair.addEventListener('click', async function(ev){
+        ev.preventDefault();
+        try { if (window.firebase?.auth) await firebase.auth().signOut(); } catch(e){}
+        window.location.href = 'login.html';
+      });
+    });
+  </script>
 </body>
 </html>
