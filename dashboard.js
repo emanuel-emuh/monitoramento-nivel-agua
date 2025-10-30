@@ -1,385 +1,434 @@
-// ===================================================================
-//  AQUAMONITOR – DASHBOARD (v3.0.4)
-// ===================================================================
+/* dashboard.js – AquaMonitor (cliente)
+ * Compatível com index.html (scripts compat v9.6.1)
+ */
+
+/* =========================
+ * 1) CONFIG FIREBASE
+ * ========================= */
 (function () {
-  const firebaseConfig = {
-    apiKey: "AIzaSyBOBbMzkTO2MvIxExVO8vlCOUgpeZp0rSY",
-    authDomain: "aqua-monitor-login.firebaseapp.com",
-    databaseURL: "https://aqua-monitor-login-default-rtdb.firebaseio.com",
-    projectId: "aqua-monitor-login",
-  };
+  // Se já existir um app, não inicializa de novo
+  if (!firebase.apps.length) {
+    const firebaseConfig = {
+      apiKey: "AIzaSyBOBbMzkTO2MvIxExVO8vlCOUgpeZp0rSY",
+      authDomain: "aqua-monitor-login.firebaseapp.com",
+      databaseURL: "https://aqua-monitor-login-default-rtdb.firebaseio.com",
+      projectId: "aqua-monitor-login",
+      storageBucket: "aqua-monitor-login.appspot.com",
+      messagingSenderId: "000000000000", // opcional (não usado aqui)
+      appId: "1:000000000000:web:xxxxxxxxxxxxxxxx" // opcional (não usado aqui)
+    };
+    firebase.initializeApp(firebaseConfig);
+  }
+})();
 
-  const MAX_POINTS = 60;
+/* =========================
+ * 2) UTILIDADES & UI
+ * ========================= */
+const $ = (sel) => document.querySelector(sel);
 
-  let auth, db;
-  let sensorRef, controlRef, historicoRef;
+const els = {
+  // header / status conexão
+  connLed: $("#conn-led"),
+  connTxt: $("#conn-txt"),
 
-  let ultimoStatusBomba = "--";
-  let modoAtual = "automatico";
-  let modoOperacao = "normal";
-  let coletaAtiva = true;
+  // KPIs – caixa
+  mainPct: $("#main-level-value"),
+  mainLiters: $("#main-level-liters"),
+  barMain: $("#level-fill-main"),
+  tankMain: $("#client-water-main"),
+  tankMainPct: $("#client-level-percent-main"),
 
-  let chart;
-  const chartLabels = [];
-  const chartData = [];
+  // KPIs – reservatório
+  resPct: $("#res-level-value"),
+  resLiters: $("#res-level-liters"),
+  barRes: $("#level-fill-res"),
+  tankRes: $("#client-water-res"),
+  tankResPct: $("#client-level-percent-res"),
 
-  const $ = (id) => document.getElementById(id);
-  const el = {
-    mainValue: $("main-level-value"),
-    resValue: $("res-level-value"),
-    mainLiters: $("main-level-liters"),
-    resLiters: $("res-level-liters"),
-    fillMain: $("level-fill-main"),
-    fillRes: $("level-fill-res"),
-    tankWaterMain: $("client-water-main"),
-    tankWaterRes: $("client-water-res"),
-    tankPercentMain: $("client-level-percent-main"),
-    tankPercentRes: $("client-level-percent-res"),
-    pumpStatusValue: $("pump-status-value"),
-    pumpStatusText: $("pump-status-text"),
-    modeValue: $("mode-value"),
-    modeText: $("mode-text"),
-    autoSwitch: $("auto-mode-switch"),
-    motorBtn: $("motor-button"),
-    motorStatus: $("motor-status"),
-    feriasBtn: $("btn-ferias"),
-    feriasInfo: $("ferias-info"),
-    consumptionValue: $("consumption-value"),
-    consumptionText: $("consumption-text"),
-    chartCanvas: $("levelChart"),
-    exportBtn: $("btn-export-csv"),
-    exportRange: $("export-range"),
-    exportFormat: $("export-format"),
-    exportSep: $("export-sep"),
-    connLed: $("conn-led"),
-    connTxt: $("conn-txt"),
-  };
+  // status / modo
+  pumpPill: $("#pump-status-value"),
+  pumpTxt: $("#pump-status-text"),
+  modePill: $("#mode-value"),
+  modeTxt: $("#mode-text"),
 
-  document.addEventListener("DOMContentLoaded", boot);
+  // controles
+  autoSwitch: $("#auto-mode-switch"),
+  motorBtn: $("#motor-button"),
+  motorStatus: $("#motor-status"),
+  feriasBtn: $("#btn-ferias"),
 
-  function boot() {
-    if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
-    auth = firebase.auth();
-    db = firebase.database();
+  // consumo / export
+  consValue: $("#consumption-value"),
+  consTxt: $("#consumption-text"),
+  exportRange: $("#export-range"),
+  exportFormat: $("#export-format"),
+  exportSep: $("#export-sep"),
+  exportBtn: $("#btn-export-csv"),
+};
 
-    setControlsEnabled(false);
+function setOnline(on) {
+  if (!els.connLed || !els.connTxt) return;
+  els.connLed.classList.toggle("on", !!on);
+  els.connTxt.textContent = on ? "Online" : "Conectando...";
+}
 
-    auth.onAuthStateChanged((user) => {
-      if (user) {
-        setControlsEnabled(true);
+function litersFromPercent(pct) {
+  // Ajuste se tiver volume real da caixa/reservatório
+  // Ex: 100% = 1000 L → multiplique por 10
+  // Por ora, só mostra "-- L"
+  return "-- L";
+}
+
+function fmtPct(n) {
+  if (Number.isFinite(n)) return `${Math.round(n)}%`;
+  return "--%";
+}
+
+function safe(n, def = 0) {
+  return Number.isFinite(n) ? n : def;
+}
+
+function enableControls(enabled) {
+  if (els.autoSwitch) els.autoSwitch.disabled = !enabled;
+  if (els.motorBtn) els.motorBtn.disabled = !enabled;
+  if (els.feriasBtn) els.feriasBtn.disabled = !enabled;
+}
+
+/* =========================
+ * 3) ESTADO GLOBAL
+ * ========================= */
+const db = () => firebase.database();
+
+let authUser = null;
+let userRole = "anon"; // 'admin' | 'cliente' | 'anon'
+let unsubscribes = [];
+
+let chart; // Chart.js
+let historyBuffer = []; // últimos N pontos {ts, nivel, nivelReservatorio}
+
+/* =========================
+ * 4) AUTH FLUXO
+ * ========================= */
+async function ensureSession() {
+  return new Promise((resolve) => {
+    firebase.auth().onAuthStateChanged(async (user) => {
+      authUser = user || null;
+
+      if (!authUser) {
+        // Sem sessão → entra anônimo (apenas leitura)
+        try {
+          const res = await firebase.auth().signInAnonymously();
+          authUser = res.user;
+          userRole = "anon";
+        } catch (e) {
+          console.error("[auth] erro anônimo:", e);
+        }
       } else {
-        auth.signInAnonymously().catch((e) => {
-          console.error("[auth anon] erro:", e);
-          alert("Falha na autenticação (anônima). Verifique a internet e recarregue.");
-        });
+        // Tem sessão: tenta ler papel (usuarios/{uid}/role)
+        try {
+          const snap = await db().ref(`usuarios/${authUser.uid}/role`).get();
+          userRole = snap.exists() ? String(snap.val()) : "anon";
+        } catch {
+          userRole = "anon";
+        }
       }
+
+      // Habilita/desabilita controles
+      const canControl = userRole === "admin" || userRole === "cliente";
+      enableControls(canControl);
+
+      resolve(authUser);
     });
+  });
+}
 
-    sensorRef = db.ref("sensorData");
-    controlRef = db.ref("bomba/controle");
-    historicoRef = db.ref("historico");
+/* =========================
+ * 5) LISTENERS EM TEMPO REAL
+ * ========================= */
+function listenSensorData() {
+  const ref = db().ref("sensorData");
+  const onVal = ref.on("value", (snap) => {
+    setOnline(true);
+    const v = snap.val() || {};
+    const main = safe(v.level, NaN);
+    const res = safe(v.levelReservatorio, NaN);
 
-    attachListeners();
-    initChart();
-    setupConnectionMonitor();
-    setupPollingFallback();
+    // KPIs Caixa
+    if (els.mainPct) els.mainPct.textContent = fmtPct(main);
+    if (els.mainLiters) els.mainLiters.textContent = litersFromPercent(main);
+    if (els.barMain) els.barMain.style.width = `${safe(main, 0)}%`;
+    if (els.tankMain) els.tankMain.style.height = `${safe(main, 0)}%`;
+    if (els.tankMainPct) els.tankMainPct.textContent = String(safe(main, 0));
 
-    console.log("[Dashboard] iniciado.");
-  }
+    // KPIs Reservatório
+    if (els.resPct) els.resPct.textContent = fmtPct(res);
+    if (els.resLiters) els.resLiters.textContent = litersFromPercent(res);
+    if (els.barRes) els.barRes.style.width = `${safe(res, 0)}%`;
+    if (els.tankRes) els.tankRes.style.height = `${safe(res, 0)}%`;
+    if (els.tankResPct) els.tankResPct.textContent = String(safe(res, 0));
+  }, (err) => {
+    console.warn("[sensorData] erro:", err?.message || err);
+    setOnline(false);
+  });
 
-  function attachListeners() {
-    sensorRef.on(
-      "value",
-      (snap) => {
-        const d = snap.val() || {};
-        const level = toNum(d.level);
-        const levelRes = toNum(d.levelReservatorio);
-        coletaAtiva = d.coletaAtiva !== false;
-        renderLevels(level, levelRes);
-        updateConsumption(level, levelRes);
-      },
-      (err) => console.error("[sensor] erro:", err)
-    );
+  unsubscribes.push(() => ref.off("value", onVal));
+}
 
-    controlRef.on(
-      "value",
-      (snap) => {
-        const c = snap.val() || {};
-        ultimoStatusBomba = c.statusBomba || ultimoStatusBomba || "--";
-        modoAtual = c.modo || modoAtual;
-        modoOperacao = c.modoOperacao || modoOperacao;
-        renderControl();
-      },
-      (err) => console.error("[controle] erro:", err)
-    );
+function listenControle() {
+  const ref = db().ref("bomba/controle");
+  const onVal = ref.on("value", (snap) => {
+    setOnline(true);
+    const v = snap.val() || {};
 
-    historicoRef.orderByChild("timestamp").limitToLast(MAX_POINTS).on(
-      "child_added",
-      (snap) => {
-        const v = snap.val() || {};
-        if (typeof v.timestamp !== "number") return;
-        pushChartPoint(v.timestamp, toNum(v.nivel));
-      },
-      (err) => console.error("[historico] erro:", err)
-    );
-
-    el.autoSwitch &&
-      el.autoSwitch.addEventListener("change", (e) => {
-        const auto = !!e.target.checked;
-        controlRef.update({ modo: auto ? "automatico" : "manual" })
-          .catch((err) => alert("Erro ao mudar modo: " + err.message));
-      });
-
-    el.motorBtn &&
-      el.motorBtn.addEventListener("click", async () => {
-        try {
-          el.motorBtn.disabled = true;
-          if (modoAtual !== "manual") {
-            await controlRef.update({ modo: "manual" });
-            modoAtual = "manual";
-          }
-          const cmd = (ultimoStatusBomba === "LIGADA") ? "DESLIGAR" : "LIGAR";
-          await controlRef.update({ comandoManual: cmd });
-        } catch (err) {
-          alert("Falha ao enviar comando: " + err.message);
-        } finally {
-          el.motorBtn.disabled = false;
-        }
-      });
-
-    el.feriasBtn &&
-      el.feriasBtn.addEventListener("click", async () => {
-        try {
-          const novo = modoOperacao === "ferias" ? "normal" : "ferias";
-          await controlRef.update({ modoOperacao: novo });
-          modoOperacao = novo;
-          updateFeriasButton();
-        } catch (err) {
-          alert("Erro ao alterar Modo Férias: " + err.message);
-        }
-      });
-
-    el.exportBtn &&
-      el.exportBtn.addEventListener("click", handleExportCsv);
-  }
-
-  function renderLevels(level, levelRes) {
-    if (isFinite(level)) {
-      el.mainValue && (el.mainValue.textContent = `${Math.round(level)}%`);
-      el.tankPercentMain && (el.tankPercentMain.textContent = Math.round(level));
+    // status da bomba (campo atualizado pelo ESP)
+    const status = String(v.statusBomba || "--");
+    if (els.pumpPill) {
+      els.pumpPill.textContent = status === "LIGADA" ? "ON" : status === "DESLIGADA" ? "OFF" : "--";
+      els.pumpPill.classList.toggle("on", status === "LIGADA");
+      els.pumpPill.classList.toggle("off", status === "DESLIGADA");
     }
-    if (isFinite(levelRes)) {
-      el.resValue && (el.resValue.textContent = `${Math.round(levelRes)}%`);
-      el.tankPercentRes && (el.tankPercentRes.textContent = Math.round(levelRes));
+    if (els.pumpTxt) els.pumpTxt.textContent = `A bomba está ${status === "LIGADA" ? "LIGADA" : status === "DESLIGADA" ? "DESLIGADA" : "--"}.`;
+    if (els.motorStatus) els.motorStatus.textContent = status;
+
+    // modo (auto/manual)
+    const modo = String(v.modo || "automatico");
+    if (els.modePill) {
+      els.modePill.textContent = modo === "automatico" ? "AUTO" : modo === "manual" ? "MAN" : "--";
+      els.modePill.classList.toggle("auto", modo === "automatico");
+      els.modePill.classList.toggle("man", modo === "manual");
     }
+    if (els.modeTxt) els.modeTxt.textContent = `Operando em modo ${modo === "automatico" ? "automático" : modo === "manual" ? "manual" : "--"}.`;
+    if (els.autoSwitch) els.autoSwitch.checked = (modo === "automatico");
 
-    if (el.fillMain && isFinite(level)) {
-      el.fillMain.style.width = `${clamp(level, 0, 100)}%`;
-      setFillClass(el.fillMain, level);
-    }
-    if (el.fillRes && isFinite(levelRes)) {
-      el.fillRes.style.width = `${clamp(levelRes, 0, 100)}%`;
-      setFillClass(el.fillRes, levelRes);
-    }
+    // modoOperacao (normal/ferias) → só para legenda do botão
+    const op = String(v.modoOperacao || "normal");
+    if (els.feriasBtn) els.feriasBtn.textContent = (op === "ferias") ? "Desativar Modo Férias" : "Ativar Modo Férias";
+  }, (err) => {
+    console.warn("[controle] erro:", err?.message || err);
+    setOnline(false);
+  });
 
-    if (el.tankWaterMain && isFinite(level)) {
-      el.tankWaterMain.style.height = `${clamp(level, 0, 100)}%`;
-    }
-    if (el.tankWaterRes && isFinite(levelRes)) {
-      el.tankWaterRes.style.height = `${clamp(levelRes, 0, 100)}%`;
-    }
-  }
+  unsubscribes.push(() => ref.off("value", onVal));
+}
 
-  function renderControl() {
-    if (el.pumpStatusValue) {
-      el.pumpStatusValue.textContent = (ultimoStatusBomba === "LIGADA") ? "ON" : (ultimoStatusBomba === "DESLIGADA" ? "OFF" : "--");
-      el.pumpStatusValue.style.color = ultimoStatusBomba === "LIGADA" ? "#2e7d32" : "#d32f2f";
-    }
-    if (el.pumpStatusText) {
-      el.pumpStatusText.textContent =
-        ultimoStatusBomba === "LIGADA" ? "A bomba está LIGADA." :
-        ultimoStatusBomba === "DESLIGADA" ? "A bomba está DESLIGADA." : "A bomba está --.";
-    }
+function listenHistorico() {
+  // Trás os últimos ~200 pontos para gráfico
+  const ref = db().ref("historico").limitToLast(200);
+  const onVal = ref.on("value", (snap) => {
+    setOnline(true);
+    const data = snap.val() || {};
+    const arr = Object.entries(data).map(([k, v]) => ({
+      ts: Number(v.timestamp || 0),
+      nivel: Number(v.nivel || 0),
+      nivelReservatorio: Number(v.nivelReservatorio || 0),
+    })).filter(p => Number.isFinite(p.ts)).sort((a, b) => a.ts - b.ts);
 
-    if (el.modeValue) el.modeValue.textContent = modoAtual === "automatico" ? "AUTO" : "MAN";
-    if (el.modeText)
-      el.modeText.textContent = "Operando em modo " + (modoAtual === "automatico" ? "automático." : "manual.");
+    historyBuffer = arr;
+    renderChart(arr);
+    calcConsumption(arr);
+  }, (err) => {
+    console.warn("[historico] erro:", err?.message || err);
+    setOnline(false);
+  });
 
-    if (el.autoSwitch) el.autoSwitch.checked = (modoAtual === "automatico");
+  unsubscribes.push(() => ref.off("value", onVal));
+}
 
-    updateMotorButton();
-    updateFeriasButton();
-  }
+/* =========================
+ * 6) GRÁFICO & CONSUMO
+ * ========================= */
+function renderChart(points) {
+  const ctx = document.getElementById("levelChart");
+  if (!ctx) return;
 
-  function updateMotorButton() {
-    if (!el.motorBtn || !el.motorStatus) return;
-    const ligada = ultimoStatusBomba === "LIGADA";
-    el.motorBtn.className = ligada ? "btn-motor-on" : "btn-motor-off";
-    el.motorBtn.textContent = ligada ? "Desligar Bomba" : "Ligar Bomba";
-    el.motorStatus.textContent = ligada ? "LIGADA" : "DESLIGADA";
-  }
+  const labels = points.map(p => new Date(p.ts).toLocaleString());
+  const data = points.map(p => p.nivel);
 
-  function updateFeriasButton() {
-    if (!el.feriasBtn || !el.feriasInfo) return;
-    const ativo = (modoOperacao === "ferias");
-    el.feriasBtn.classList.toggle("ferias", ativo);
-    el.feriasBtn.classList.toggle("normal", !ativo);
-    el.feriasBtn.textContent = ativo ? "Desativar Modo Férias" : "Ativar Modo Férias";
-    el.feriasInfo.innerHTML = ativo
-      ? "<b>Modo Férias:</b> ativo. Limites 15% (liga) a 50% (desliga)."
-      : "<b>Modo Férias:</b> Usa limites de 15% a 50% para economizar.";
-  }
-
-  function initChart() {
-    if (!el.chartCanvas || !window.Chart) return;
-    chart = new Chart(el.chartCanvas.getContext("2d"), {
+  if (!chart) {
+    chart = new Chart(ctx, {
       type: "line",
       data: {
-        labels: chartLabels,
-        datasets: [{ label: "Nível Caixa (%)", data: chartData, fill: true, tension: 0.25 }],
+        labels,
+        datasets: [{
+          label: "Nível Caixa (%)",
+          data,
+          borderWidth: 2,
+          fill: true,
+          tension: 0.25
+        }]
       },
       options: {
         responsive: true,
-        maintainAspectRatio: false,
-        animation: false,
-        plugins: { legend: { display: true } },
-        scales: { y: { beginAtZero: true, max: 100, ticks: { stepSize: 10 } } },
-      },
+        scales: {
+          y: { min: 0, max: 100 }
+        }
+      }
     });
-  }
-
-  function pushChartPoint(ts, level) {
-    if (!chart || !isFinite(level)) return;
-    chartLabels.push(new Date(ts).toLocaleTimeString("pt-BR"));
-    chartData.push(Math.round(level));
-    if (chartLabels.length > MAX_POINTS) { chartLabels.shift(); chartData.shift(); }
+  } else {
+    chart.data.labels = labels;
+    chart.data.datasets[0].data = data;
     chart.update();
   }
+}
 
-  function updateConsumption() {
-    if (el.consumptionValue) el.consumptionValue.textContent = "-- L/dia";
-    if (el.consumptionText) el.consumptionText.textContent = "Estimando pelo histórico...";
+function calcConsumption(points) {
+  // Estimativa simples: média da variação negativa (queda) por dia
+  if (!points || points.length < 2) {
+    if (els.consValue) els.consValue.textContent = "-- L/dia";
+    if (els.consTxt) els.consTxt.textContent = "Estimando pelo histórico...";
+    return;
   }
 
-  async function handleExportCsv() {
-    const days = parseInt(el.exportRange?.value || "7", 10);
-    const formato = el.exportFormat ? el.exportFormat.value : "simple";
-    const separador = el.exportSep ? el.exportSep.value : ";";
+  // Agrupa por dia (UTC) e calcula queda média
+  const byDay = new Map(); // dayKey -> [pct...]
+  for (const p of points) {
+    const d = new Date(p.ts);
+    const key = `${d.getUTCFullYear()}-${d.getUTCMonth()+1}-${d.getUTCDate()}`;
+    if (!byDay.has(key)) byDay.set(key, []);
+    byDay.get(key).push(p.nivel);
+  }
 
-    const oldTxt = el.exportBtn.textContent;
-    el.exportBtn.disabled = true;
-    el.exportBtn.textContent = "Gerando...";
+  let totalDrop = 0;
+  let countDays = 0;
 
-    try {
-      const csv = await exportHistoryCsv(days, { formato, separador });
-      if (!csv) {
-        alert("Sem dados no período selecionado.");
-      } else {
-        const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        const now = new Date();
-        const y = now.getFullYear();
-        const m = String(now.getMonth() + 1).padStart(2, "0");
-        const d = String(now.getDate()).padStart(2, "0");
-        const suffix = (formato === "full") ? "_full" : "_simple";
-        a.href = url;
-        a.download = `historico_${days}d${suffix}_${y}-${m}-${d}.csv`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-      }
-    } catch (e) {
-      console.error("Erro ao exportar CSV:", e);
-      alert("Erro ao exportar CSV.");
-    } finally {
-      el.exportBtn.disabled = false;
-      el.exportBtn.textContent = oldTxt;
+  for (const [, arr] of byDay) {
+    if (arr.length < 2) continue;
+    const drop = Math.max(0, arr[0] - arr[arr.length - 1]); // queda no dia
+    totalDrop += drop;
+    countDays++;
+  }
+
+  const avgDropPct = countDays ? totalDrop / countDays : 0;
+
+  // Sem volume real mapeado, mostramos "-- L/dia"
+  if (els.consValue) els.consValue.textContent = "-- L/dia";
+  if (els.consTxt) els.consTxt.textContent = countDays
+    ? `Baseado em ${countDays} dia(s) de histórico.`
+    : "Estimando pelo histórico...";
+}
+
+/* =========================
+ * 7) EXPORT CSV
+ * ========================= */
+function exportCSV(points, rangeDays, fmt, sep) {
+  const now = Date.now();
+  const start = now - rangeDays * 24 * 3600 * 1000;
+
+  const rows = [];
+  if (fmt === "simple") {
+    rows.push(["data_hora", "nivel_caixa_percent", "nivel_reservatorio_percent"]);
+  } else {
+    rows.push(["data_hora", "timestamp_ms", "nivel_caixa_percent", "nivel_reservatorio_percent"]);
+  }
+
+  for (const p of points) {
+    if (p.ts < start) continue;
+    const dt = new Date(p.ts);
+    const dataHora = dt.toLocaleDateString() + " " + dt.toLocaleTimeString();
+    if (fmt === "simple") {
+      rows.push([dataHora, Math.round(p.nivel), Math.round(p.nivelReservatorio)]);
+    } else {
+      rows.push([dataHora, p.ts, Math.round(p.nivel), Math.round(p.nivelReservatorio)]);
     }
   }
 
-  async function exportHistoryCsv(days, { formato = "simple", separador = ";" } = {}) {
-    const ref = db.ref("historico");
-    const now = Date.now();
-    const cutoff = now - days * 24 * 60 * 60 * 1000;
+  const delimiter = sep === "," ? "," : ";";
+  const csv = rows.map(r =>
+    r.map(v => (String(v).includes(delimiter) ? `"${String(v).replace(/"/g, '""')}"` : v))
+     .join(delimiter)
+  ).join("\n");
 
-    const snap = await ref.orderByChild("timestamp").startAt(cutoff).endAt(now).once("value");
-    if (!snap.exists()) return "";
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `historico_${rangeDays}d_${fmt}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
 
-    const rows = [];
-    snap.forEach((child) => {
-      const v = child.val() || {};
-      const ts = Number(v.timestamp) || 0;
-      const nivel = toNum(v.nivel ?? v.level);
-      const nivelR = toNum(v.nivelReservatorio ?? v.levelReservatorio);
-      if (!ts || nivel == null || nivelR == null) return;
-      rows.push({ ts, nivel, nivelR });
+/* =========================
+ * 8) HANDLERS DE CONTROLE
+ * ========================= */
+function canWrite() {
+  return userRole === "admin" || userRole === "cliente";
+}
+
+async function setModoAutomatico(ativo) {
+  if (!canWrite()) return alert("Sem permissão para alterar o modo.");
+  try {
+    await db().ref("bomba/controle/modo").set(ativo ? "automatico" : "manual");
+  } catch (e) {
+    alert("Erro ao mudar modo: " + (e?.message || e));
+  }
+}
+
+async function toggleMotor() {
+  if (!canWrite()) return alert("Sem permissão para controlar a bomba.");
+  try {
+    // Lê status atual (renderizado) para decidir o comando
+    const status = (els.motorStatus?.textContent || "").toUpperCase();
+    const cmd = (status === "LIGADA") ? "DESLIGAR" : "LIGAR";
+    // Para garantir execução em modo manual:
+    await db().ref("bomba/controle/modo").set("manual");
+    await db().ref("bomba/controle/comandoManual").set(cmd);
+  } catch (e) {
+    alert("Erro ao enviar comando: " + (e?.message || e));
+  }
+}
+
+async function toggleFerias() {
+  if (!canWrite()) return alert("Sem permissão para alterar o modo.");
+  try {
+    const snap = await db().ref("bomba/controle/modoOperacao").get();
+    const cur = snap.exists() ? String(snap.val()) : "normal";
+    await db().ref("bomba/controle/modoOperacao").set(cur === "ferias" ? "normal" : "ferias");
+  } catch (e) {
+    alert("Erro ao alternar Modo Férias: " + (e?.message || e));
+  }
+}
+
+/* =========================
+ * 9) BOOTSTRAP
+ * ========================= */
+document.addEventListener("DOMContentLoaded", async () => {
+  console.log("[dashboard] iniciado.");
+  setOnline(false);
+
+  await ensureSession();
+
+  // Listeners principais
+  listenSensorData();
+  listenControle();
+  listenHistorico();
+
+  // Controles UI
+  if (els.autoSwitch) {
+    els.autoSwitch.addEventListener("change", (ev) => setModoAutomatico(ev.target.checked));
+  }
+  if (els.motorBtn) {
+    els.motorBtn.addEventListener("click", toggleMotor);
+  }
+  if (els.feriasBtn) {
+    els.feriasBtn.addEventListener("click", toggleFerias);
+  }
+
+  // Export CSV
+  if (els.exportBtn) {
+    els.exportBtn.addEventListener("click", () => {
+      const range = parseInt(els.exportRange?.value || "7", 10);
+      const fmt = els.exportFormat?.value || "simple";
+      const sep = els.exportSep?.value || ";";
+      exportCSV(historyBuffer, range, fmt, sep);
     });
-    if (!rows.length) return "";
-
-    rows.sort((a, b) => a.ts - b.ts);
-    const headersSimple = ["data", "hora", "caixa_percent", "reservatorio_percent"];
-    const headersFull = ["data", "hora", "timestamp_ms", "caixa_percent", "reservatorio_percent"];
-    const headers = (formato === "full") ? headersFull : headersSimple;
-
-    const lines = [headers];
-    for (const r of rows) {
-      const dt = new Date(r.ts);
-      const data = dt.toLocaleDateString("pt-BR");
-      const hora = dt.toLocaleTimeString("pt-BR");
-      const caixa = String(Math.round(r.nivel)).replace(".", ",");
-      const reserv = String(Math.round(r.nivelR)).replace(".", ",");
-      if (formato === "full") lines.push([data, hora, String(r.ts), caixa, reserv]);
-      else lines.push([data, hora, caixa, reserv]);
-    }
-
-    const bom = "\uFEFF";
-    return bom + lines.map((l) => l.map((s) => csvEscape(s, separador)).join(separador)).join("\r\n");
   }
 
-  function setupConnectionMonitor() {
-    const infoConnectedRef = firebase.database().ref(".info/connected");
-    infoConnectedRef.on("value", (snap) => {
-      const ok = !!snap.val();
-      console.log(ok ? "[RTDB] conectado" : "[RTDB] desconectado");
-      if (el.connLed) el.connLed.style.background = ok ? "#22c55e" : "#f43f5e";
-      if (el.connTxt) el.connTxt.textContent = ok ? "Online" : "Offline";
+  // Limpeza (se navegar/fechar)
+  window.addEventListener("beforeunload", () => {
+    unsubscribes.forEach((fn) => {
+      try { fn(); } catch {}
     });
-
-    document.addEventListener("visibilitychange", () => {
-      if (!document.hidden) {
-        try { firebase.database().goOnline(); } catch (e) {}
-      }
-    });
-  }
-
-  function setupPollingFallback() {
-    setInterval(() => {
-      if (document.hidden) return;
-      sensorRef.limitToFirst(1).once("value").catch(()=>{});
-      controlRef.limitToFirst(1).once("value").catch(()=>{});
-    }, 30000);
-  }
-
-  // Utils
-  function setControlsEnabled(enabled) {
-    ["auto-mode-switch", "motor-button", "btn-ferias"].forEach(id => {
-      const e = document.getElementById(id);
-      if (e) e.disabled = !enabled;
-    });
-  }
-  function setFillClass(elm, level) {
-    elm.classList.remove("level-low", "level-medium", "level-high");
-    if (level <= 25) elm.classList.add("level-low");
-    else if (level <= 60) elm.classList.add("level-medium");
-    else elm.classList.add("level-high");
-  }
-  function toNum(v){ const n = Number(v); return Number.isFinite(n) ? n : null; }
-  function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
-  function csvEscape(val, sep) {
-    const s = (val ?? "").toString();
-    const precisa = s.includes('"') || s.includes("\n") || s.includes("\r") || s.includes(sep);
-    return precisa ? `"${s.replace(/"/g, '""')}"` : s;
-  }
-})();
+  });
+});
