@@ -9,11 +9,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>AquaMonitor – Dashboard</title>
 
-  <!-- Fonte e CSS -->
+  <!-- Fonts & CSS -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="./dashboard.css?v=3.0.5" />
+  <link rel="stylesheet" href="./dashboard.css?v=3.0.6" />
 </head>
 <body>
   <!-- ===== NAV / HEADER ===== -->
@@ -48,11 +48,11 @@
           <div class="kpi-sub"><span id="main-level-liters">-- L</span></div>
         </div>
 
-        <div class="bar">
+        <div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-label="Percentual da caixa">
           <div id="level-fill-main" class="bar-fill" style="width:0%"></div>
         </div>
 
-        <div class="tank">
+        <div class="tank" aria-label="Visual da caixa principal">
           <div class="tank-body">
             <div id="client-water-main" class="tank-water" style="height:0%"></div>
           </div>
@@ -69,11 +69,11 @@
           <div class="kpi-sub"><span id="res-level-liters">-- L</span></div>
         </div>
 
-        <div class="bar">
+        <div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-label="Percentual do reservatório">
           <div id="level-fill-res" class="bar-fill" style="width:0%"></div>
         </div>
 
-        <div class="tank">
+        <div class="tank" aria-label="Visual do reservatório">
           <div class="tank-body">
             <div id="client-water-res" class="tank-water" style="height:0%"></div>
           </div>
@@ -185,12 +185,12 @@
 
   <noscript>Ative o JavaScript para usar o painel.</noscript>
 
-  <!-- ===== SCRIPTS ===== -->
-  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <script src="./dashboard.js?v=3.0.5"></script>
+  <!-- ===== SCRIPTS (defer mantém a ordem e não bloqueia render) ===== -->
+  <script defer src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+  <script defer src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+  <script defer src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script defer src="./dashboard.js?v=3.0.6"></script>
 
   <!-- Logout REAL: encerra sessão (inclui anônimo) e só depois vai ao login -->
   <script>
