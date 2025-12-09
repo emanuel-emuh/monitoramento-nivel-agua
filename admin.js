@@ -1,12 +1,11 @@
-/* admin.js – v7.0 (Correção Connection Status) */
+/* admin.js – v8.0 (Final - Correção Conexão e Cores) */
 
 document.addEventListener('DOMContentLoaded', () => {
-  console.log("Admin script V7 starting...");
+  console.log("Admin script V8 starting...");
 
   let auth, database;
   let sensorRef, paramsRef, controlRef, historyRef, eventsRef;
   
-  // Elementos
   const els = {
     waterMain: document.getElementById('admin-water-main'),
     pctMain: document.getElementById('admin-level-percent-main'),
@@ -16,7 +15,7 @@ document.addEventListener('DOMContentLoaded', () => {
     cardRes: document.getElementById('admin-res-level-card'),
     pumpStatus: document.getElementById('admin-pump-status-card'),
     collStatus: document.getElementById('admin-collection-status-card'),
-    connStatus: document.getElementById('admin-connection-status'), // Elemento de conexão
+    connStatus: document.getElementById('admin-connection-status'), 
     lastSeen: document.getElementById('admin-last-seen'),
     inLow: document.getElementById('low-limit-input'),
     inHigh: document.getElementById('high-limit-input'),
@@ -29,7 +28,6 @@ document.addEventListener('DOMContentLoaded', () => {
     logsList: document.getElementById('log-entries')
   };
 
-  // Firebase Init
   const firebaseConfig = {
       apiKey: "AIzaSyBOBbMzkTO2MvIxExVO8vlCOUgpeZp0rSY",
       authDomain: "aqua-monitor-login.firebaseapp.com",
@@ -40,7 +38,7 @@ document.addEventListener('DOMContentLoaded', () => {
   auth = firebase.auth();
   database = firebase.database();
 
-  // REFERÊNCIAS ANTIGAS (Compatíveis com seu Hardware)
+  // REFERÊNCIAS COMPATÍVEIS
   sensorRef = database.ref('sensorData');
   paramsRef = database.ref('configuracoes/sistema');
   controlRef = database.ref('bomba/controle');
@@ -48,22 +46,23 @@ document.addEventListener('DOMContentLoaded', () => {
   eventsRef = database.ref('logs');
 
   function attachFirebaseListeners() {
-    // SENSOR
+    // SENSOR (Leitura Principal)
     sensorRef.on('value', snap => {
       const d = snap.val() || {};
       
-      // 1. ATUALIZA CONEXÃO (Truque: se recebeu dados, está online)
+      // 1. STATUS DE CONEXÃO (Truque: se recebeu, está online)
       if (els.connStatus) {
           els.connStatus.textContent = "ONLINE";
-          els.connStatus.style.color = "var(--success)"; // Verde
+          els.connStatus.style.color = "#2e7d32"; // Verde
+          els.connStatus.style.fontWeight = "bold";
       }
       if (els.lastSeen) {
-          const agora = new Date().toLocaleTimeString();
-          els.lastSeen.textContent = `Atualizado às: ${agora}`;
+          const agora = new Date().toLocaleTimeString('pt-BR');
+          els.lastSeen.textContent = `Visto: ${agora}`;
       }
 
-      // Nível
-      const rawLevel = (d.level !== undefined) ? d.level : d.nivel;
+      // Nível (lê 'nivel' ou 'level')
+      const rawLevel = (d.nivel !== undefined) ? d.nivel : d.level;
       const levelMain = (rawLevel !== undefined) ? Number(rawLevel) : '--';
       const levelRes = (levelMain !== '--') ? (100 - levelMain) : '--';
       
@@ -78,7 +77,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const active = d.coletaAtiva !== false;
       if(els.collStatus) {
          els.collStatus.textContent = active ? "ATIVA" : "PAUSADA";
-         els.collStatus.style.color = active ? "var(--success)" : "var(--danger)";
+         els.collStatus.style.color = active ? "#2e7d32" : "#d32f2f";
       }
       if(els.btnToggleColl) {
          els.btnToggleColl.textContent = active ? "Pausar Coleta" : "Retomar Coleta";
@@ -90,13 +89,12 @@ document.addEventListener('DOMContentLoaded', () => {
     controlRef.on('value', snap => {
       const d = snap.val() || {};
       const st = String(d.statusBomba || "--").toUpperCase();
-      
-      // CORRIGIDO: Aceita "ON", "LIGADA", etc.
       const isOn = st.includes("LIGA") || st === "ON";
       
       if(els.pumpStatus) {
          els.pumpStatus.textContent = isOn ? "LIGADA" : "DESLIGADA";
-         els.pumpStatus.style.color = isOn ? "var(--success)" : "var(--danger)";
+         els.pumpStatus.style.color = isOn ? "#2e7d32" : "#d32f2f";
+         els.pumpStatus.style.fontWeight = "bold";
       }
     });
 
@@ -113,17 +111,24 @@ document.addEventListener('DOMContentLoaded', () => {
       els.logsList.innerHTML = "";
       const data = snap.val();
       if(!data) { els.logsList.innerHTML = "<li>Nenhum registro.</li>"; return; }
+      
       const arr = Object.values(data).reverse();
       arr.forEach(l => {
         const msg = l.message || JSON.stringify(l);
         const li = document.createElement('li');
-        li.textContent = `> ${msg}`;
+        
+        let prefixo = "> ";
+        if (l.timestamp) {
+            prefixo = `[${new Date(l.timestamp).toLocaleTimeString('pt-BR')}] `;
+        }
+        
+        li.textContent = prefixo + msg;
         els.logsList.appendChild(li);
       });
     });
   }
 
-  // EVENTOS DE BOTÕES
+  // BOTÕES
   els.btnSave?.addEventListener('click', () => {
     const min = parseInt(els.inLow.value);
     const max = parseInt(els.inHigh.value);
