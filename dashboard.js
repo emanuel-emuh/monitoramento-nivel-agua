@@ -1,4 +1,4 @@
-/* dashboard.js – v14.0 (Gera Excel com Situação Colorida e Sem Logs) */
+/* dashboard.js – v14.1 (Gera Excel com Situação para Caixa e Reservatório) */
 
 const firebaseConfig = {
   apiKey: "AIzaSyBOBbMzkTO2MvIxExVO8vlCOUgpeZp0rSY",
@@ -56,7 +56,7 @@ function litersFromPercent(pct) {
   return `${litros.toFixed(2)} L`;
 }
 
-// --- WATCHDOG (Monitor de Conexão) ---
+// --- WATCHDOG ---
 function resetWatchdog() {
   if (els.connLed) { els.connLed.style.backgroundColor = "#22c55e"; els.connLed.classList.add("on"); }
   if (els.connTxt) els.connTxt.textContent = "Online";
@@ -81,7 +81,7 @@ async function ensureSession() {
   });
 }
 
-// 1. SENSOR (Leitura em Tempo Real)
+// 1. SENSOR
 function listenSensorData() {
   db().ref("sensorData").on("value", (snap) => {
     resetWatchdog();
@@ -105,7 +105,7 @@ function listenSensorData() {
   });
 }
 
-// 2. CONTROLE (Escuta status da bomba e modos)
+// 2. CONTROLE
 function listenSystemControl() {
   db().ref("bomba/controle").on("value", (snap) => {
     const data = snap.val() || {};
@@ -152,7 +152,7 @@ function updatePumpStatus(statusRaw) {
     }
 }
 
-// 3. HISTÓRICO (Carrega dados para o Gráfico e Excel)
+// 3. HISTÓRICO
 function listenHistorico() {
   db().ref("historico").limitToLast(100).on("value", snap => {
     const data = snap.val();
@@ -184,6 +184,13 @@ function calcConsumption(points) {
   if (els.consValue) els.consValue.textContent = `~${litros.toFixed(2)} L`;
 }
 
+// --- FUNÇÃO AUXILIAR PARA CALCULAR SITUAÇÃO ---
+function obterSituacao(pct) {
+    if (pct < 30) return "🔴 BAIXO";
+    if (pct >= 30 && pct < 85) return "🟢 MÉDIO";
+    return "🔵 ALTO";
+}
+
 // --- FUNÇÃO EXPORTAR EXCEL (.XLSX) ATUALIZADA ---
 async function exportCSV() {
   if (!historyBuffer || historyBuffer.length === 0) return alert("Sem dados históricos para exportar.");
@@ -192,12 +199,13 @@ async function exportCSV() {
   els.exportBtn.disabled = true;
 
   try {
-    // 1. Prepara os dados (Apenas Leituras do Sensor, sem Logs de texto)
+    // 1. Prepara dados e ordena
     let timeline = [...historyBuffer].sort((a, b) => a.ts - b.ts);
 
-    // 2. Define o Cabeçalho (Com coluna Situação no lugar de Logs)
+    // 2. Define o Cabeçalho (Agora com Situação para AMBOS)
+    // Ordem: Data | Litros Caixa | % Caixa | Situação Caixa | Litros Res | % Res | Situação Res
     const ws_data = [
-      ["Data e Hora", "Nível Caixa (L)", "Nível Res. (L)", "% Caixa", "% Reservatório", "Situação"]
+      ["Data e Hora", "Litros Caixa", "% Caixa", "Situação Caixa", "Litros Res.", "% Res.", "Situação Res."]
     ];
 
     const fator = CAPACIDADE_TOTAL / 100;
@@ -206,47 +214,39 @@ async function exportCSV() {
       const d = new Date(row.ts);
       const dataHora = `${d.toLocaleDateString('pt-BR')} ${d.toLocaleTimeString('pt-BR')}`;
 
+      // Valores da Caixa Principal
       const pctMain = row.nivel;
-      const pctRes = 100 - row.nivel;
-      
       const litMain = (pctMain * fator).toFixed(2);
-      const litRes  = (pctRes * fator).toFixed(2);
-      
-      // --- LÓGICA DE SITUAÇÃO (Feita aqui no JS, sem mexer no ESP) ---
-      let situacao = "";
-      if (pctMain < 30) {
-          // Menor que 30%: BAIXO (Vermelho)
-          situacao = "🔴 BAIXO"; 
-      } else if (pctMain >= 30 && pctMain < 85) {
-          // Entre 30% e 85%: MÉDIO (Verde/Amarelo)
-          situacao = "🟢 MÉDIO";
-      } else {
-          // Maior que 85%: ALTO (Azul)
-          situacao = "🔵 ALTO";
-      }
+      const sitMain = obterSituacao(pctMain); // Calcula Situação Caixa
 
+      // Valores do Reservatório (Complementar)
+      const pctRes = 100 - row.nivel;
+      const litRes  = (pctRes * fator).toFixed(2);
+      const sitRes = obterSituacao(pctRes);   // Calcula Situação Reservatório
+      
       // Adiciona linha na tabela
-      ws_data.push([dataHora, litMain, litRes, pctMain + "%", pctRes + "%", situacao]);
+      ws_data.push([dataHora, litMain, pctMain + "%", sitMain, litRes, pctRes + "%", sitRes]);
     });
 
     // 3. Cria a Planilha
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.aoa_to_sheet(ws_data);
 
-    // Largura das colunas (Ajuste visual)
+    // Ajuste de largura das colunas
     ws['!cols'] = [
       { wch: 20 }, // Data
-      { wch: 15 }, // Nível L
-      { wch: 15 }, // Nível Res L
-      { wch: 10 }, // %
-      { wch: 15 }, // % Res
-      { wch: 15 }  // Situação
+      { wch: 12 }, // Litros Caixa
+      { wch: 10 }, // % Caixa
+      { wch: 15 }, // Situação Caixa
+      { wch: 12 }, // Litros Res
+      { wch: 10 }, // % Res
+      { wch: 15 }  // Situação Res
     ];
 
-    XLSX.utils.book_append_sheet(wb, ws, "Relatorio_Nivel");
+    XLSX.utils.book_append_sheet(wb, ws, "Relatorio_Completo");
 
     // 4. Salva o arquivo
-    XLSX.writeFile(wb, "Relatorio_AquaMonitor_Situacao.xlsx");
+    XLSX.writeFile(wb, "Relatorio_Agua_Situacao_Completa.xlsx");
 
   } catch (err) {
     console.error(err);
@@ -257,7 +257,7 @@ async function exportCSV() {
   }
 }
 
-// --- INICIALIZAÇÃO E BOTÕES ---
+// --- INICIALIZAÇÃO ---
 async function toggleMotor() {
   try {
     const novo = currentPumpState ? "DESLIGAR" : "LIGAR";
@@ -306,7 +306,7 @@ function renderChart(points) {
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
-  console.log("Dashboard V14.0 - Custom Excel Mode");
+  console.log("Dashboard V14.1 - Dual Situation Mode");
   await ensureSession();
   listenSensorData();
   listenSystemControl();
