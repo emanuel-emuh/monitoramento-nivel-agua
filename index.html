@@ -9,175 +9,146 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>AquaMonitor – Dashboard</title>
 
-  <!-- Fonts & CSS -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="./dashboard.css?v=3.0.6" />
+  
+  <link rel="stylesheet" href="main.css" />
 </head>
-<body>
-  <!-- ===== NAV / HEADER ===== -->
-  <header class="am-header" role="banner" aria-label="Barra superior">
-    <div class="am-brand">
-      <div class="am-logo" aria-hidden="true">AM</div>
-      <span class="am-title">AquaMonitor</span>
+<body class="user"> <header class="main-header" role="banner">
+    <div class="brand">
+      <div class="brand-icon">AM</div>
+      <span>AquaMonitor</span>
     </div>
 
-    <small id="conn-dot" class="conn" aria-live="polite">
-      <span id="conn-led" class="conn-led" aria-hidden="true"></span>
-      <span id="conn-txt" class="conn-txt">Conectando...</span>
+    <small id="conn-dot" class="conn" aria-live="polite" style="display:flex; align-items:center; gap:6px;">
+      <span id="conn-led" class="pill" style="width:10px; height:10px; padding:0; background:#bbb;"></span>
+      <span id="conn-txt">Conectando...</span>
     </small>
 
-    <nav class="am-actions" aria-label="Ações">
-      <a id="btn-sair" class="btn btn-ghost" href="login.html">Sair</a>
+    <nav class="header-actions">
+      <a id="btn-sair" href="login.html">Sair</a>
     </nav>
   </header>
 
-  <!-- ===== CONTEÚDO ===== -->
-  <main class="am-container" role="main">
-    <h1 class="am-h1">Consumo, status da bomba e controle em tempo real.</h1>
+  <main class="app-container" role="main">
+    <h1 style="font-size:1.5rem; margin-bottom:24px;">Visão Geral</h1>
 
-    <!-- === Linha: NÍVEIS === -->
     <section class="grid grid-2">
-      <!-- Caixa Principal -->
-      <article class="card" aria-labelledby="h-caixa">
-        <h2 id="h-caixa" class="card-title">Caixa Principal</h2>
+      <article class="card">
+        <h2 class="card-title">Caixa Principal</h2>
 
-        <div class="kpi">
-          <div class="kpi-value" id="main-level-value">--%</div>
-          <div class="kpi-sub"><span id="main-level-liters">-- L</span></div>
+        <div class="kpi-value" id="main-level-value">--%</div>
+        <div class="kpi-sub"><span id="main-level-liters">-- L</span></div>
+
+        <div class="progress-bar" role="progressbar" aria-label="Percentual da caixa">
+          <div id="level-fill-main" class="progress-fill" style="width:0%"></div>
         </div>
 
-        <div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-label="Percentual da caixa">
-          <div id="level-fill-main" class="bar-fill" style="width:0%"></div>
+        <div class="tank-visual" aria-label="Visual da caixa principal">
+          <div id="client-water-main" class="water-level" style="height:0%"></div>
         </div>
-
-        <div class="tank" aria-label="Visual da caixa principal">
-          <div class="tank-body">
-            <div id="client-water-main" class="tank-water" style="height:0%"></div>
-          </div>
-          <div class="tank-caption">Principal (<span id="client-level-percent-main">0</span>%)</div>
-        </div>
+        <p style="text-align:center; font-size:0.85rem; color:var(--text-muted); margin-top:5px;">
+          Principal (<span id="client-level-percent-main">0</span>%)
+        </p>
       </article>
 
-      <!-- Reservatório -->
-      <article class="card" aria-labelledby="h-res">
-        <h2 id="h-res" class="card-title">Reservatório</h2>
+      <article class="card">
+        <h2 class="card-title">Reservatório</h2>
 
-        <div class="kpi">
-          <div class="kpi-value" id="res-level-value">--%</div>
-          <div class="kpi-sub"><span id="res-level-liters">-- L</span></div>
+        <div class="kpi-value" id="res-level-value">--%</div>
+        <div class="kpi-sub"><span id="res-level-liters">-- L</span></div>
+
+        <div class="progress-bar" role="progressbar" aria-label="Percentual do reservatório">
+          <div id="level-fill-res" class="progress-fill" style="width:0%"></div>
         </div>
 
-        <div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-label="Percentual do reservatório">
-          <div id="level-fill-res" class="bar-fill" style="width:0%"></div>
+        <div class="tank-visual" aria-label="Visual do reservatório">
+          <div id="client-water-res" class="water-level" style="height:0%"></div>
         </div>
-
-        <div class="tank" aria-label="Visual do reservatório">
-          <div class="tank-body">
-            <div id="client-water-res" class="tank-water" style="height:0%"></div>
-          </div>
-          <div class="tank-caption">Reservatório (<span id="client-level-percent-res">0</span>%)</div>
-        </div>
+        <p style="text-align:center; font-size:0.85rem; color:var(--text-muted); margin-top:5px;">
+          Reservatório (<span id="client-level-percent-res">0</span>%)
+        </p>
       </article>
     </section>
 
-    <!-- === Linha: STATUS / MODO / CONTROLE === -->
-    <section class="grid grid-3">
-      <article class="card subtle" aria-labelledby="h-status-bomba">
-        <h2 id="h-status-bomba" class="card-title">Status da Bomba</h2>
-        <div class="status-pill"><span id="pump-status-value" class="pill">--</span></div>
-        <p id="pump-status-text" class="muted">A bomba está --.</p>
+    <section class="grid grid-3" style="margin-top:24px;">
+      
+      <article class="card highlight">
+        <h3>Status da Bomba</h3>
+        <div><span id="pump-status-value" class="pill">--</span></div>
+        <p id="pump-status-text" style="color:var(--text-muted); font-size:0.9rem; margin-top:8px;">
+          A aguardar dados...
+        </p>
       </article>
 
-      <article class="card subtle" aria-labelledby="h-modo-op">
-        <h2 id="h-modo-op" class="card-title">Modo de Operação</h2>
-        <div class="status-pill"><span id="mode-value" class="pill">--</span></div>
-        <p id="mode-text" class="muted">Operando em modo --.</p>
+      <article class="card highlight">
+        <h3>Modo de Operação</h3>
+        <div><span id="mode-value" class="pill">--</span></div>
+        <p id="mode-text" style="color:var(--text-muted); font-size:0.9rem; margin-top:8px;">
+          A aguardar dados...
+        </p>
       </article>
 
-      <article class="card outlined" aria-labelledby="h-controle">
-        <h2 id="h-controle" class="card-title">Controle da Bomba</h2>
+      <article class="card">
+        <h3>Controle da Bomba</h3>
 
-        <label class="switch">
-          <input type="checkbox" id="auto-mode-switch" />
-          <span>Modo Automático</span>
-        </label>
-
-        <div class="row gap">
-          <button id="motor-button" type="button" class="btn btn-danger">Desligar Bomba</button>
+        <div style="display:flex; align-items:center; gap:10px; margin-bottom:16px;">
+          <input type="checkbox" id="auto-mode-switch" style="width:18px; height:18px; accent-color:var(--primary);" />
+          <label for="auto-mode-switch" style="font-weight:600;">Modo Automático</label>
         </div>
 
-        <p class="muted">Status atual: <b id="motor-status">--</b></p>
+        <button id="motor-button" type="button" class="btn btn-danger">Desligar Bomba</button>
+
+        <p style="color:var(--text-muted); font-size:0.85rem; margin-top:10px;">
+          Status atual: <b id="motor-status">--</b>
+        </p>
       </article>
     </section>
 
-    <!-- === Linha: MODO FÉRIAS === -->
-    <section class="grid grid-1">
-      <article class="card hint" aria-labelledby="h-ferias">
-        <div class="card-head">
-          <h2 id="h-ferias" class="card-title">Modo Econômico (Férias)</h2>
-          <span class="dot dot-live" aria-hidden="true"></span>
+    <section style="margin-top:24px;">
+      <article class="card" style="border-left: 4px solid var(--warning);">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <h3>Modo Econômico (Férias)</h3>
+          <span class="pill on" style="width:10px; height:10px; padding:0;"></span>
         </div>
 
-        <p class="muted">
+        <p style="color:var(--text-muted); font-size:0.9rem;">
           Reduz o consumo: aplica limites <b>15%</b> (liga) e <b>50%</b> (desliga) enquanto ativo.
         </p>
 
-        <div class="row gap">
-          <button id="btn-ferias" type="button" class="btn btn-primary">Ativar Modo Férias</button>
-        </div>
-
-        <p id="ferias-info" class="small muted">
-          <b>Modo Férias:</b> Usa limites de 15% a 50% para economizar.
-        </p>
+        <button id="btn-ferias" type="button" class="btn btn-primary" style="max-width:200px; margin-top:10px;">
+          Ativar Modo Férias
+        </button>
       </article>
     </section>
 
-    <!-- === Linha: CONSUMO / GRÁFICO === -->
-    <section class="grid grid-2">
-      <article class="card" aria-labelledby="h-consumo">
-        <h2 id="h-consumo" class="card-title">Consumo Estimado</h2>
-        <div class="kpi"><div id="consumption-value" class="kpi-value">-- L/dia</div></div>
-        <p id="consumption-text" class="muted">Estimando pelo histórico...</p>
+    <section class="grid grid-2" style="margin-top:24px;">
+      <article class="card">
+        <h3>Consumo Estimado</h3>
+        <div id="consumption-value" class="kpi-value">-- L/dia</div>
+        <p id="consumption-text" style="color:var(--text-muted);">Estimando...</p>
 
-        <div class="exporter">
-          <div class="export-title">Exportar histórico:</div>
-          <div class="export-row">
-            <label>
-              Período
-              <select id="export-range" class="input">
-                <option value="7">Últimos 7 dias</option>
-                <option value="30">Últimos 30 dias</option>
-              </select>
-            </label>
+        <hr style="border:0; border-top:1px solid var(--border); margin:16px 0;">
 
-            <label>
-              Formato
-              <select id="export-format" class="input">
-                <option value="simple">Simples (Data; Hora; Caixa%; Reservatório%)</option>
-                <option value="full">Completo (inclui timestamp_ms)</option>
-              </select>
-            </label>
-
-            <label>
-              Separador
-              <select id="export-sep" class="input">
-                <option value=";">Ponto e vírgula (;)</option>
-                <option value=",">Vírgula (,)</option>
-              </select>
-            </label>
-
-            <button id="btn-export-csv" type="button" class="btn btn-secondary">Exportar CSV</button>
-          </div>
-          <p class="small muted">CSV pronto para Excel/Sheets.</p>
+        <h4 style="margin:0 0 8px;">Exportar Histórico</h4>
+        <div class="grid grid-2" style="gap:10px;">
+           <select id="export-range" class="input">
+             <option value="7">Últimos 7 dias</option>
+             <option value="30">Últimos 30 dias</option>
+           </select>
+           <button id="btn-export-csv" type="button" class="btn btn-secondary">Baixar CSV</button>
+        </div>
+        <div style="display:none;"> 
+           <select id="export-format"><option value="simple">Simples</option></select>
+           <select id="export-sep"><option value=";">;</option></select>
         </div>
       </article>
 
-      <article class="card" aria-labelledby="h-grafico">
-        <h2 id="h-grafico" class="card-title">Histórico de Nível (Caixa Principal)</h2>
-        <div class="chart-wrap">
-          <canvas id="levelChart" aria-label="Gráfico do nível da caixa principal" role="img"></canvas>
+      <article class="card">
+        <h3>Histórico de Nível</h3>
+        <div style="position:relative; height:200px;">
+          <canvas id="levelChart"></canvas>
         </div>
       </article>
     </section>
@@ -185,14 +156,12 @@
 
   <noscript>Ative o JavaScript para usar o painel.</noscript>
 
-  <!-- ===== SCRIPTS (defer mantém a ordem e não bloqueia render) ===== -->
   <script defer src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
   <script defer src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
   <script defer src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script defer src="./dashboard.js?v=3.0.6"></script>
 
-  <!-- Logout REAL: encerra sessão (inclui anônimo) e só depois vai ao login -->
   <script>
     document.addEventListener('DOMContentLoaded', function(){
       const sair = document.getElementById('btn-sair');

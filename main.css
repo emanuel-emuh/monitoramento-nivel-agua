@@ -1,0 +1,180 @@
+/* =========================================================
+   AQUAMONITOR - ESTILO UNIFICADO (main.css)
+   ========================================================= */
+
+/* --- 1. VARIÁVEIS GLOBAIS --- */
+:root {
+    /* Cores Base (Padrão: User/Verde) */
+    --primary: #2e7d32;       /* Verde principal */
+    --primary-hover: #1b5e20;
+    --secondary: #0d47a1;     /* Azul secundário */
+    --bg-body: #f6f8fb;
+    --bg-card: #ffffff;
+    --text-main: #1f2937;
+    --text-muted: #64748b;
+    --border: #e5e7eb;
+    
+    /* Cores de Estado */
+    --danger: #dc3545;
+    --danger-hover: #b71c1c;
+    --warning: #ff9800;
+    --success: #2e7d32;
+  
+    /* Espaçamento e Layout */
+    --radius: 12px;
+    --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    --container-width: 1200px;
+    --header-height: 64px;
+  }
+  
+  /* --- TEMA ADMIN (Sobrescreve cores se o body tiver a classe .admin) --- */
+  body.admin {
+    --primary: #0d47a1;       /* Azul principal */
+    --primary-hover: #0b3b86;
+    --secondary: #455a64;     /* Cinza/Azulado para botões secundários */
+  }
+  
+  /* --- 2. RESET E BASE --- */
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  
+  body {
+    margin: 0;
+    background: var(--bg-body);
+    color: var(--text-main);
+    font-family: "Poppins", system-ui, -apple-system, sans-serif;
+    line-height: 1.5;
+  }
+  
+  h1, h2, h3 { margin-top: 0; font-weight: 700; color: #111827; }
+  a { text-decoration: none; color: inherit; }
+  ul { list-style: none; padding: 0; margin: 0; }
+  
+  /* --- 3. LAYOUT (GRID E CONTAINER) --- */
+  .app-container {
+    max-width: var(--container-width);
+    margin: 0 auto;
+    padding: 24px 16px;
+  }
+  
+  .grid {
+    display: grid;
+    gap: 20px;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  }
+  
+  /* Utilitários de grid específicos */
+  @media (min-width: 768px) {
+    .grid-2 { grid-template-columns: 1fr 1fr; }
+    .grid-3 { grid-template-columns: 1fr 1fr 1fr; }
+    .span-2 { grid-column: span 2; }
+  }
+  
+  /* --- 4. CABEÇALHO (NAVBAR) --- */
+  .main-header {
+    display: flex; align-items: center; justify-content: space-between;
+    height: var(--header-height);
+    padding: 0 24px;
+    background: var(--primary);
+    color: #fff;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    position: sticky; top: 0; z-index: 50;
+  }
+  
+  .brand { display: flex; align-items: center; gap: 12px; font-weight: 700; font-size: 1.25rem; }
+  .brand-icon { 
+    background: rgba(255,255,255,0.2); 
+    padding: 4px 8px; border-radius: 6px; 
+  }
+  
+  .header-actions a, .logout-btn {
+    color: #fff; font-size: 0.9rem; font-weight: 600;
+    padding: 8px 16px; border-radius: 6px;
+    background: rgba(255,255,255,0.15);
+    transition: 0.2s;
+  }
+  .header-actions a:hover { background: rgba(255,255,255,0.25); }
+  
+  /* --- 5. CARDS --- */
+  .card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    box-shadow: var(--shadow);
+    display: flex; flex-direction: column;
+  }
+  
+  .card h2, .card h3 { font-size: 1.1rem; margin-bottom: 12px; color: #374151; }
+  .card.highlight { border-left: 4px solid var(--primary); }
+  
+  /* KPIs (Números Grandes) */
+  .kpi-value { font-size: 2rem; font-weight: 700; color: var(--text-main); }
+  .kpi-sub { font-size: 0.875rem; color: var(--text-muted); }
+  
+  /* --- 6. COMPONENTES VISUAIS (Tanques e Barras) --- */
+  /* Barra de Progresso Horizontal */
+  .progress-bar {
+    background: #e2e8f0; height: 12px; border-radius: 10px; overflow: hidden; margin: 10px 0;
+  }
+  .progress-fill {
+    height: 100%; background: var(--primary); transition: width 0.5s ease;
+  }
+  
+  /* Tanque Vertical (Unificado) */
+  .tank-visual {
+    width: 80px; height: 140px; margin: 10px auto;
+    border: 3px solid #94a3b8; border-radius: 8px;
+    background: #f1f5f9; position: relative; overflow: hidden;
+  }
+  .water-level {
+    position: absolute; bottom: 0; left: 0; width: 100%;
+    background: linear-gradient(180deg, var(--primary) 0%, var(--primary-hover) 100%);
+    opacity: 0.9; transition: height 0.5s ease;
+  }
+  
+  /* --- 7. BOTÕES E FORMULÁRIOS --- */
+  .btn {
+    display: inline-block; cursor: pointer; border: none;
+    padding: 10px 20px; border-radius: 8px;
+    font-weight: 600; font-size: 0.95rem; text-align: center;
+    transition: transform 0.1s, opacity 0.2s;
+    color: white; width: 100%;
+  }
+  .btn:active { transform: translateY(1px); }
+  .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+  
+  .btn-primary { background: var(--primary); }
+  .btn-primary:hover { background: var(--primary-hover); }
+  
+  .btn-secondary { background: var(--secondary); }
+  .btn-danger { background: var(--danger); }
+  .btn-warning { background: var(--warning); color: #fff; }
+  
+  .form-group { margin-bottom: 12px; }
+  .input {
+    width: 100%; padding: 10px; border: 1px solid var(--border);
+    border-radius: 8px; outline: none; transition: 0.2s;
+  }
+  .input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(0,0,0,0.05); }
+  
+  /* --- 8. STATUS PILLS (Badges de Estado) --- */
+  .pill {
+    display: inline-block; padding: 4px 12px; border-radius: 99px;
+    font-size: 0.8rem; font-weight: 700; text-transform: uppercase;
+  }
+  /* Estados Genéricos */
+  .pill.on, .pill.online   { background: #dcfce7; color: #166534; }
+  .pill.off, .pill.offline { background: #fee2e2; color: #991b1b; }
+  .pill.auto               { background: #dbeafe; color: #1e40af; }
+  .pill.man                { background: #ffedd5; color: #9a3412; }
+  
+  /* --- 9. LOGS (ADMIN) --- */
+  .log-list {
+    max-height: 250px; overflow-y: auto;
+    border: 1px solid var(--border); border-radius: 8px; padding: 0;
+  }
+  .log-list li {
+    padding: 8px 12px; border-bottom: 1px solid #f1f5f9; font-size: 0.85rem;
+  }
+  .log-list li:last-child { border-bottom: none; }

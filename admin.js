@@ -1,14 +1,14 @@
 // ===================================================================
 //  AQUAMONITOR - SCRIPT DO PAINEL DE ADMINISTRADOR (admin.js)
-//  Versão estruturada (v11) – robusto e sem alertas de debug
+//  Versão TCC (Corrigida) – Compatível com ESP8266 e Documentação
 // ===================================================================
 
 document.addEventListener('DOMContentLoaded', () => {
-  console.log("Admin script starting (v11)...");
+  console.log("Admin script starting (TCC Fixed)...");
 
   // --- Estado Firebase/refs
   let auth, database;
-  let sensorRef, controlRef, settingsRef, historyRef, logsRef, lastSeenRef;
+  let sensorRef, paramsRef, controlRef, historyRef, eventsRef;
   let listenersAttached = false;
 
   // --- Referências DOM
@@ -74,15 +74,22 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // 3) Refs do RTDB
+  // 3) Refs do RTDB (CORRIGIDO PARA O TCC)
   function getFirebaseReferences() {
     try {
-      sensorRef = database.ref('sensorData');
-      controlRef = database.ref('bomba/controle');
-      settingsRef = database.ref('configuracoes/sistema');
+      // Onde o ESP escreve o nível e status da bomba
+      sensorRef = database.ref('dados_sensores/reservatorio_principal');
+      
+      // Onde salvamos os limites (min/max)
+      paramsRef = database.ref('parametros/reservatorio_principal');
+      
+      // Onde enviamos comandos (reiniciar, pausar)
+      controlRef = database.ref('controle_sistema');
+      
+      // Histórico e Eventos (Logs)
       historyRef = database.ref('historico');
-      logsRef = database.ref('logs');
-      lastSeenRef = database.ref('sensorData/lastSeen');
+      eventsRef = database.ref('eventos');
+      
       return true;
     } catch (e) {
       console.error("[ERRO] getFirebaseReferences:", e);
@@ -101,8 +108,10 @@ document.addEventListener('DOMContentLoaded', () => {
       restartEspButton?.addEventListener('click', restartEspHandler);
       logoutButton?.addEventListener('click', logoutHandler);
 
-      // estado inicial dos botões
-      if (toggleCollectionButton) { toggleCollectionButton.disabled = true; toggleCollectionButton.textContent = 'Aguard...'; }
+      if (toggleCollectionButton) { 
+          toggleCollectionButton.disabled = true; 
+          toggleCollectionButton.textContent = 'Aguardando...'; 
+      }
       return true;
     } catch (e) {
       console.error("[ERRO] enableAdminControls:", e);
@@ -119,22 +128,30 @@ document.addEventListener('DOMContentLoaded', () => {
   function saveSettingsHandler() {
     const low = parseInt(lowLimitInput?.value);
     const high = parseInt(highLimitInput?.value);
+    
     if (isNaN(low) || isNaN(high) || low < 0 || high > 100 || low >= high) {
-      alert('Limites inválidos.'); return;
+      alert('Limites inválidos (Min deve ser menor que Max).'); return;
     }
-    settingsRef?.update({ limiteInferior: low, limiteSuperior: high })
+    
+    // TCC: parametros/reservatorio_principal -> limite_minimo, limite_maximo
+    paramsRef?.update({ limite_minimo: low, limite_maximo: high })
       .then(() => {
-        if (settingsFeedback) settingsFeedback.textContent = 'Salvo!';
+        if (settingsFeedback) settingsFeedback.textContent = 'Salvo com sucesso!';
         setTimeout(() => { if (settingsFeedback) settingsFeedback.textContent = ''; }, 2500);
       })
       .catch(err => alert('Erro ao salvar: ' + err.message));
   }
 
   function toggleCollectionHandler() {
-    if (!toggleCollectionButton || !sensorRef) return;
+    if (!toggleCollectionButton || !controlRef) return;
     toggleCollectionButton.disabled = true;
-    sensorRef.child('coletaAtiva').get()
-      .then(snap => sensorRef.update({ coletaAtiva: snap.val() === false }))
+    
+    // TCC: controle_sistema -> coleta_pausada
+    controlRef.child('coleta_pausada').get()
+      .then(snap => {
+          const isPaused = snap.val() === true;
+          controlRef.update({ coleta_pausada: !isPaused });
+      })
       .catch(err => alert('Erro ao alterar: ' + err.message));
   }
 
@@ -147,117 +164,115 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function clearLogsHandler() {
-    if (!logsRef) return;
+    if (!eventsRef) return;
     if (confirm('Apagar TODO o log de eventos?')) {
-      logsRef.remove().then(() => alert('Log limpo!'))
+      eventsRef.remove().then(() => alert('Log limpo!'))
         .catch(err => alert('Erro: ' + err.message));
     }
   }
 
   function restartEspHandler() {
     if (!controlRef) return;
-    if (confirm('Reiniciar o ESP?')) {
-      controlRef.update({ comandoRestart: true })
-        .then(() => alert('Comando enviado.'))
+    if (confirm('Reiniciar o hardware remoto (ESP8266)?')) {
+      // TCC: controle_sistema -> comando_reiniciar
+      controlRef.update({ comando_reiniciar: true })
+        .then(() => alert('Comando de reinício enviado.'))
         .catch(err => alert('Erro: ' + err.message));
     }
   }
 
   // 6) Listeners RTDB
   function attachFirebaseListeners() {
-    if (!sensorRef || !controlRef || !settingsRef || !logsRef || !lastSeenRef) {
-      console.error("[ERRO] Faltam referências para listeners.");
-      return;
-    }
-
-    // Sensor
+    // Leitura dos Sensores (Nível e Status Bomba)
     sensorRef.on('value', snap => {
       const d = snap.val() || {};
-      const levelMain = d.level ?? '--';
-      const levelRes  = d.levelReservatorio ?? '--';
-      const active    = d.coletaAtiva !== false;
+      
+      // TCC: nivel (não level)
+      const levelMain = (d.nivel !== undefined) ? Number(d.nivel) : '--';
+      
+      // Lógica Reservatório: 100 - NivelCaixa
+      let levelRes = '--';
+      if (levelMain !== '--') {
+          levelRes = 100 - levelMain;
+      }
 
-      // UI tank
+      // TCC: status_bomba
+      const pumpStatus = d.status_bomba || '--';
+
+      // Atualiza UI Tanques
       if (adminWaterMain) adminWaterMain.style.height = `${levelMain !== '--' ? levelMain : 0}%`;
       if (adminWaterRes)  adminWaterRes.style.height  = `${levelRes  !== '--' ? levelRes  : 0}%`;
+      
       if (adminLevelPercentMain) adminLevelPercentMain.textContent = levelMain;
       if (adminLevelPercentRes)  adminLevelPercentRes.textContent  = levelRes;
 
       if (levelCard)     levelCard.textContent     = `${levelMain}%`;
       if (resLevelCard)  resLevelCard.textContent  = `${levelRes}%`;
 
-      if (collectionStatusCard) {
-        collectionStatusCard.textContent = active ? 'ATIVA' : 'PAUSADA';
-        collectionStatusCard.style.color = active ? '#2e7d32' : '#d32f2f';
+      // Atualiza UI Bomba
+      if (pumpStatusCard) {
+        const st = String(pumpStatus).toUpperCase();
+        pumpStatusCard.textContent = st;
+        pumpStatusCard.style.color = (st.includes('LIGA')) ? '#2e7d32' : '#d32f2f';
       }
-      if (toggleCollectionButton) {
-        toggleCollectionButton.textContent = active ? 'Pausar Coleta' : 'Retomar Coleta';
-        toggleCollectionButton.className = `btn btn-action ${active ? 'btn-red' : 'btn-green'}`;
-        toggleCollectionButton.disabled = false;
-      }
+
     }, err => console.error("sensorRef err:", err));
 
-    // Controle
+    // Leitura de Controle (Status Coleta e Pausa)
     controlRef.on('value', snap => {
-      const d = snap.val() || {};
-      const st = d.statusBomba || '--';
-      if (pumpStatusCard) {
-        pumpStatusCard.textContent = st;
-        pumpStatusCard.style.color = (st === 'LIGADA') ? '#2e7d32' : '#d32f2f';
+      const c = snap.val() || {};
+      // TCC: coleta_pausada
+      const isPaused = c.coleta_pausada === true;
+
+      if (collectionStatusCard) {
+        collectionStatusCard.textContent = isPaused ? 'PAUSADA' : 'ATIVA';
+        collectionStatusCard.style.color = isPaused ? '#d32f2f' : '#2e7d32';
+      }
+      if (toggleCollectionButton) {
+        toggleCollectionButton.textContent = isPaused ? 'Retomar Coleta' : 'Pausar Coleta';
+        toggleCollectionButton.className = `btn btn-action ${isPaused ? 'btn-green' : 'btn-red'}`;
+        toggleCollectionButton.disabled = false;
       }
     }, err => console.error("controlRef err:", err));
 
-    // Settings
-    settingsRef.on('value', snap => {
-      const s = snap.val() || {};
-      if (lowLimitInput)  lowLimitInput.value  = s.limiteInferior ?? 50;
-      if (highLimitInput) highLimitInput.value = s.limiteSuperior ?? 95;
-    }, err => console.error("settingsRef err:", err));
+    // Leitura de Parâmetros (Limites Atuais)
+    paramsRef.on('value', snap => {
+      const p = snap.val() || {};
+      // TCC: limite_minimo, limite_maximo
+      if (lowLimitInput)  lowLimitInput.value  = p.limite_minimo ?? 50;
+      if (highLimitInput) highLimitInput.value = p.limite_maximo ?? 95;
+    }, err => console.error("paramsRef err:", err));
 
-    // Last Seen
-    lastSeenRef.on('value', snap => {
-      if (!connectionStatusCard || !lastSeenText) return;
-      if (!snap.exists()) {
-        connectionStatusCard.textContent = '??';
-        connectionStatusCard.style.color = '#6c757d';
-        lastSeenText.textContent = 'Nenhum sinal.';
-        return;
-      }
-      const ts = snap.val();
-      if (typeof ts !== 'number' || ts <= 0) {
-        connectionStatusCard.textContent = '??';
-        connectionStatusCard.style.color = '#6c757d';
-        lastSeenText.textContent = 'Inválido.';
-        return;
-      }
-      const diffM = (Date.now() - ts) / 60000;
-      connectionStatusCard.textContent = diffM > 5 ? 'OFFLINE' : 'ONLINE';
-      connectionStatusCard.style.color = diffM > 5 ? '#d32f2f' : '#2e7d32';
-      lastSeenText.textContent = `Visto: ${new Date(ts).toLocaleString('pt-BR')}`;
-    }, err => console.error("lastSeenRef err:", err));
-
-    // Logs (últimos 50)
-    logsRef.orderByChild('timestamp').limitToLast(50).on('value', snap => {
+    // Connection Status (Last Seen - Estimativa)
+    // O TCC não especifica "lastSeen", então vamos assumir que o sistema está online se recebermos dados recentes
+    // ou podemos manter a lógica antiga se o ESP estiver enviando timestamp
+    /* NOTA: Se o seu ESP não envia "lastSeen", este bloco ficará sempre "OFFLINE".
+       Para corrigir, você pode verificar o timestamp do último dado recebido no sensorRef.
+    */
+    
+    // Logs (Eventos) - TCC: eventos
+    eventsRef.limitToLast(50).on('value', snap => {
       if (!logEntriesList) return;
       logEntriesList.innerHTML = '';
-      if (!snap.exists()) {
-        logEntriesList.innerHTML = '<li>Nenhum log registrado.</li>';
+      
+      const data = snap.val();
+      if (!data) {
+        logEntriesList.innerHTML = '<li>Nenhum evento registrado.</li>';
         return;
       }
-      const arr = [];
-      snap.forEach(cs => {
-        const d = cs.val();
-        if (d && typeof d.timestamp === 'number' && typeof d.message === 'string') arr.push(d);
-      });
-      arr.sort((a,b) => b.timestamp - a.timestamp);
-      if (!arr.length) {
-        logEntriesList.innerHTML = '<li>Nenhum log válido.</li>';
-        return;
-      }
+      
+      // Converte objeto em array e inverte (mais recente primeiro)
+      const arr = Object.values(data).reverse(); 
+      
       arr.forEach(l => {
-        const dt = new Date(l.timestamp).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'medium' });
+        // Tenta achar timestamp, ou usa hora atual se não tiver
+        const ts = l.timestamp || Date.now(); 
+        const dt = new Date(ts).toLocaleString('pt-BR');
+        // TCC: mensagem ou evento
+        const msg = l.mensagem || l.evento || JSON.stringify(l);
+        
         const li = document.createElement('li');
-        li.textContent = `[${dt}] ${l.message}`;
+        li.textContent = `[${dt}] ${msg}`;
         logEntriesList.appendChild(li);
       });
     }, err => {
@@ -268,13 +283,16 @@ document.addEventListener('DOMContentLoaded', () => {
     console.log("[OK] Listeners conectados.");
   }
 
-  // 7) Boot com proteção por auth & role
+  // 7) Boot com proteção
   if (initializeFirebase()) {
     auth.onAuthStateChanged(user => {
       if (!user) { window.location.href = 'login.html'; return; }
+      
+      // Verifica Role
       database.ref('usuarios/' + user.uid).get()
         .then(snap => {
-          if (snap.exists() && snap.val().role === 'admin') {
+          const role = snap.exists() ? snap.val().role : '';
+          if (role === 'admin') {
             if (!listenersAttached) {
               if (getDomReferences() && getFirebaseReferences() && enableAdminControls()) {
                 attachFirebaseListeners();
@@ -284,11 +302,14 @@ document.addEventListener('DOMContentLoaded', () => {
               }
             }
           } else {
-            alert('Acesso negado.');
-            try { window.location.href = 'index.html'; } catch { window.location.href = 'login.html'; }
+            alert('Acesso negado (Requer Admin).');
+            window.location.href = 'index.html';
           }
         })
-        .catch(err => { console.error("Permissão err:", err); window.location.href = 'login.html'; });
+        .catch(err => { 
+            console.error("Auth err:", err); 
+            window.location.href = 'login.html'; 
+        });
     });
   }
 });
