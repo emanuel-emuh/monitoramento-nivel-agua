@@ -1,4 +1,4 @@
-/* dashboard.js – v12.2 (Correção: Redirecionamento de Segurança + Watchdog 70s) */
+/* dashboard.js – v13.0 (Correção Crítica: Leitura de Status 'DESLIGADA') */
 
 const firebaseConfig = {
   apiKey: "AIzaSyBOBbMzkTO2MvIxExVO8vlCOUgpeZp0rSY",
@@ -43,28 +43,26 @@ let authUser = null;
 let chart;
 let historyBuffer = [];
 let watchdogTimer = null;
+let currentPumpState = false; // Variável para controlar o estado real da bomba (true=ligada)
 
-// --- WATCHDOG (DETEÇÃO DE QUEDA) ---
+// --- WATCHDOG (DETEÇÃO DE QUEDA - 75s) ---
 function resetWatchdog() {
-  // 1. Marca como Online
   if (els.connLed) {
     els.connLed.style.backgroundColor = "#22c55e"; // Verde
     els.connLed.classList.add("on");
   }
   if (els.connTxt) els.connTxt.textContent = "Online";
 
-  // 2. Limpa timer anterior
   if (watchdogTimer) clearTimeout(watchdogTimer);
 
-  // 3. Inicia contagem da morte (70 segundos)
   watchdogTimer = setTimeout(() => {
-    console.warn("Watchdog: Sem dados há 70s. Marcando OFFLINE.");
+    console.warn("Watchdog: Sem dados há 75s. Marcando OFFLINE.");
     if (els.connLed) {
       els.connLed.style.backgroundColor = "#dc3545"; // Vermelho
       els.connLed.classList.remove("on");
     }
     if (els.connTxt) els.connTxt.textContent = "Sem Sinal (Offline)";
-  }, 70000); 
+  }, 75000); 
 }
 
 function fmtPct(n) { return Number.isFinite(n) ? `${Math.round(n)}%` : "--%"; }
@@ -81,19 +79,16 @@ function litersFromPercent(pct) {
 async function ensureSession() {
   return new Promise((resolve) => {
     firebase.auth().onAuthStateChanged((user) => {
-      // SE NÃO TIVER LOGADO, MANDA PARA O LOGIN IMEDIATAMENTE
       if (!user) {
         window.location.href = "login.html"; 
         return;
       }
-
       authUser = user;
-      const enabled = true; // Se chegou aqui, está logado e habilitado
+      const enabled = true;
       
       if (els.autoSwitch) els.autoSwitch.disabled = !enabled;
       if (els.motorBtn) els.motorBtn.disabled = !enabled;
       if (els.feriasBtn) els.feriasBtn.disabled = !enabled;
-      
       resolve(user);
     });
   });
@@ -101,16 +96,14 @@ async function ensureSession() {
 
 // 1. SENSOR
 function listenSensorData() {
-  // O .on() vai falhar se não estiver logado, mas o ensureSession garante o login
   db().ref("sensorData").on("value", (snap) => {
-    resetWatchdog(); // SINAL DE VIDA RECEBIDO!
+    resetWatchdog();
 
     const data = snap.val() || {};
     const rawLevel = (data.nivel !== undefined) ? data.nivel : data.level;
     const nivelCaixa = safe(rawLevel, 0);
     const nivelRes = 100 - nivelCaixa;
 
-    // Atualiza UI
     if (els.mainPct) els.mainPct.textContent = fmtPct(nivelCaixa);
     if (els.mainLiters) els.mainLiters.textContent = litersFromPercent(nivelCaixa);
     if (els.barMain) els.barMain.style.width = `${nivelCaixa}%`;
@@ -123,22 +116,20 @@ function listenSensorData() {
     if (els.tankRes) els.tankRes.style.height = `${nivelRes}%`;
     if (els.tankResPct) els.tankResPct.textContent = Math.round(nivelRes);
 
-    // Status da Bomba (Leitura Real)
+    // Prioridade para o status vindo do SensorData (se existir)
     if (data.statusBomba || data.status_bomba) {
        updatePumpStatus(data.statusBomba || data.status_bomba);
     }
-  }, (error) => {
-    // Se der erro de permissão, avisa no console
-    console.error("Erro ao ler dados (Permissão negada?):", error);
-  });
+  }, (error) => console.error("Erro sensor:", error));
 }
 
 // 2. CONTROLE
 function listenSystemControl() {
   db().ref("bomba/controle").on("value", (snap) => {
     const data = snap.val() || {};
-
-    updatePumpStatus(data.statusBomba || "DESLIGADA");
+    
+    // Atualiza status (caso sensorData não tenha mandado)
+    if(data.statusBomba) updatePumpStatus(data.statusBomba);
 
     const isAuto = (data.modo === "automatico");
     if (els.modePill) {
@@ -160,9 +151,14 @@ function listenSystemControl() {
   });
 }
 
+// --- CORREÇÃO DA LÓGICA DE STATUS ---
 function updatePumpStatus(statusRaw) {
-    const st = String(statusRaw || "DESLIGADA").toUpperCase();
-    const isOn = st.includes("LIGA") || st === "ON";
+    const st = String(statusRaw || "DESLIGADA").toUpperCase().trim();
+    
+    // CORREÇÃO: Comparação EXATA para evitar que "DESLIGADA" seja lido como "LIGA"
+    const isOn = (st === "LIGADA" || st === "ON" || st === "LIGADO");
+    
+    currentPumpState = isOn; // Atualiza variável global de estado
 
     if (els.pumpPill) {
       els.pumpPill.textContent = isOn ? "ON" : "OFF";
@@ -170,16 +166,16 @@ function updatePumpStatus(statusRaw) {
     }
     if (els.pumpTxt) els.pumpTxt.textContent = `A bomba está ${isOn ? "LIGADA" : "DESLIGADA"}.`;
     if (els.motorStatus) els.motorStatus.textContent = isOn ? "LIGADA" : "DESLIGADA";
+    if (els.motorStatus) els.motorStatus.style.color = isOn ? "#2e7d32" : "#d32f2f";
 
+    // Atualiza botão de ação Manual
     if (els.motorBtn) {
        if (isOn) {
           els.motorBtn.textContent = "DESLIGAR BOMBA";
-          els.motorBtn.className = "btn btn-danger";
-          els.motorBtn.style.backgroundColor = ""; 
+          els.motorBtn.className = "btn btn-danger"; // Vermelho para desligar
        } else {
           els.motorBtn.textContent = "LIGAR BOMBA";
-          els.motorBtn.className = "btn btn-success";
-          els.motorBtn.style.backgroundColor = ""; 
+          els.motorBtn.className = "btn btn-success"; // Verde para ligar
        }
     }
 }
@@ -240,15 +236,28 @@ function exportCSV() {
 // --- AÇÕES DO USUÁRIO ---
 async function toggleMotor() {
   try {
-    const currentText = els.motorStatus.textContent;
-    const novoComando = currentText.includes("LIGA") ? "DESLIGAR" : "LIGAR";
-    console.log("Enviando comando atómico:", novoComando);
+    // Decide o comando baseado no estado ATUAL conhecido (currentPumpState)
+    // Se está ligada (true), queremos DESLIGAR. Se desligada (false), LIGAR.
+    const novoComando = currentPumpState ? "DESLIGAR" : "LIGAR";
+
+    console.log("Comando Manual:", novoComando);
+    
+    // Feedback imediato no botão para o usuário saber que clicou
+    els.motorBtn.textContent = "Processando...";
+    els.motorBtn.disabled = true;
+
     const updates = {};
     updates["bomba/controle/modo"] = "manual";
     updates["bomba/controle/comandoManual"] = novoComando;
+    
     await db().ref().update(updates);
+    
+    // Reabilita o botão após envio (o texto vai atualizar quando o status voltar do Firebase)
+    setTimeout(() => { els.motorBtn.disabled = false; }, 500);
+
   } catch (err) {
     alert("Erro: " + err.message);
+    els.motorBtn.disabled = false;
   }
 }
 
@@ -297,8 +306,8 @@ function renderChart(points) {
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
-  console.log("Dashboard V12.2 Iniciado");
-  await ensureSession(); // AGORA OBRIGA O LOGIN
+  console.log("Dashboard V13.0 Iniciado");
+  await ensureSession();
   listenSensorData();
   listenSystemControl();
   listenHistorico();

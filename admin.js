@@ -1,4 +1,4 @@
-/* admin.js – vFinal (Estável e Confiável) */
+/* admin.js – vFinal-Corrigido (Correção do Status da Bomba) */
 
 document.addEventListener('DOMContentLoaded', () => {
   console.log("Admin System: Iniciando módulo de segurança e monitoramento...");
@@ -76,7 +76,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (els.lastSeen) els.lastSeen.textContent = `Último sinal: ${agora}`;
 
       // Reinicia a contagem regressiva
-      // 75 segundos de tolerância (tempo suficiente para o ciclo de 10s do ESP + atrasos de rede)
+      // 75 segundos de tolerância
       if (watchdogTimer) clearTimeout(watchdogTimer);
       watchdogTimer = setTimeout(setSystemOffline, 75000); 
   }
@@ -124,11 +124,13 @@ document.addEventListener('DOMContentLoaded', () => {
         alert("Erro de permissão: Você foi desconectado ou não tem acesso.");
     });
 
-    // 2. CONTROLE DA BOMBA
+    // 2. CONTROLE DA BOMBA (CORRIGIDO)
     controlRef.on('value', (snap) => {
       const d = snap.val() || {};
-      const st = String(d.statusBomba || "--").toUpperCase();
-      const isOn = st.includes("LIGA") || st === "ON";
+      const st = String(d.statusBomba || "--").toUpperCase().trim();
+      
+      // CORREÇÃO: Comparação EXATA para evitar erro com "DESLIGADA"
+      const isOn = (st === "LIGADA" || st === "ON" || st === "LIGADO");
       
       if(els.pumpStatus) {
          els.pumpStatus.textContent = isOn ? "LIGADA" : "DESLIGADA";
@@ -140,7 +142,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // 3. PARÂMETROS (Limites)
     paramsRef.on('value', (snap) => {
       const p = snap.val() || {};
-      // Só atualiza os inputs se o usuário não estiver digitando (opcional, mas evita bugs visuais)
+      // Só atualiza os inputs se o usuário não estiver digitando
       if(document.activeElement !== els.inLow && els.inLow) els.inLow.value = p.limiteInferior ?? 50;
       if(document.activeElement !== els.inHigh && els.inHigh) els.inHigh.value = p.limiteSuperior ?? 95;
     });
