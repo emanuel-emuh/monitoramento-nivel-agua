@@ -1,4 +1,4 @@
-/* dashboard.js – v10.0 (Versão Blindada contra Falhas de Dados) */
+/* dashboard.js – v11.0 (Correção Final: Watchdog de Conexão) */
 
 const firebaseConfig = {
   apiKey: "AIzaSyBOBbMzkTO2MvIxExVO8vlCOUgpeZp0rSY",
@@ -42,6 +42,7 @@ const els = {
 let authUser = null;
 let chart;
 let historyBuffer = [];
+let watchdogTimer = null; // Temporizador
 
 // --- Auxiliares ---
 function setOnline(on) {
@@ -49,7 +50,14 @@ function setOnline(on) {
     els.connLed.style.backgroundColor = on ? "#22c55e" : "#bbb";
     els.connLed.classList.toggle("on", on);
   }
-  if (els.connTxt) els.connTxt.textContent = on ? "Online" : "Conectando...";
+  if (els.connTxt) els.connTxt.textContent = on ? "Online" : "Sem Sinal...";
+  
+  // WATCHDOG: Se disser que está Online, iniciamos contagem regressiva
+  if (on) {
+      clearTimeout(watchdogTimer);
+      // Se passar 20s sem refresh, marca como Offline
+      watchdogTimer = setTimeout(() => setOnline(false), 20000); 
+  }
 }
 
 function fmtPct(n) { return Number.isFinite(n) ? `${Math.round(n)}%` : "--%"; }
@@ -75,35 +83,31 @@ async function ensureSession() {
   });
 }
 
-// =========================================================
-// 1. LEITURA SENSOR (sensorData)
-// =========================================================
+// 1. LEITURA SENSOR
 function listenSensorData() {
   db().ref("sensorData").on("value", (snap) => {
-    setOnline(true);
+    setOnline(true); // <--- Reseta o Watchdog aqui!
+    
     const data = snap.val() || {};
-
-    // 1. NÍVEL (Aceita 'nivel', 'level' ou 0)
     const rawLevel = (data.nivel !== undefined) ? data.nivel : data.level;
     const nivelCaixa = safe(rawLevel, 0);
     const nivelRes = 100 - nivelCaixa;
 
-    // Atualiza UI Caixa
+    // Atualiza Caixa
     if (els.mainPct) els.mainPct.textContent = fmtPct(nivelCaixa);
     if (els.mainLiters) els.mainLiters.textContent = litersFromPercent(nivelCaixa);
     if (els.barMain) els.barMain.style.width = `${nivelCaixa}%`;
     if (els.tankMain) els.tankMain.style.height = `${nivelCaixa}%`;
     if (els.tankMainPct) els.tankMainPct.textContent = Math.round(nivelCaixa);
 
-    // Atualiza UI Reservatório
+    // Atualiza Reservatório
     if (els.resPct) els.resPct.textContent = fmtPct(nivelRes);
     if (els.resLiters) els.resLiters.textContent = litersFromPercent(nivelRes);
     if (els.barRes) els.barRes.style.width = `${nivelRes}%`;
     if (els.tankRes) els.tankRes.style.height = `${nivelRes}%`;
     if (els.tankResPct) els.tankResPct.textContent = Math.round(nivelRes);
 
-    // 2. STATUS BOMBA (Prioridade 1: sensorData)
-    // Se o sensorData tiver o status, usamos ele. Se não, esperamos o listenSystemControl.
+    // STATUS BOMBA
     if (data.statusBomba || data.status_bomba) {
        updatePumpStatus(data.statusBomba || data.status_bomba);
     }
@@ -111,19 +115,13 @@ function listenSensorData() {
   }, (err) => setOnline(false));
 }
 
-// =========================================================
-// 2. LEITURA CONTROLE (bomba/controle)
-// =========================================================
+// 2. LEITURA CONTROLE
 function listenSystemControl() {
   db().ref("bomba/controle").on("value", (snap) => {
     const data = snap.val() || {};
 
-    // 1. STATUS BOMBA (Prioridade 2: Backup)
-    // Se o sensorData não enviou nada, usamos este valor como fallback
-    // Isso garante que o botão nunca fique "bobo"
     updatePumpStatus(data.statusBomba || "DESLIGADA");
 
-    // 2. MODO AUTO
     const isAuto = (data.modo === "automatico");
     if (els.modePill) {
       els.modePill.textContent = isAuto ? "AUTO" : "MAN";
@@ -131,22 +129,19 @@ function listenSystemControl() {
     }
     if (els.modeTxt) els.modeTxt.textContent = `Modo ${isAuto ? "automático" : "manual"}.`;
     
-    // Switch (sem loop)
     if (els.autoSwitch && els.autoSwitch.checked !== isAuto) {
          els.autoSwitch.checked = isAuto;
     }
 
-    // 3. FERIAS
     const isFerias = (data.modoOperacao === "ferias");
     if (els.feriasBtn) {
       els.feriasBtn.textContent = isFerias ? "Desativar Modo Férias" : "Ativar Modo Férias";
-      if (isFerias) els.feriasBtn.classList.add("btn-warning"); // Requer main.css
+      if (isFerias) els.feriasBtn.classList.add("btn-warning");
       else els.feriasBtn.classList.remove("btn-warning");
     }
   });
 }
 
-// FUNÇÃO UNIFICADA PARA ATUALIZAR STATUS DA BOMBA
 function updatePumpStatus(statusRaw) {
     const st = String(statusRaw || "DESLIGADA").toUpperCase();
     const isOn = st.includes("LIGA") || st === "ON";
@@ -158,7 +153,6 @@ function updatePumpStatus(statusRaw) {
     if (els.pumpTxt) els.pumpTxt.textContent = `A bomba está ${isOn ? "LIGADA" : "DESLIGADA"}.`;
     if (els.motorStatus) els.motorStatus.textContent = isOn ? "LIGADA" : "DESLIGADA";
 
-    // Botão
     if (els.motorBtn) {
        if (isOn) {
           els.motorBtn.textContent = "DESLIGAR BOMBA";
@@ -172,14 +166,11 @@ function updatePumpStatus(statusRaw) {
     }
 }
 
-// =========================================================
 // 3. HISTÓRICO
-// =========================================================
 function listenHistorico() {
   db().ref("historico").limitToLast(50).on("value", snap => {
     const data = snap.val();
     
-    // Se não houver dados, limpa o gráfico mas não crasha
     if (!data) {
         if(els.consTxt) els.consTxt.textContent = "Aguardando novos dados...";
         if(chart) { chart.data.labels=[]; chart.data.datasets[0].data=[]; chart.update(); }
@@ -188,7 +179,6 @@ function listenHistorico() {
 
     const arr = [];
     Object.values(data).forEach(item => {
-      // Aceita 'nivel' ou 'level'
       const lvl = (item.nivel !== undefined) ? item.nivel : item.level;
       if (lvl !== undefined) {
         arr.push({
@@ -208,7 +198,6 @@ function listenHistorico() {
 
 function calcConsumption(points) {
   if (points.length < 2) return;
-  
   let totalDrop = 0;
   for (let i = 1; i < points.length; i++) {
     const diff = points[i - 1].nivel - points[i].nivel;
@@ -240,13 +229,10 @@ function exportCSV() {
   document.body.removeChild(link);
 }
 
-// =========================================================
 // 4. AÇÕES
-// =========================================================
 async function handleAutoSwitch(e) {
   const novoModo = e.target.checked ? "automatico" : "manual";
   try {
-    // Escreve direto em bomba/controle/modo
     await db().ref("bomba/controle/modo").set(novoModo);
   } catch (err) {
     alert("Erro: " + err.message);
@@ -259,17 +245,12 @@ async function toggleMotor() {
     const currentText = els.motorStatus.textContent;
     const novoComando = currentText.includes("LIGA") ? "DESLIGAR" : "LIGAR";
 
-    // 1. Desliga Auto
     if (els.autoSwitch.checked) {
       await db().ref("bomba/controle/modo").set("manual");
     }
-    
-    // 2. Envia comando
     await db().ref("bomba/controle/comandoManual").set(novoComando);
 
-  } catch (err) {
-    alert("Erro: " + err.message);
-  }
+  } catch (err) { alert("Erro: " + err.message); }
 }
 
 async function toggleFerias() {
@@ -281,9 +262,7 @@ async function toggleFerias() {
   } catch (err) { alert("Erro: " + err.message); }
 }
 
-// =========================================================
 // 5. CHART
-// =========================================================
 function renderChart(points) {
   const ctx = document.getElementById("levelChart");
   if (!ctx) return;
@@ -315,7 +294,7 @@ function renderChart(points) {
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
-  console.log("Dashboard V10 Iniciado");
+  console.log("Dashboard V11 Iniciado");
   await ensureSession();
   listenSensorData();
   listenSystemControl();

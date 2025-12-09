@@ -1,11 +1,14 @@
-/* admin.js – v9.0 (Correção Conexão e Cores) */
+/* admin.js – v11.0 (Correção Final: Deteção de Queda de Conexão) */
 
 document.addEventListener('DOMContentLoaded', () => {
-  console.log("Admin script V9 starting...");
+  console.log("Admin script V11 starting...");
 
   let auth, database;
   let sensorRef, paramsRef, controlRef, historyRef, eventsRef;
   
+  // Variável para o temporizador de segurança
+  let watchdogTimer = null; 
+
   const els = {
     waterMain: document.getElementById('admin-water-main'),
     pctMain: document.getElementById('admin-level-percent-main'),
@@ -38,28 +41,45 @@ document.addEventListener('DOMContentLoaded', () => {
   auth = firebase.auth();
   database = firebase.database();
 
-  // REFERÊNCIAS REVERTIDAS PARA HARDWARE ANTIGO
   sensorRef = database.ref('sensorData');
   paramsRef = database.ref('configuracoes/sistema');
   controlRef = database.ref('bomba/controle');
   historyRef = database.ref('historico');
   eventsRef = database.ref('logs');
 
+  // --- FUNÇÃO PARA MARCAR COMO OFFLINE ---
+  function setSystemOffline() {
+      if (els.connStatus) {
+          els.connStatus.textContent = "OFFLINE";
+          els.connStatus.style.color = "#d32f2f"; // Vermelho
+      }
+      if (els.lastSeen) {
+          els.lastSeen.textContent = "Sinal perdido...";
+      }
+  }
+
+  // --- FUNÇÃO PARA MARCAR COMO ONLINE ---
+  function setSystemOnline() {
+      if (els.connStatus) {
+          els.connStatus.textContent = "ONLINE";
+          els.connStatus.style.color = "#2e7d32"; // Verde
+      }
+      const agora = new Date().toLocaleTimeString('pt-BR');
+      if (els.lastSeen) els.lastSeen.textContent = `Visto: ${agora}`;
+
+      // Reinicia o temporizador "Cão de Guarda"
+      // Se não recebermos nada em 20 segundos, marca como Offline
+      clearTimeout(watchdogTimer);
+      watchdogTimer = setTimeout(setSystemOffline, 20000); 
+  }
+
   function attachFirebaseListeners() {
-    // SENSOR
+    // SENSOR (O Coração do Sistema)
     sensorRef.on('value', snap => {
       const d = snap.val() || {};
       
-      // 1. CORREÇÃO CONEXÃO: Se chegar dados, está ONLINE
-      if (els.connStatus) {
-          els.connStatus.textContent = "ONLINE";
-          els.connStatus.style.color = "#2e7d32"; 
-          els.connStatus.style.fontWeight = "bold";
-      }
-      if (els.lastSeen) {
-          const agora = new Date().toLocaleTimeString('pt-BR');
-          els.lastSeen.textContent = `Visto: ${agora}`;
-      }
+      // 1. CHEGOU DADOS? ENTÃO ESTÁ ONLINE!
+      setSystemOnline();
 
       // Nível
       const rawLevel = (d.nivel !== undefined) ? d.nivel : d.level;
@@ -73,17 +93,6 @@ document.addEventListener('DOMContentLoaded', () => {
       if(els.pctRes) els.pctRes.textContent = levelRes;
       if(els.cardRes) els.cardRes.textContent = `${levelRes}%`;
       
-      // STATUS BOMBA (Lendo de sensorData se existir, senão de controle)
-      // Tenta achar status no sensorData primeiro (mais confiável)
-      const st = String(d.statusBomba || d.status_bomba || "--").toUpperCase();
-      // Se não tiver no sensorData, tenta pegar do controle no próximo listener...
-      
-      const isOn = st.includes("LIGA") || st === "ON";
-      if(els.pumpStatus && st !== "--") {
-         els.pumpStatus.textContent = isOn ? "LIGADA" : "DESLIGADA";
-         els.pumpStatus.style.color = isOn ? "#2e7d32" : "#d32f2f";
-      }
-      
       // Coleta
       const active = d.coletaAtiva !== false;
       if(els.collStatus) {
@@ -96,13 +105,12 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
 
-    // CONTROLE (Backup para Status Bomba se o sensorData falhar)
+    // CONTROLE
     controlRef.on('value', snap => {
       const d = snap.val() || {};
       const st = String(d.statusBomba || "--").toUpperCase();
       const isOn = st.includes("LIGA") || st === "ON";
       
-      // Só atualiza se ainda estiver "--" ou para garantir sincronia
       if(els.pumpStatus) {
          els.pumpStatus.textContent = isOn ? "LIGADA" : "DESLIGADA";
          els.pumpStatus.style.color = isOn ? "#2e7d32" : "#d32f2f";
