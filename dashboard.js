@@ -1,4 +1,4 @@
-/* dashboard.js – v8.0 (Final - Correção Botão Manual e CSV) */
+/* dashboard.js – v9.0 (Correção Definitiva de Status e CSV) */
 
 const firebaseConfig = {
   apiKey: "AIzaSyBOBbMzkTO2MvIxExVO8vlCOUgpeZp0rSY",
@@ -11,7 +11,7 @@ if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
 const db = () => firebase.database();
 const $ = (sel) => document.querySelector(sel);
 
-// Elementos UI
+// --- Elementos ---
 const els = {
   connLed: $("#conn-led"),
   connTxt: $("#conn-txt"),
@@ -39,25 +39,24 @@ const els = {
   exportRange: $("#export-range")
 };
 
-// Variáveis Globais
 let authUser = null;
-let chart; 
-let historyBuffer = []; 
+let chart;
+let historyBuffer = [];
 
-// Funções Auxiliares
+// --- Auxiliares ---
 function setOnline(on) {
-  if(els.connLed) {
+  if (els.connLed) {
     els.connLed.style.backgroundColor = on ? "#22c55e" : "#bbb";
     els.connLed.classList.toggle("on", on);
   }
-  if(els.connTxt) els.connTxt.textContent = on ? "Online" : "Conectando...";
+  if (els.connTxt) els.connTxt.textContent = on ? "Online" : "Conectando...";
 }
 
 function fmtPct(n) { return Number.isFinite(n) ? `${Math.round(n)}%` : "--%"; }
 function safe(n, def = 0) { const num = parseFloat(n); return Number.isNaN(num) ? def : num; }
 
 function litersFromPercent(pct) {
-  const capacidadeTotal = 1000; 
+  const capacidadeTotal = 1000; // Ajuste para o tamanho da sua caixa
   if (!Number.isFinite(pct)) return "-- L";
   const litros = (pct / 100) * capacidadeTotal;
   return `${Math.round(litros)} L`;
@@ -68,50 +67,47 @@ async function ensureSession() {
     firebase.auth().onAuthStateChanged((user) => {
       authUser = user;
       const enabled = !!user;
-      if(els.autoSwitch) els.autoSwitch.disabled = !enabled;
-      if(els.motorBtn) els.motorBtn.disabled = !enabled;
-      if(els.feriasBtn) els.feriasBtn.disabled = !enabled;
+      if (els.autoSwitch) els.autoSwitch.disabled = !enabled;
+      if (els.motorBtn) els.motorBtn.disabled = !enabled;
+      if (els.feriasBtn) els.feriasBtn.disabled = !enabled;
       resolve(user);
     });
   });
 }
 
-// 1. SENSOR (sensorData)
+// =========================================================
+// 1. LEITURA SENSOR (sensorData) -> A VERDADE DO HARDWARE
+// =========================================================
 function listenSensorData() {
+  // O ESP escreve o estado real aqui (nível e status da bomba)
   db().ref("sensorData").on("value", (snap) => {
     setOnline(true);
     const data = snap.val() || {};
-    
-    // Lê 'nivel' (conforme sua imagem do banco)
+
+    // 1. NÍVEL (Tenta 'nivel' ou 'level')
     const rawLevel = (data.nivel !== undefined) ? data.nivel : data.level;
     const nivelCaixa = safe(rawLevel, 0);
-    const nivelRes = 100 - nivelCaixa; 
+    const nivelRes = 100 - nivelCaixa;
 
-    // Atualiza UI
+    // Atualiza Caixa
     if (els.mainPct) els.mainPct.textContent = fmtPct(nivelCaixa);
     if (els.mainLiters) els.mainLiters.textContent = litersFromPercent(nivelCaixa);
     if (els.barMain) els.barMain.style.width = `${nivelCaixa}%`;
     if (els.tankMain) els.tankMain.style.height = `${nivelCaixa}%`;
     if (els.tankMainPct) els.tankMainPct.textContent = Math.round(nivelCaixa);
 
+    // Atualiza Reservatório
     if (els.resPct) els.resPct.textContent = fmtPct(nivelRes);
     if (els.resLiters) els.resLiters.textContent = litersFromPercent(nivelRes);
     if (els.barRes) els.barRes.style.width = `${nivelRes}%`;
     if (els.tankRes) els.tankRes.style.height = `${nivelRes}%`;
     if (els.tankResPct) els.tankResPct.textContent = Math.round(nivelRes);
 
-  }, () => setOnline(false));
-}
-
-// 2. CONTROLE (bomba/controle)
-function listenSystemControl() {
-  db().ref("bomba/controle").on("value", (snap) => {
-    const data = snap.val() || {};
-    
-    // Status Bomba
-    const statusRaw = String(data.statusBomba || "DESLIGADA").toUpperCase();
+    // 2. STATUS DA BOMBA (Crucial: Ler daqui e não de bomba/controle)
+    // Tenta ler 'statusBomba' ou 'status_bomba'
+    const statusRaw = String(data.statusBomba || data.status_bomba || "DESLIGADA").toUpperCase();
     const isOn = statusRaw.includes("LIGA") || statusRaw === "ON";
-    
+
     if (els.pumpPill) {
       els.pumpPill.textContent = isOn ? "ON" : "OFF";
       els.pumpPill.className = `pill ${isOn ? 'on' : 'off'}`;
@@ -119,57 +115,74 @@ function listenSystemControl() {
     if (els.pumpTxt) els.pumpTxt.textContent = `A bomba está ${isOn ? "LIGADA" : "DESLIGADA"}.`;
     if (els.motorStatus) els.motorStatus.textContent = isOn ? "LIGADA" : "DESLIGADA";
 
-    // Botão Manual (Texto e Cor)
+    // Atualiza Botão Manual com base no STATUS REAL
     if (els.motorBtn) {
-       els.motorBtn.textContent = isOn ? "DESLIGAR BOMBA" : "LIGAR BOMBA";
-       els.motorBtn.className = isOn ? "btn btn-danger" : "btn btn-success"; 
-       if (!isOn) els.motorBtn.style.backgroundColor = "#2e7d32"; 
-       else els.motorBtn.style.backgroundColor = "#dc3545"; 
+      if (isOn) {
+        els.motorBtn.textContent = "DESLIGAR BOMBA";
+        els.motorBtn.className = "btn btn-danger";
+        els.motorBtn.style.backgroundColor = "#dc3545"; // Vermelho
+      } else {
+        els.motorBtn.textContent = "LIGAR BOMBA";
+        els.motorBtn.className = "btn btn-success"; 
+        els.motorBtn.style.backgroundColor = "#2e7d32"; // Verde
+      }
     }
 
-    // Modo Auto
+  }, (err) => setOnline(false));
+}
+
+// =========================================================
+// 2. LEITURA CONTROLE (bomba/controle) -> CONFIGURAÇÕES
+// =========================================================
+function listenSystemControl() {
+  db().ref("bomba/controle").on("value", (snap) => {
+    const data = snap.val() || {};
+
+    // Modo Automático
     const isAuto = (data.modo === "automatico");
+
     if (els.modePill) {
       els.modePill.textContent = isAuto ? "AUTO" : "MAN";
       els.modePill.className = `pill ${isAuto ? 'auto' : 'man'}`;
     }
     if (els.modeTxt) els.modeTxt.textContent = `Modo ${isAuto ? "automático" : "manual"}.`;
-    
-    // Switch
+
     if (els.autoSwitch && els.autoSwitch.checked !== isAuto) {
-         els.autoSwitch.checked = isAuto;
+      els.autoSwitch.checked = isAuto;
     }
-    
-    // Ferias
+
+    // Modo Férias
     const isFerias = (data.modoOperacao === "ferias");
     if (els.feriasBtn) {
       els.feriasBtn.textContent = isFerias ? "Desativar Modo Férias" : "Ativar Modo Férias";
-      if(isFerias) els.feriasBtn.style.border = "2px solid #ff9800"; 
+      if (isFerias) els.feriasBtn.style.border = "2px solid #ff9800";
       else els.feriasBtn.style.border = "none";
     }
   });
 }
 
-// 3. HISTÓRICO, GRÁFICO E CSV
+// =========================================================
+// 3. HISTÓRICO & CSV
+// =========================================================
 function listenHistorico() {
   db().ref("historico").limitToLast(50).on("value", snap => {
     const data = snap.val();
     if (!data) return;
-    
+
     const arr = [];
     Object.values(data).forEach(item => {
-      // Importante: lê 'nivel' (português)
+      // Compatibilidade: nivel ou level
       const lvl = (item.nivel !== undefined) ? item.nivel : item.level;
       if (lvl !== undefined) {
         arr.push({
-            ts: item.timestamp || Date.now(),
-            nivel: Number(lvl)
+          ts: item.timestamp || Date.now(),
+          nivel: Number(lvl)
         });
       }
     });
-    
-    arr.sort((a,b) => a.ts - b.ts);
-    historyBuffer = arr; 
+
+    arr.sort((a, b) => a.ts - b.ts);
+    historyBuffer = arr;
 
     renderChart(arr);
     calcConsumption(arr);
@@ -177,44 +190,47 @@ function listenHistorico() {
 }
 
 function calcConsumption(points) {
-    if (points.length < 2) {
-        if(els.consTxt) els.consTxt.textContent = "Aguardando dados...";
-        return;
-    }
-    let totalDrop = 0;
-    for (let i = 1; i < points.length; i++) {
-        const diff = points[i-1].nivel - points[i].nivel;
-        if (diff > 0) totalDrop += diff;
-    }
-    const litros = totalDrop * 10; // 1% = 10L (para 1000L)
-    if(els.consValue) els.consValue.textContent = `~${Math.round(litros)} L`;
-    if(els.consTxt) els.consTxt.textContent = "Consumo recente estimado.";
+  if (points.length < 2) {
+    if (els.consTxt) els.consTxt.textContent = "Aguardando mais dados...";
+    return;
+  }
+  let totalDrop = 0;
+  for (let i = 1; i < points.length; i++) {
+    const diff = points[i - 1].nivel - points[i].nivel;
+    if (diff > 0) totalDrop += diff;
+  }
+  const litros = totalDrop * 10; // 1% = 10L
+  if (els.consValue) els.consValue.textContent = `~${Math.round(litros)} L`;
+  if (els.consTxt) els.consTxt.textContent = "Consumo estimado recente.";
 }
 
 function exportCSV() {
-    if(!historyBuffer || historyBuffer.length === 0) return alert("Sem dados para exportar.");
-    
-    // Cabeçalho Bonito
-    let csvContent = "data:text/csv;charset=utf-8,Data,Hora,Nivel(%)\n";
-    
-    historyBuffer.forEach(row => {
-        const d = new Date(row.ts);
-        const dataStr = d.toLocaleDateString('pt-BR');
-        const horaStr = d.toLocaleTimeString('pt-BR');
-        // Linha: 09/12/2025, 14:30:00, 50
-        csvContent += `${dataStr},${horaStr},${row.nivel}\n`;
-    });
-    
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `Relatorio_Agua_${new Date().toLocaleDateString()}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  if (!historyBuffer || historyBuffer.length === 0) return alert("Sem dados para exportar.");
+
+  // Cabeçalho Enfeitado e Dados Formatados
+  let csvContent = "data:text/csv;charset=utf-8,Data,Hora,Nivel (%),Volume (L)\n";
+
+  historyBuffer.forEach(row => {
+    const d = new Date(row.ts);
+    const dataStr = d.toLocaleDateString('pt-BR'); // Formato BR
+    const horaStr = d.toLocaleTimeString('pt-BR');
+    const litros = Math.round((row.nivel / 100) * 1000); // 1000L Capacidade
+
+    csvContent += `${dataStr},${horaStr},${row.nivel},${litros}\n`;
+  });
+
+  const encodedUri = encodeURI(csvContent);
+  const link = document.createElement("a");
+  link.setAttribute("href", encodedUri);
+  link.setAttribute("download", `Relatorio_Agua_${new Date().toISOString().slice(0,10)}.csv`);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
 }
 
-// 4. AÇÕES DOS BOTÕES
+// =========================================================
+// 4. AÇÕES (BOTÕES)
+// =========================================================
 async function handleAutoSwitch(e) {
   const novoModo = e.target.checked ? "automatico" : "manual";
   try {
@@ -227,23 +243,20 @@ async function handleAutoSwitch(e) {
 
 async function toggleMotor() {
   try {
-    const currentText = els.motorStatus.textContent; 
-    const novoComando = currentText.includes("LIGA") ? "DESLIGAR" : "LIGAR"; 
-    
-    // CORREÇÃO FINAL: Força modo manual ANTES de enviar comando
-    // Isso impede que o modo automático "brigue" com o botão manual
+    const currentText = els.motorStatus.textContent;
+    // Se está LIGADA, envia comando para DESLIGAR
+    const novoComando = currentText.includes("LIGA") ? "DESLIGAR" : "LIGAR";
+
+    // 1. FORÇA MANUAL PRIMEIRO (Evita conflito)
     if (els.autoSwitch.checked) {
-        await db().ref("bomba/controle/modo").set("manual");
-        // Pequeno delay para garantir que o ESP receba a mudança de modo primeiro
-        setTimeout(async () => {
-             await db().ref("bomba/controle/comandoManual").set(novoComando);
-        }, 300);
-    } else {
-        await db().ref("bomba/controle/comandoManual").set(novoComando);
+      await db().ref("bomba/controle/modo").set("manual");
     }
-    
+
+    // 2. ENVIA COMANDO
+    await db().ref("bomba/controle/comandoManual").set(novoComando);
+
   } catch (err) {
-    alert("Erro: " + err.message);
+    alert("Erro ao enviar comando: " + err.message);
   }
 }
 
@@ -258,12 +271,14 @@ async function toggleFerias() {
   }
 }
 
-// 5. CHART.JS
+// =========================================================
+// 5. GRÁFICO
+// =========================================================
 function renderChart(points) {
   const ctx = document.getElementById("levelChart");
   if (!ctx) return;
-  
-  const labels = points.map(p => new Date(p.ts).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}));
+
+  const labels = points.map(p => new Date(p.ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
   const data = points.map(p => p.nivel);
 
   if (!chart) {
@@ -272,7 +287,7 @@ function renderChart(points) {
       data: {
         labels: labels,
         datasets: [{
-          label: "Nível da Água (%)",
+          label: "Nível (%)",
           data: data,
           borderColor: "#2e7d32",
           backgroundColor: "rgba(46, 125, 50, 0.1)",
@@ -280,7 +295,7 @@ function renderChart(points) {
           tension: 0.3
         }]
       },
-      options: { responsive: true, maintainAspectRatio:false, scales: { y: { min: 0, max: 100 } } }
+      options: { responsive: true, maintainAspectRatio: false, scales: { y: { min: 0, max: 100 } } }
     });
   } else {
     chart.data.labels = labels;
@@ -290,12 +305,12 @@ function renderChart(points) {
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
-  console.log("Dashboard V8 Iniciado");
+  console.log("Dashboard V9 Iniciado");
   await ensureSession();
   listenSensorData();
   listenSystemControl();
-  listenHistorico(); 
-  
+  listenHistorico();
+
   if (els.autoSwitch) els.autoSwitch.addEventListener("change", handleAutoSwitch);
   if (els.motorBtn) els.motorBtn.addEventListener("click", toggleMotor);
   if (els.feriasBtn) els.feriasBtn.addEventListener("click", toggleFerias);
