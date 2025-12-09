@@ -1,4 +1,4 @@
-/* dashboard.js – v9.0 (Correção Definitiva de Status e CSV) */
+/* dashboard.js – v11.0 (Versão Estável: Correção Manual e Status) */
 
 const firebaseConfig = {
   apiKey: "AIzaSyBOBbMzkTO2MvIxExVO8vlCOUgpeZp0rSY",
@@ -43,20 +43,36 @@ let authUser = null;
 let chart;
 let historyBuffer = [];
 
+// [CORREÇÃO 1] Variável para controlar o tempo da última atualização
+let lastUpdate = Date.now();
+
 // --- Auxiliares ---
 function setOnline(on) {
   if (els.connLed) {
-    els.connLed.style.backgroundColor = on ? "#22c55e" : "#bbb";
+    // Verde se online, Vermelho se offline/desconectado
+    els.connLed.style.backgroundColor = on ? "#22c55e" : "#dc2626";
     els.connLed.classList.toggle("on", on);
   }
-  if (els.connTxt) els.connTxt.textContent = on ? "Online" : "Conectando...";
+  if (els.connTxt) {
+    els.connTxt.textContent = on ? "Online" : "Desconectado";
+    els.connTxt.style.color = on ? "inherit" : "#dc2626";
+  }
 }
+
+// [CORREÇÃO 1] Watchdog: Verifica a cada 2s se parou de chegar dados há 15s
+setInterval(() => {
+  const diff = Date.now() - lastUpdate;
+  // Se a diferença for maior que 15000ms (15s), marca como offline
+  if (diff > 15000) {
+    setOnline(false);
+  }
+}, 2000);
 
 function fmtPct(n) { return Number.isFinite(n) ? `${Math.round(n)}%` : "--%"; }
 function safe(n, def = 0) { const num = parseFloat(n); return Number.isNaN(num) ? def : num; }
 
 function litersFromPercent(pct) {
-  const capacidadeTotal = 1000; // Ajuste para o tamanho da sua caixa
+  const capacidadeTotal = 1000; 
   if (!Number.isFinite(pct)) return "-- L";
   const litros = (pct / 100) * capacidadeTotal;
   return `${Math.round(litros)} L`;
@@ -76,35 +92,34 @@ async function ensureSession() {
 }
 
 // =========================================================
-// 1. LEITURA SENSOR (sensorData) -> A VERDADE DO HARDWARE
+// 1. LEITURA SENSOR (sensorData)
 // =========================================================
 function listenSensorData() {
-  // O ESP escreve o estado real aqui (nível e status da bomba)
   db().ref("sensorData").on("value", (snap) => {
+    // [CORREÇÃO 1] Atualiza o timestamp sempre que chega dado novo
+    lastUpdate = Date.now();
     setOnline(true);
+
     const data = snap.val() || {};
 
-    // 1. NÍVEL (Tenta 'nivel' ou 'level')
+    // 1. NÍVEL
     const rawLevel = (data.nivel !== undefined) ? data.nivel : data.level;
     const nivelCaixa = safe(rawLevel, 0);
     const nivelRes = 100 - nivelCaixa;
 
-    // Atualiza Caixa
     if (els.mainPct) els.mainPct.textContent = fmtPct(nivelCaixa);
     if (els.mainLiters) els.mainLiters.textContent = litersFromPercent(nivelCaixa);
     if (els.barMain) els.barMain.style.width = `${nivelCaixa}%`;
     if (els.tankMain) els.tankMain.style.height = `${nivelCaixa}%`;
     if (els.tankMainPct) els.tankMainPct.textContent = Math.round(nivelCaixa);
 
-    // Atualiza Reservatório
     if (els.resPct) els.resPct.textContent = fmtPct(nivelRes);
     if (els.resLiters) els.resLiters.textContent = litersFromPercent(nivelRes);
     if (els.barRes) els.barRes.style.width = `${nivelRes}%`;
     if (els.tankRes) els.tankRes.style.height = `${nivelRes}%`;
     if (els.tankResPct) els.tankResPct.textContent = Math.round(nivelRes);
 
-    // 2. STATUS DA BOMBA (Crucial: Ler daqui e não de bomba/controle)
-    // Tenta ler 'statusBomba' ou 'status_bomba'
+    // 2. STATUS DA BOMBA
     const statusRaw = String(data.statusBomba || data.status_bomba || "DESLIGADA").toUpperCase();
     const isOn = statusRaw.includes("LIGA") || statusRaw === "ON";
 
@@ -120,11 +135,11 @@ function listenSensorData() {
       if (isOn) {
         els.motorBtn.textContent = "DESLIGAR BOMBA";
         els.motorBtn.className = "btn btn-danger";
-        els.motorBtn.style.backgroundColor = "#dc3545"; // Vermelho
+        els.motorBtn.style.backgroundColor = "#dc3545"; 
       } else {
         els.motorBtn.textContent = "LIGAR BOMBA";
         els.motorBtn.className = "btn btn-success"; 
-        els.motorBtn.style.backgroundColor = "#2e7d32"; // Verde
+        els.motorBtn.style.backgroundColor = "#2e7d32"; 
       }
     }
 
@@ -132,13 +147,12 @@ function listenSensorData() {
 }
 
 // =========================================================
-// 2. LEITURA CONTROLE (bomba/controle) -> CONFIGURAÇÕES
+// 2. LEITURA CONTROLE (bomba/controle)
 // =========================================================
 function listenSystemControl() {
   db().ref("bomba/controle").on("value", (snap) => {
     const data = snap.val() || {};
 
-    // Modo Automático
     const isAuto = (data.modo === "automatico");
 
     if (els.modePill) {
@@ -151,7 +165,6 @@ function listenSystemControl() {
       els.autoSwitch.checked = isAuto;
     }
 
-    // Modo Férias
     const isFerias = (data.modoOperacao === "ferias");
     if (els.feriasBtn) {
       els.feriasBtn.textContent = isFerias ? "Desativar Modo Férias" : "Ativar Modo Férias";
@@ -171,7 +184,6 @@ function listenHistorico() {
 
     const arr = [];
     Object.values(data).forEach(item => {
-      // Compatibilidade: nivel ou level
       const lvl = (item.nivel !== undefined) ? item.nivel : item.level;
       if (lvl !== undefined) {
         arr.push({
@@ -199,22 +211,20 @@ function calcConsumption(points) {
     const diff = points[i - 1].nivel - points[i].nivel;
     if (diff > 0) totalDrop += diff;
   }
-  const litros = totalDrop * 10; // 1% = 10L
+  const litros = totalDrop * 10; 
   if (els.consValue) els.consValue.textContent = `~${Math.round(litros)} L`;
   if (els.consTxt) els.consTxt.textContent = "Consumo estimado recente.";
 }
 
 function exportCSV() {
   if (!historyBuffer || historyBuffer.length === 0) return alert("Sem dados para exportar.");
-
-  // Cabeçalho Enfeitado e Dados Formatados
   let csvContent = "data:text/csv;charset=utf-8,Data,Hora,Nivel (%),Volume (L)\n";
 
   historyBuffer.forEach(row => {
     const d = new Date(row.ts);
-    const dataStr = d.toLocaleDateString('pt-BR'); // Formato BR
+    const dataStr = d.toLocaleDateString('pt-BR');
     const horaStr = d.toLocaleTimeString('pt-BR');
-    const litros = Math.round((row.nivel / 100) * 1000); // 1000L Capacidade
+    const litros = Math.round((row.nivel / 100) * 1000);
 
     csvContent += `${dataStr},${horaStr},${row.nivel},${litros}\n`;
   });
@@ -241,18 +251,23 @@ async function handleAutoSwitch(e) {
   }
 }
 
+// [CORREÇÃO 2] Função do botão manual robusta
 async function toggleMotor() {
+  if (!authUser) return;
+
   try {
     const currentText = els.motorStatus.textContent;
-    // Se está LIGADA, envia comando para DESLIGAR
+    // Se diz "LIGADA", enviamos "DESLIGAR". Se diz "DESLIGADA", enviamos "LIGAR".
     const novoComando = currentText.includes("LIGA") ? "DESLIGAR" : "LIGAR";
 
-    // 1. FORÇA MANUAL PRIMEIRO (Evita conflito)
-    if (els.autoSwitch.checked) {
-      await db().ref("bomba/controle/modo").set("manual");
-    }
-
-    // 2. ENVIA COMANDO
+    // 1. FORÇA MODO MANUAL PRIMEIRO:
+    // Mesmo que o ESP esteja no automático, dizemos ao banco: "Vire manual agora".
+    // Usamos .update para mandar as duas coisas juntas se possível, ou sequencial.
+    
+    // Atualiza o modo para manual
+    await db().ref("bomba/controle/modo").set("manual");
+    
+    // Envia o comando
     await db().ref("bomba/controle/comandoManual").set(novoComando);
 
   } catch (err) {
@@ -305,7 +320,7 @@ function renderChart(points) {
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
-  console.log("Dashboard V9 Iniciado");
+  console.log("Dashboard Iniciado - Modo Seguro");
   await ensureSession();
   listenSensorData();
   listenSystemControl();
