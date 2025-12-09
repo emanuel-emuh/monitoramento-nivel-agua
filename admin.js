@@ -1,7 +1,7 @@
-/* admin.js – v9.0 (Correção Conexão e Cores) */
+/* admin.js – v10.0 (Correção Watchdog e Visualização Offline) */
 
 document.addEventListener('DOMContentLoaded', () => {
-  console.log("Admin script V9 starting...");
+  console.log("Admin script V10 starting...");
 
   let auth, database;
   let sensorRef, paramsRef, controlRef, historyRef, eventsRef;
@@ -38,29 +38,55 @@ document.addEventListener('DOMContentLoaded', () => {
   auth = firebase.auth();
   database = firebase.database();
 
-  // REFERÊNCIAS REVERTIDAS PARA HARDWARE ANTIGO
   sensorRef = database.ref('sensorData');
   paramsRef = database.ref('configuracoes/sistema');
   controlRef = database.ref('bomba/controle');
   historyRef = database.ref('historico');
   eventsRef = database.ref('logs');
 
+  // [NOVO] Watchdog Admin
+  let lastDataTime = 0;
+  
+  function updateConnectionStatus() {
+    if(!els.connStatus) return;
+    const now = Date.now();
+    const diff = now - lastDataTime;
+    
+    // Se o último dado chegou há menos de 20s, está Online
+    if (lastDataTime > 0 && diff < 20000) {
+        els.connStatus.textContent = "ONLINE";
+        els.connStatus.style.color = "#2e7d32"; 
+        
+        // Formata tempo (ex: "há 5s")
+        const seg = Math.floor(diff / 1000);
+        els.lastSeen.textContent = `Visto: há ${seg} segundos`;
+        els.lastSeen.style.color = "#64748b";
+    } else {
+        els.connStatus.textContent = "OFFLINE";
+        els.connStatus.style.color = "#dc2626"; // Vermelho
+        
+        if (lastDataTime === 0) {
+            els.lastSeen.textContent = "Visto: Nunca (nesta sessão)";
+        } else {
+            const dateStr = new Date(lastDataTime).toLocaleTimeString('pt-BR');
+            els.lastSeen.textContent = `Visto pela última vez: ${dateStr}`;
+        }
+        els.lastSeen.style.color = "#dc2626";
+    }
+  }
+
+  // Inicia o timer para checar status a cada 2 segundos
+  setInterval(updateConnectionStatus, 2000);
+
   function attachFirebaseListeners() {
     // SENSOR
     sensorRef.on('value', snap => {
+      // [NOVO] Atualiza timestamp do watchdog
+      lastDataTime = Date.now();
+      updateConnectionStatus(); // Atualiza visual na hora
+
       const d = snap.val() || {};
       
-      // 1. CORREÇÃO CONEXÃO: Se chegar dados, está ONLINE
-      if (els.connStatus) {
-          els.connStatus.textContent = "ONLINE";
-          els.connStatus.style.color = "#2e7d32"; 
-          els.connStatus.style.fontWeight = "bold";
-      }
-      if (els.lastSeen) {
-          const agora = new Date().toLocaleTimeString('pt-BR');
-          els.lastSeen.textContent = `Visto: ${agora}`;
-      }
-
       // Nível
       const rawLevel = (d.nivel !== undefined) ? d.nivel : d.level;
       const levelMain = (rawLevel !== undefined) ? Number(rawLevel) : '--';
@@ -73,11 +99,8 @@ document.addEventListener('DOMContentLoaded', () => {
       if(els.pctRes) els.pctRes.textContent = levelRes;
       if(els.cardRes) els.cardRes.textContent = `${levelRes}%`;
       
-      // STATUS BOMBA (Lendo de sensorData se existir, senão de controle)
-      // Tenta achar status no sensorData primeiro (mais confiável)
+      // STATUS BOMBA
       const st = String(d.statusBomba || d.status_bomba || "--").toUpperCase();
-      // Se não tiver no sensorData, tenta pegar do controle no próximo listener...
-      
       const isOn = st.includes("LIGA") || st === "ON";
       if(els.pumpStatus && st !== "--") {
          els.pumpStatus.textContent = isOn ? "LIGADA" : "DESLIGADA";
@@ -93,20 +116,6 @@ document.addEventListener('DOMContentLoaded', () => {
       if(els.btnToggleColl) {
          els.btnToggleColl.textContent = active ? "Pausar Coleta" : "Retomar Coleta";
          els.btnToggleColl.disabled = false;
-      }
-    });
-
-    // CONTROLE (Backup para Status Bomba se o sensorData falhar)
-    controlRef.on('value', snap => {
-      const d = snap.val() || {};
-      const st = String(d.statusBomba || "--").toUpperCase();
-      const isOn = st.includes("LIGA") || st === "ON";
-      
-      // Só atualiza se ainda estiver "--" ou para garantir sincronia
-      if(els.pumpStatus) {
-         els.pumpStatus.textContent = isOn ? "LIGADA" : "DESLIGADA";
-         els.pumpStatus.style.color = isOn ? "#2e7d32" : "#d32f2f";
-         els.pumpStatus.style.fontWeight = "bold";
       }
     });
 
