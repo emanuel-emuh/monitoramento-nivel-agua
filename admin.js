@@ -1,7 +1,7 @@
-/* admin.js – v9.0 (Correção Conexão e Cores) */
+/* admin.js – v8.0 (Final - Correção Conexão e Cores) */
 
 document.addEventListener('DOMContentLoaded', () => {
-  console.log("Admin script V9 starting...");
+  console.log("Admin script V8 starting...");
 
   let auth, database;
   let sensorRef, paramsRef, controlRef, historyRef, eventsRef;
@@ -38,7 +38,7 @@ document.addEventListener('DOMContentLoaded', () => {
   auth = firebase.auth();
   database = firebase.database();
 
-  // REFERÊNCIAS REVERTIDAS PARA HARDWARE ANTIGO
+  // REFERÊNCIAS COMPATÍVEIS
   sensorRef = database.ref('sensorData');
   paramsRef = database.ref('configuracoes/sistema');
   controlRef = database.ref('bomba/controle');
@@ -46,14 +46,14 @@ document.addEventListener('DOMContentLoaded', () => {
   eventsRef = database.ref('logs');
 
   function attachFirebaseListeners() {
-    // SENSOR
+    // SENSOR (Leitura Principal)
     sensorRef.on('value', snap => {
       const d = snap.val() || {};
       
-      // 1. CORREÇÃO CONEXÃO: Se chegar dados, está ONLINE
+      // 1. STATUS DE CONEXÃO (Truque: se recebeu, está online)
       if (els.connStatus) {
           els.connStatus.textContent = "ONLINE";
-          els.connStatus.style.color = "#2e7d32"; 
+          els.connStatus.style.color = "#2e7d32"; // Verde
           els.connStatus.style.fontWeight = "bold";
       }
       if (els.lastSeen) {
@@ -61,7 +61,7 @@ document.addEventListener('DOMContentLoaded', () => {
           els.lastSeen.textContent = `Visto: ${agora}`;
       }
 
-      // Nível
+      // Nível (lê 'nivel' ou 'level')
       const rawLevel = (d.nivel !== undefined) ? d.nivel : d.level;
       const levelMain = (rawLevel !== undefined) ? Number(rawLevel) : '--';
       const levelRes = (levelMain !== '--') ? (100 - levelMain) : '--';
@@ -72,17 +72,6 @@ document.addEventListener('DOMContentLoaded', () => {
       if(els.waterRes) els.waterRes.style.height = `${levelRes !== '--' ? levelRes : 0}%`;
       if(els.pctRes) els.pctRes.textContent = levelRes;
       if(els.cardRes) els.cardRes.textContent = `${levelRes}%`;
-      
-      // STATUS BOMBA (Lendo de sensorData se existir, senão de controle)
-      // Tenta achar status no sensorData primeiro (mais confiável)
-      const st = String(d.statusBomba || d.status_bomba || "--").toUpperCase();
-      // Se não tiver no sensorData, tenta pegar do controle no próximo listener...
-      
-      const isOn = st.includes("LIGA") || st === "ON";
-      if(els.pumpStatus && st !== "--") {
-         els.pumpStatus.textContent = isOn ? "LIGADA" : "DESLIGADA";
-         els.pumpStatus.style.color = isOn ? "#2e7d32" : "#d32f2f";
-      }
       
       // Coleta
       const active = d.coletaAtiva !== false;
@@ -96,13 +85,12 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
 
-    // CONTROLE (Backup para Status Bomba se o sensorData falhar)
+    // CONTROLE
     controlRef.on('value', snap => {
       const d = snap.val() || {};
       const st = String(d.statusBomba || "--").toUpperCase();
       const isOn = st.includes("LIGA") || st === "ON";
       
-      // Só atualiza se ainda estiver "--" ou para garantir sincronia
       if(els.pumpStatus) {
          els.pumpStatus.textContent = isOn ? "LIGADA" : "DESLIGADA";
          els.pumpStatus.style.color = isOn ? "#2e7d32" : "#d32f2f";
@@ -126,12 +114,14 @@ document.addEventListener('DOMContentLoaded', () => {
       
       const arr = Object.values(data).reverse();
       arr.forEach(l => {
-        const msg = l.message || l.mensagem || JSON.stringify(l);
+        const msg = l.message || JSON.stringify(l);
         const li = document.createElement('li');
+        
         let prefixo = "> ";
         if (l.timestamp) {
             prefixo = `[${new Date(l.timestamp).toLocaleTimeString('pt-BR')}] `;
         }
+        
         li.textContent = prefixo + msg;
         els.logsList.appendChild(li);
       });
