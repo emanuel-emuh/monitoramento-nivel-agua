@@ -1,12 +1,12 @@
-/* admin.js – v6.0 (Revertido para ESP Original) */
+/* admin.js – v7.0 (Correção Connection Status) */
 
 document.addEventListener('DOMContentLoaded', () => {
-  console.log("Admin script starting (Revertido)...");
+  console.log("Admin script V7 starting...");
 
   let auth, database;
   let sensorRef, paramsRef, controlRef, historyRef, eventsRef;
   
-  // ELEMENTOS DOM
+  // Elementos
   const els = {
     waterMain: document.getElementById('admin-water-main'),
     pctMain: document.getElementById('admin-level-percent-main'),
@@ -16,6 +16,8 @@ document.addEventListener('DOMContentLoaded', () => {
     cardRes: document.getElementById('admin-res-level-card'),
     pumpStatus: document.getElementById('admin-pump-status-card'),
     collStatus: document.getElementById('admin-collection-status-card'),
+    connStatus: document.getElementById('admin-connection-status'), // Elemento de conexão
+    lastSeen: document.getElementById('admin-last-seen'),
     inLow: document.getElementById('low-limit-input'),
     inHigh: document.getElementById('high-limit-input'),
     btnSave: document.getElementById('save-settings-button'),
@@ -27,7 +29,7 @@ document.addEventListener('DOMContentLoaded', () => {
     logsList: document.getElementById('log-entries')
   };
 
-  // INIT
+  // Firebase Init
   const firebaseConfig = {
       apiKey: "AIzaSyBOBbMzkTO2MvIxExVO8vlCOUgpeZp0rSY",
       authDomain: "aqua-monitor-login.firebaseapp.com",
@@ -38,24 +40,33 @@ document.addEventListener('DOMContentLoaded', () => {
   auth = firebase.auth();
   database = firebase.database();
 
-  // REFS ANTIGAS
-  sensorRef = database.ref('sensorData');          // ANTES: dados_sensores...
-  paramsRef = database.ref('configuracoes/sistema'); // ANTES: parametros...
-  controlRef = database.ref('bomba/controle');     // ANTES: controle_sistema
+  // REFERÊNCIAS ANTIGAS (Compatíveis com seu Hardware)
+  sensorRef = database.ref('sensorData');
+  paramsRef = database.ref('configuracoes/sistema');
+  controlRef = database.ref('bomba/controle');
   historyRef = database.ref('historico');
-  eventsRef = database.ref('logs');                // ANTES: eventos
+  eventsRef = database.ref('logs');
 
-  // LISTENERS
   function attachFirebaseListeners() {
     // SENSOR
     sensorRef.on('value', snap => {
       const d = snap.val() || {};
       
-      // CAMINHO ANTIGO: level
-      const levelMain = (d.level !== undefined) ? Number(d.level) : '--';
+      // 1. ATUALIZA CONEXÃO (Truque: se recebeu dados, está online)
+      if (els.connStatus) {
+          els.connStatus.textContent = "ONLINE";
+          els.connStatus.style.color = "var(--success)"; // Verde
+      }
+      if (els.lastSeen) {
+          const agora = new Date().toLocaleTimeString();
+          els.lastSeen.textContent = `Atualizado às: ${agora}`;
+      }
+
+      // Nível
+      const rawLevel = (d.level !== undefined) ? d.level : d.nivel;
+      const levelMain = (rawLevel !== undefined) ? Number(rawLevel) : '--';
       const levelRes = (levelMain !== '--') ? (100 - levelMain) : '--';
       
-      // UI
       if(els.waterMain) els.waterMain.style.height = `${levelMain !== '--' ? levelMain : 0}%`;
       if(els.pctMain) els.pctMain.textContent = levelMain;
       if(els.cardMain) els.cardMain.textContent = `${levelMain}%`;
@@ -63,7 +74,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if(els.pctRes) els.pctRes.textContent = levelRes;
       if(els.cardRes) els.cardRes.textContent = `${levelRes}%`;
       
-      // COLETA (estava em sensorData no antigo)
+      // Coleta
       const active = d.coletaAtiva !== false;
       if(els.collStatus) {
          els.collStatus.textContent = active ? "ATIVA" : "PAUSADA";
@@ -75,21 +86,23 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
 
-    // CONTROLE / BOMBA
+    // CONTROLE
     controlRef.on('value', snap => {
       const d = snap.val() || {};
-      // NOME ANTIGO: statusBomba
       const st = String(d.statusBomba || "--").toUpperCase();
+      
+      // CORRIGIDO: Aceita "ON", "LIGADA", etc.
+      const isOn = st.includes("LIGA") || st === "ON";
+      
       if(els.pumpStatus) {
-         els.pumpStatus.textContent = st;
-         els.pumpStatus.style.color = st.includes("LIGA") ? "var(--success)" : "var(--danger)";
+         els.pumpStatus.textContent = isOn ? "LIGADA" : "DESLIGADA";
+         els.pumpStatus.style.color = isOn ? "var(--success)" : "var(--danger)";
       }
     });
 
     // PARAMETROS
     paramsRef.on('value', snap => {
       const p = snap.val() || {};
-      // NOMES ANTIGOS: limiteInferior, limiteSuperior
       if(els.inLow) els.inLow.value = p.limiteInferior ?? 50;
       if(els.inHigh) els.inHigh.value = p.limiteSuperior ?? 95;
     });
@@ -99,10 +112,9 @@ document.addEventListener('DOMContentLoaded', () => {
       if(!els.logsList) return;
       els.logsList.innerHTML = "";
       const data = snap.val();
-      if(!data) { els.logsList.innerHTML = "<li>Vazio</li>"; return; }
+      if(!data) { els.logsList.innerHTML = "<li>Nenhum registro.</li>"; return; }
       const arr = Object.values(data).reverse();
       arr.forEach(l => {
-        // NOME ANTIGO: message
         const msg = l.message || JSON.stringify(l);
         const li = document.createElement('li');
         li.textContent = `> ${msg}`;
@@ -111,28 +123,25 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // BOTOES
+  // EVENTOS DE BOTÕES
   els.btnSave?.addEventListener('click', () => {
     const min = parseInt(els.inLow.value);
     const max = parseInt(els.inHigh.value);
-    // CAMINHO ANTIGO
     paramsRef.update({ limiteInferior: min, limiteSuperior: max })
-      .then(() => alert("Salvo!"))
+      .then(() => {
+          els.msgSave.textContent = "Salvo!";
+          setTimeout(()=> els.msgSave.textContent="", 2000);
+      })
       .catch(e => alert(e.message));
   });
 
   els.btnToggleColl?.addEventListener('click', async () => {
-     // A coletaAtiva ficava em sensorData no antigo
      const snap = await sensorRef.child('coletaAtiva').get();
-     const atual = snap.val();
-     sensorRef.update({ coletaAtiva: (atual === false) }); 
+     sensorRef.update({ coletaAtiva: (snap.val() === false) }); 
   });
 
   els.btnRestart?.addEventListener('click', () => {
-    if(confirm("Reiniciar ESP?")) {
-       // CAMINHO ANTIGO: comandoRestart
-       controlRef.update({ comandoRestart: true });
-    }
+    if(confirm("Reiniciar ESP?")) controlRef.update({ comandoRestart: true });
   });
 
   els.btnCleanLogs?.addEventListener('click', () => {
@@ -146,9 +155,8 @@ document.addEventListener('DOMContentLoaded', () => {
   // BOOT
   auth.onAuthStateChanged(user => {
     if(user) {
-       // Verifica Admin
        database.ref('usuarios/' + user.uid).get().then(s => {
-          if(s.val().role === 'admin') attachFirebaseListeners();
+          if(s.val() && s.val().role === 'admin') attachFirebaseListeners();
           else window.location.href = 'index.html';
        });
     } else {
