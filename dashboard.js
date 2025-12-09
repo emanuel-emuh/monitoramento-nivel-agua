@@ -1,4 +1,4 @@
-/* dashboard.js – v11.0 (Correção Final: Watchdog de Conexão) */
+/* dashboard.js – v12.0 (Botão Atómico + Watchdog Agressivo) */
 
 const firebaseConfig = {
   apiKey: "AIzaSyBOBbMzkTO2MvIxExVO8vlCOUgpeZp0rSY",
@@ -11,7 +11,7 @@ if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
 const db = () => firebase.database();
 const $ = (sel) => document.querySelector(sel);
 
-// --- Elementos UI ---
+// --- Elementos ---
 const els = {
   connLed: $("#conn-led"),
   connTxt: $("#conn-txt"),
@@ -42,22 +42,29 @@ const els = {
 let authUser = null;
 let chart;
 let historyBuffer = [];
-let watchdogTimer = null; // Temporizador
+let watchdogTimer = null;
 
-// --- Auxiliares ---
-function setOnline(on) {
+// --- WATCHDOG (DETEÇÃO DE QUEDA) ---
+function resetWatchdog() {
+  // 1. Marca como Online
   if (els.connLed) {
-    els.connLed.style.backgroundColor = on ? "#22c55e" : "#bbb";
-    els.connLed.classList.toggle("on", on);
+    els.connLed.style.backgroundColor = "#22c55e"; // Verde
+    els.connLed.classList.add("on");
   }
-  if (els.connTxt) els.connTxt.textContent = on ? "Online" : "Sem Sinal...";
-  
-  // WATCHDOG: Se disser que está Online, iniciamos contagem regressiva
-  if (on) {
-      clearTimeout(watchdogTimer);
-      // Se passar 20s sem refresh, marca como Offline
-      watchdogTimer = setTimeout(() => setOnline(false), 20000); 
-  }
+  if (els.connTxt) els.connTxt.textContent = "Online";
+
+  // 2. Limpa timer anterior
+  if (watchdogTimer) clearTimeout(watchdogTimer);
+
+  // 3. Inicia contagem da morte (20 segundos)
+  watchdogTimer = setTimeout(() => {
+    console.warn("Watchdog: Sem dados há 20s. Marcando OFFLINE.");
+    if (els.connLed) {
+      els.connLed.style.backgroundColor = "#dc3545"; // Vermelho
+      els.connLed.classList.remove("on");
+    }
+    if (els.connTxt) els.connTxt.textContent = "Sem Sinal (Offline)";
+  }, 20000); 
 }
 
 function fmtPct(n) { return Number.isFinite(n) ? `${Math.round(n)}%` : "--%"; }
@@ -83,43 +90,44 @@ async function ensureSession() {
   });
 }
 
-// 1. LEITURA SENSOR
+// 1. SENSOR
 function listenSensorData() {
   db().ref("sensorData").on("value", (snap) => {
-    setOnline(true); // <--- Reseta o Watchdog aqui!
-    
+    // SINAL DE VIDA RECEBIDO!
+    resetWatchdog();
+
     const data = snap.val() || {};
     const rawLevel = (data.nivel !== undefined) ? data.nivel : data.level;
     const nivelCaixa = safe(rawLevel, 0);
     const nivelRes = 100 - nivelCaixa;
 
-    // Atualiza Caixa
+    // Atualiza UI
     if (els.mainPct) els.mainPct.textContent = fmtPct(nivelCaixa);
     if (els.mainLiters) els.mainLiters.textContent = litersFromPercent(nivelCaixa);
     if (els.barMain) els.barMain.style.width = `${nivelCaixa}%`;
     if (els.tankMain) els.tankMain.style.height = `${nivelCaixa}%`;
     if (els.tankMainPct) els.tankMainPct.textContent = Math.round(nivelCaixa);
 
-    // Atualiza Reservatório
     if (els.resPct) els.resPct.textContent = fmtPct(nivelRes);
     if (els.resLiters) els.resLiters.textContent = litersFromPercent(nivelRes);
     if (els.barRes) els.barRes.style.width = `${nivelRes}%`;
     if (els.tankRes) els.tankRes.style.height = `${nivelRes}%`;
     if (els.tankResPct) els.tankResPct.textContent = Math.round(nivelRes);
 
-    // STATUS BOMBA
+    // Status da Bomba (Leitura Real)
     if (data.statusBomba || data.status_bomba) {
        updatePumpStatus(data.statusBomba || data.status_bomba);
     }
 
-  }, (err) => setOnline(false));
+  });
 }
 
-// 2. LEITURA CONTROLE
+// 2. CONTROLE
 function listenSystemControl() {
   db().ref("bomba/controle").on("value", (snap) => {
     const data = snap.val() || {};
 
+    // Backup de status
     updatePumpStatus(data.statusBomba || "DESLIGADA");
 
     const isAuto = (data.modo === "automatico");
@@ -157,11 +165,11 @@ function updatePumpStatus(statusRaw) {
        if (isOn) {
           els.motorBtn.textContent = "DESLIGAR BOMBA";
           els.motorBtn.className = "btn btn-danger";
-          els.motorBtn.style.backgroundColor = "#dc3545";
+          els.motorBtn.style.backgroundColor = ""; // Usa a cor do CSS
        } else {
           els.motorBtn.textContent = "LIGAR BOMBA";
           els.motorBtn.className = "btn btn-success";
-          els.motorBtn.style.backgroundColor = "#2e7d32";
+          els.motorBtn.style.backgroundColor = ""; 
        }
     }
 }
@@ -170,27 +178,19 @@ function updatePumpStatus(statusRaw) {
 function listenHistorico() {
   db().ref("historico").limitToLast(50).on("value", snap => {
     const data = snap.val();
-    
     if (!data) {
         if(els.consTxt) els.consTxt.textContent = "Aguardando novos dados...";
-        if(chart) { chart.data.labels=[]; chart.data.datasets[0].data=[]; chart.update(); }
         return;
     }
-
     const arr = [];
     Object.values(data).forEach(item => {
       const lvl = (item.nivel !== undefined) ? item.nivel : item.level;
       if (lvl !== undefined) {
-        arr.push({
-          ts: item.timestamp || Date.now(),
-          nivel: Number(lvl)
-        });
+        arr.push({ ts: item.timestamp || Date.now(), nivel: Number(lvl) });
       }
     });
-
     arr.sort((a, b) => a.ts - b.ts);
     historyBuffer = arr;
-
     renderChart(arr);
     calcConsumption(arr);
   });
@@ -209,8 +209,7 @@ function calcConsumption(points) {
 }
 
 function exportCSV() {
-  if (!historyBuffer || historyBuffer.length === 0) return alert("Sem dados. Aguarde o sensor enviar.");
-
+  if (!historyBuffer || historyBuffer.length === 0) return alert("Sem dados.");
   let csvContent = "data:text/csv;charset=utf-8,Data,Hora,Nivel (%),Volume (L)\n";
   historyBuffer.forEach(row => {
     const d = new Date(row.ts);
@@ -219,17 +218,37 @@ function exportCSV() {
     const litros = Math.round((row.nivel / 100) * 1000); 
     csvContent += `${dataStr},${horaStr},${row.nivel},${litros}\n`;
   });
-
   const encodedUri = encodeURI(csvContent);
   const link = document.createElement("a");
   link.setAttribute("href", encodedUri);
-  link.setAttribute("download", `Relatorio_Agua_${new Date().toISOString().slice(0,10)}.csv`);
+  link.setAttribute("download", "historico_agua.csv");
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
 }
 
-// 4. AÇÕES
+// --- AÇÕES DO USUÁRIO (ATUALIZAÇÃO ATÓMICA) ---
+
+async function toggleMotor() {
+  try {
+    const currentText = els.motorStatus.textContent;
+    const novoComando = currentText.includes("LIGA") ? "DESLIGAR" : "LIGAR";
+
+    console.log("Enviando comando atómico:", novoComando);
+
+    // PACOTE ÚNICO: Força Manual E Envia Comando ao mesmo tempo
+    const updates = {};
+    updates["bomba/controle/modo"] = "manual";
+    updates["bomba/controle/comandoManual"] = novoComando;
+
+    // Envia tudo junto para não haver conflito
+    await db().ref().update(updates);
+
+  } catch (err) {
+    alert("Erro: " + err.message);
+  }
+}
+
 async function handleAutoSwitch(e) {
   const novoModo = e.target.checked ? "automatico" : "manual";
   try {
@@ -238,19 +257,6 @@ async function handleAutoSwitch(e) {
     alert("Erro: " + err.message);
     e.target.checked = !e.target.checked;
   }
-}
-
-async function toggleMotor() {
-  try {
-    const currentText = els.motorStatus.textContent;
-    const novoComando = currentText.includes("LIGA") ? "DESLIGAR" : "LIGAR";
-
-    if (els.autoSwitch.checked) {
-      await db().ref("bomba/controle/modo").set("manual");
-    }
-    await db().ref("bomba/controle/comandoManual").set(novoComando);
-
-  } catch (err) { alert("Erro: " + err.message); }
 }
 
 async function toggleFerias() {
@@ -262,26 +268,20 @@ async function toggleFerias() {
   } catch (err) { alert("Erro: " + err.message); }
 }
 
-// 5. CHART
 function renderChart(points) {
   const ctx = document.getElementById("levelChart");
   if (!ctx) return;
-
   const labels = points.map(p => new Date(p.ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
   const data = points.map(p => p.nivel);
-
   if (!chart) {
     chart = new Chart(ctx, {
       type: "line",
       data: {
         labels: labels,
         datasets: [{
-          label: "Nível (%)",
-          data: data,
-          borderColor: "#2e7d32",
-          backgroundColor: "rgba(46, 125, 50, 0.1)",
-          fill: true,
-          tension: 0.3
+          label: "Nível (%)", data: data,
+          borderColor: "#2e7d32", backgroundColor: "rgba(46, 125, 50, 0.1)",
+          fill: true, tension: 0.3
         }]
       },
       options: { responsive: true, maintainAspectRatio: false, scales: { y: { min: 0, max: 100 } } }
@@ -294,7 +294,7 @@ function renderChart(points) {
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
-  console.log("Dashboard V11 Iniciado");
+  console.log("Dashboard V12 Iniciado");
   await ensureSession();
   listenSensorData();
   listenSystemControl();

@@ -178,3 +178,12 @@
     padding: 8px 12px; border-bottom: 1px solid #f1f5f9; font-size: 0.85rem;
   }
   .log-list li:last-child { border-bottom: none; }
+
+  /* Adicionar no final do main.css */
+.btn-success {
+  background-color: #2e7d32; /* Verde */
+  color: white;
+}
+.btn-success:hover {
+  background-color: #1b5e20;
+}
