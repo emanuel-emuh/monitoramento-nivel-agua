@@ -1,7 +1,7 @@
-/* admin.js – v11.0 (Correção Final: Deteção de Queda de Conexão) */
+/* admin.js – v11.1 (Correção: Watchdog estendido para 70s) */
 
 document.addEventListener('DOMContentLoaded', () => {
-  console.log("Admin script V11 starting...");
+  console.log("Admin script V11.1 starting...");
 
   let auth, database;
   let sensorRef, paramsRef, controlRef, historyRef, eventsRef;
@@ -68,9 +68,9 @@ document.addEventListener('DOMContentLoaded', () => {
       if (els.lastSeen) els.lastSeen.textContent = `Visto: ${agora}`;
 
       // Reinicia o temporizador "Cão de Guarda"
-      // Se não recebermos nada em 20 segundos, marca como Offline
+      // AJUSTADO: Se não recebermos nada em 70 segundos, marca como Offline
       clearTimeout(watchdogTimer);
-      watchdogTimer = setTimeout(setSystemOffline, 20000); 
+      watchdogTimer = setTimeout(setSystemOffline, 70000); 
   }
 
   function attachFirebaseListeners() {

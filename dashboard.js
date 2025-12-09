@@ -1,4 +1,4 @@
-/* dashboard.js – v12.0 (Botão Atómico + Watchdog Agressivo) */
+/* dashboard.js – v12.1 (Correção: Watchdog estendido para 70s) */
 
 const firebaseConfig = {
   apiKey: "AIzaSyBOBbMzkTO2MvIxExVO8vlCOUgpeZp0rSY",
@@ -56,15 +56,16 @@ function resetWatchdog() {
   // 2. Limpa timer anterior
   if (watchdogTimer) clearTimeout(watchdogTimer);
 
-  // 3. Inicia contagem da morte (20 segundos)
+  // 3. Inicia contagem da morte (70 segundos)
+  // AJUSTADO: De 20000 para 70000 para evitar falsos offline
   watchdogTimer = setTimeout(() => {
-    console.warn("Watchdog: Sem dados há 20s. Marcando OFFLINE.");
+    console.warn("Watchdog: Sem dados há 70s. Marcando OFFLINE.");
     if (els.connLed) {
       els.connLed.style.backgroundColor = "#dc3545"; // Vermelho
       els.connLed.classList.remove("on");
     }
     if (els.connTxt) els.connTxt.textContent = "Sem Sinal (Offline)";
-  }, 20000); 
+  }, 70000); 
 }
 
 function fmtPct(n) { return Number.isFinite(n) ? `${Math.round(n)}%` : "--%"; }
@@ -294,7 +295,7 @@ function renderChart(points) {
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
-  console.log("Dashboard V12 Iniciado");
+  console.log("Dashboard V12.1 Iniciado");
   await ensureSession();
   listenSensorData();
   listenSystemControl();
