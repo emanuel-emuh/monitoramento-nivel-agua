@@ -1,14 +1,15 @@
-/* admin.js – v11.1 (Correção: Watchdog estendido para 70s) */
+/* admin.js – vFinal (Estável e Confiável) */
 
 document.addEventListener('DOMContentLoaded', () => {
-  console.log("Admin script V11.1 starting...");
+  console.log("Admin System: Iniciando módulo de segurança e monitoramento...");
 
   let auth, database;
   let sensorRef, paramsRef, controlRef, historyRef, eventsRef;
   
-  // Variável para o temporizador de segurança
+  // Variável para o monitor de conexão (Watchdog)
   let watchdogTimer = null; 
 
+  // Elementos da Interface (Mapeamento completo)
   const els = {
     waterMain: document.getElementById('admin-water-main'),
     pctMain: document.getElementById('admin-level-percent-main'),
@@ -31,160 +32,238 @@ document.addEventListener('DOMContentLoaded', () => {
     logsList: document.getElementById('log-entries')
   };
 
+  // Configuração do Firebase
   const firebaseConfig = {
       apiKey: "AIzaSyBOBbMzkTO2MvIxExVO8vlCOUgpeZp0rSY",
       authDomain: "aqua-monitor-login.firebaseapp.com",
       projectId: "aqua-monitor-login",
       databaseURL: "https://aqua-monitor-login-default-rtdb.firebaseio.com"
   };
+
+  // Inicialização Segura
   if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
   auth = firebase.auth();
   database = firebase.database();
 
+  // Referências do Banco
   sensorRef = database.ref('sensorData');
   paramsRef = database.ref('configuracoes/sistema');
   controlRef = database.ref('bomba/controle');
   historyRef = database.ref('historico');
   eventsRef = database.ref('logs');
 
-  // --- FUNÇÃO PARA MARCAR COMO OFFLINE ---
+  // --- SISTEMA DE MONITORAMENTO DE CONEXÃO (WATCHDOG) ---
   function setSystemOffline() {
       if (els.connStatus) {
-          els.connStatus.textContent = "OFFLINE";
+          els.connStatus.textContent = "OFFLINE (Sem sinal)";
           els.connStatus.style.color = "#d32f2f"; // Vermelho
+          els.connStatus.style.fontWeight = "bold";
       }
       if (els.lastSeen) {
-          els.lastSeen.textContent = "Sinal perdido...";
+          els.lastSeen.textContent = "Aguardando reconexão do ESP...";
       }
+      console.warn("Alerta: Sistema parece estar offline (Watchdog disparado).");
   }
 
-  // --- FUNÇÃO PARA MARCAR COMO ONLINE ---
   function setSystemOnline() {
+      // Se estava offline, volta para online
       if (els.connStatus) {
-          els.connStatus.textContent = "ONLINE";
+          els.connStatus.textContent = "ONLINE (Operacional)";
           els.connStatus.style.color = "#2e7d32"; // Verde
+          els.connStatus.style.fontWeight = "bold";
       }
       const agora = new Date().toLocaleTimeString('pt-BR');
-      if (els.lastSeen) els.lastSeen.textContent = `Visto: ${agora}`;
+      if (els.lastSeen) els.lastSeen.textContent = `Último sinal: ${agora}`;
 
-      // Reinicia o temporizador "Cão de Guarda"
-      // AJUSTADO: Se não recebermos nada em 70 segundos, marca como Offline
-      clearTimeout(watchdogTimer);
-      watchdogTimer = setTimeout(setSystemOffline, 70000); 
+      // Reinicia a contagem regressiva
+      // 75 segundos de tolerância (tempo suficiente para o ciclo de 10s do ESP + atrasos de rede)
+      if (watchdogTimer) clearTimeout(watchdogTimer);
+      watchdogTimer = setTimeout(setSystemOffline, 75000); 
   }
 
+  // --- LISTENERS (Ouvintes de Dados) ---
   function attachFirebaseListeners() {
-    // SENSOR (O Coração do Sistema)
-    sensorRef.on('value', snap => {
-      const d = snap.val() || {};
-      
-      // 1. CHEGOU DADOS? ENTÃO ESTÁ ONLINE!
-      setSystemOnline();
+    console.log("Permissão de Admin confirmada. Conectando aos dados...");
 
-      // Nível
-      const rawLevel = (d.nivel !== undefined) ? d.nivel : d.level;
-      const levelMain = (rawLevel !== undefined) ? Number(rawLevel) : '--';
-      const levelRes = (levelMain !== '--') ? (100 - levelMain) : '--';
+    // 1. SENSOR E CONEXÃO
+    sensorRef.on('value', (snap) => {
+      const d = snap.val();
       
-      if(els.waterMain) els.waterMain.style.height = `${levelMain !== '--' ? levelMain : 0}%`;
-      if(els.pctMain) els.pctMain.textContent = levelMain;
-      if(els.cardMain) els.cardMain.textContent = `${levelMain}%`;
-      if(els.waterRes) els.waterRes.style.height = `${levelRes !== '--' ? levelRes : 0}%`;
-      if(els.pctRes) els.pctRes.textContent = levelRes;
-      if(els.cardRes) els.cardRes.textContent = `${levelRes}%`;
-      
-      // Coleta
-      const active = d.coletaAtiva !== false;
-      if(els.collStatus) {
-         els.collStatus.textContent = active ? "ATIVA" : "PAUSADA";
-         els.collStatus.style.color = active ? "#2e7d32" : "#d32f2f";
+      // Se d for null, o banco pode estar vazio, mas a conexão existe
+      if (d) {
+          setSystemOnline(); // Reset do Watchdog
+
+          // Atualização Visual Nível Principal
+          const rawLevel = (d.nivel !== undefined) ? d.nivel : d.level;
+          const levelMain = (rawLevel !== undefined) ? Number(rawLevel) : 0;
+          
+          if(els.waterMain) els.waterMain.style.height = `${levelMain}%`;
+          if(els.pctMain) els.pctMain.textContent = levelMain;
+          if(els.cardMain) els.cardMain.textContent = `${levelMain}%`;
+
+          // Atualização Visual Reservatório (Inverso)
+          const levelRes = (d.nivelReservatorio !== undefined) ? d.nivelReservatorio : (100 - levelMain);
+          if(els.waterRes) els.waterRes.style.height = `${levelRes}%`;
+          if(els.pctRes) els.pctRes.textContent = levelRes;
+          if(els.cardRes) els.cardRes.textContent = `${levelRes}%`;
+          
+          // Status Coleta
+          const active = d.coletaAtiva !== false;
+          if(els.collStatus) {
+            els.collStatus.textContent = active ? "ATIVA" : "PAUSADA";
+            els.collStatus.style.color = active ? "#2e7d32" : "#d32f2f";
+          }
+          if(els.btnToggleColl) {
+            els.btnToggleColl.textContent = active ? "PAUSAR COLETA" : "RETOMAR COLETA";
+            els.btnToggleColl.className = active ? "btn btn-secondary" : "btn btn-success";
+            els.btnToggleColl.disabled = false;
+          }
       }
-      if(els.btnToggleColl) {
-         els.btnToggleColl.textContent = active ? "Pausar Coleta" : "Retomar Coleta";
-         els.btnToggleColl.disabled = false;
-      }
+    }, (error) => {
+        console.error("Erro ao ler Sensores:", error);
+        alert("Erro de permissão: Você foi desconectado ou não tem acesso.");
     });
 
-    // CONTROLE
-    controlRef.on('value', snap => {
+    // 2. CONTROLE DA BOMBA
+    controlRef.on('value', (snap) => {
       const d = snap.val() || {};
       const st = String(d.statusBomba || "--").toUpperCase();
       const isOn = st.includes("LIGA") || st === "ON";
       
       if(els.pumpStatus) {
          els.pumpStatus.textContent = isOn ? "LIGADA" : "DESLIGADA";
-         els.pumpStatus.style.color = isOn ? "#2e7d32" : "#d32f2f";
+         els.pumpStatus.style.color = isOn ? "#2e7d32" : "#d32f2f"; // Verde ou Vermelho
          els.pumpStatus.style.fontWeight = "bold";
       }
     });
 
-    // PARAMETROS
-    paramsRef.on('value', snap => {
+    // 3. PARÂMETROS (Limites)
+    paramsRef.on('value', (snap) => {
       const p = snap.val() || {};
-      if(els.inLow) els.inLow.value = p.limiteInferior ?? 50;
-      if(els.inHigh) els.inHigh.value = p.limiteSuperior ?? 95;
+      // Só atualiza os inputs se o usuário não estiver digitando (opcional, mas evita bugs visuais)
+      if(document.activeElement !== els.inLow && els.inLow) els.inLow.value = p.limiteInferior ?? 50;
+      if(document.activeElement !== els.inHigh && els.inHigh) els.inHigh.value = p.limiteSuperior ?? 95;
     });
 
-    // LOGS
-    eventsRef.limitToLast(20).on('value', snap => {
+    // 4. LOGS DO SISTEMA
+    eventsRef.limitToLast(20).on('value', (snap) => {
       if(!els.logsList) return;
       els.logsList.innerHTML = "";
       const data = snap.val();
-      if(!data) { els.logsList.innerHTML = "<li>Nenhum registro.</li>"; return; }
       
-      const arr = Object.values(data).reverse();
+      if(!data) { 
+          els.logsList.innerHTML = "<li style='padding:10px; color:#666;'>Nenhum registro encontrado.</li>"; 
+          return; 
+      }
+      
+      // Transforma objeto em array e inverte para mostrar o mais recente primeiro
+      const arr = Object.values(data).sort((a,b) => (b.timestamp || 0) - (a.timestamp || 0));
+      
       arr.forEach(l => {
-        const msg = l.message || l.mensagem || JSON.stringify(l);
+        const msg = l.message || l.mensagem || "Evento desconhecido";
         const li = document.createElement('li');
-        let prefixo = "> ";
+        let dataFormatada = "";
+        
         if (l.timestamp) {
-            prefixo = `[${new Date(l.timestamp).toLocaleTimeString('pt-BR')}] `;
+            const dt = new Date(l.timestamp);
+            dataFormatada = `[${dt.toLocaleTimeString('pt-BR')}] `;
         }
-        li.textContent = prefixo + msg;
+        
+        li.textContent = dataFormatada + msg;
+        li.style.borderBottom = "1px solid #eee";
+        li.style.padding = "5px 0";
         els.logsList.appendChild(li);
       });
     });
   }
 
-  // BOTÕES
+  // --- CONTROLES E BOTÕES ---
+  
+  // Salvar Limites
   els.btnSave?.addEventListener('click', () => {
     const min = parseInt(els.inLow.value);
     const max = parseInt(els.inHigh.value);
+
+    if(min >= max) {
+        alert("Erro: O limite inferior deve ser menor que o superior.");
+        return;
+    }
+
+    els.btnSave.disabled = true;
+    els.btnSave.textContent = "Salvando...";
+
     paramsRef.update({ limiteInferior: min, limiteSuperior: max })
       .then(() => {
-          els.msgSave.textContent = "Salvo!";
-          setTimeout(()=> els.msgSave.textContent="", 2000);
+          els.msgSave.textContent = "Configurações salvas com sucesso!";
+          els.msgSave.style.color = "green";
+          setTimeout(()=> els.msgSave.textContent="", 3000);
       })
-      .catch(e => alert(e.message));
+      .catch(e => {
+          alert("Erro ao salvar: " + e.message);
+      })
+      .finally(() => {
+          els.btnSave.disabled = false;
+          els.btnSave.textContent = "Salvar Alterações";
+      });
   });
 
+  // Pausar/Retomar
   els.btnToggleColl?.addEventListener('click', async () => {
-     const snap = await sensorRef.child('coletaAtiva').get();
-     sensorRef.update({ coletaAtiva: (snap.val() === false) }); 
+     try {
+         const snap = await sensorRef.child('coletaAtiva').get();
+         const novoEstado = (snap.val() === false); // Inverte o estado atual
+         await sensorRef.update({ coletaAtiva: novoEstado });
+     } catch(e) {
+         console.error(e);
+         alert("Erro ao alterar estado da coleta.");
+     }
   });
 
+  // Reiniciar ESP
   els.btnRestart?.addEventListener('click', () => {
-    if(confirm("Reiniciar ESP?")) controlRef.update({ comandoRestart: true });
+    if(confirm("Tem certeza que deseja reiniciar o dispositivo ESP8266 remotamente?")) {
+        controlRef.update({ comandoRestart: true })
+            .then(() => alert("Comando de reinicialização enviado."))
+            .catch(e => alert(e.message));
+    }
   });
 
+  // Limpezas
   els.btnCleanLogs?.addEventListener('click', () => {
-     if(confirm("Limpar logs?")) eventsRef.remove();
+     if(confirm("Isso apagará todos os logs de eventos. Continuar?")) eventsRef.remove();
   });
   
   els.btnCleanHist?.addEventListener('click', () => {
-     if(confirm("Limpar historico?")) historyRef.remove();
+     if(confirm("ATENÇÃO: Isso apagará TODO o histórico de níveis. Continuar?")) historyRef.remove();
   });
 
-  // BOOT
+  // --- AUTENTICAÇÃO E INICIALIZAÇÃO ---
   auth.onAuthStateChanged(user => {
     if(user) {
-       database.ref('usuarios/' + user.uid).get().then(s => {
-          if(s.val() && s.val().role === 'admin') attachFirebaseListeners();
-          else window.location.href = 'index.html';
+       // Verifica se é Admin MESMO
+       database.ref('usuarios/' + user.uid).once('value').then(s => {
+          const dados = s.val();
+          if(dados && dados.role === 'admin') {
+              // SUCESSO: É admin, inicia o painel
+              attachFirebaseListeners();
+          } else {
+              // FALHA: Logado mas não é admin
+              alert("Acesso Negado: Sua conta não tem privilégios de Administrador.");
+              window.location.href = 'index.html';
+          }
+       }).catch(err => {
+           console.error("Erro ao verificar perfil:", err);
+           window.location.href = 'login.html';
        });
     } else {
+       // Não está logado
        window.location.href = 'login.html';
     }
   });
-  document.querySelector('.logout-button')?.addEventListener('click', () => auth.signOut());
+
+  // Botão Sair
+  document.querySelector('.logout-button')?.addEventListener('click', (e) => {
+      e.preventDefault();
+      auth.signOut();
+  });
 });

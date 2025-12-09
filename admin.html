@@ -14,7 +14,9 @@
   
   <link rel="stylesheet" href="main.css"/>
 </head>
-<body class="admin"> <nav class="main-header">
+<body class="admin"> 
+  
+  <nav class="main-header">
     <div class="brand">
       <span class="brand-icon">AM</span>
       <span>ADMINISTRAÇÃO</span>
@@ -75,7 +77,9 @@
 
       <div class="card">
         <h3>Conexão do Dispositivo</h3>
-        <p class="kpi-value" style="font-size:1.5rem;"><span id="admin-connection-status">--</span></p>
+        <p class="kpi-value" style="font-size:1.5rem;">
+            <span id="admin-connection-status" style="color:#d32f2f;">Aguardando...</span>
+        </p>
         <p id="admin-last-seen" style="color:var(--text-muted); font-size:0.85rem;">Visto: --</p>
       </div>
     </section>
@@ -93,7 +97,7 @@
           <input id="high-limit-input" type="number" class="input" min="0" max="100" value="95"/>
         </div>
         <button id="save-settings-button" class="btn btn-primary">Salvar Alterações</button>
-        <span id="settings-feedback" style="color:var(--success); font-size:0.85rem; display:block; margin-top:5px;"></span>
+        <span id="settings-feedback" style="font-size:0.85rem; display:block; margin-top:5px; min-height:20px;"></span>
       </div>
 
       <div class="card">
@@ -110,7 +114,7 @@
       <div class="card">
         <h3>Logs do Sistema</h3>
         <ul id="log-entries" class="log-list">
-          <li>Carregando logs...</li>
+          <li style="padding:10px; color:#666;">Carregando logs...</li>
         </ul>
       </div>
     </section>
@@ -124,6 +128,6 @@
   <script defer src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
   <script defer src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
   
-  <script defer src="admin.js?v=13"></script>
+  <script defer src="admin.js?v=final"></script>
 </body>
 </html>
