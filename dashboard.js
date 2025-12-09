@@ -1,4 +1,4 @@
-/* dashboard.js – v13.4 (Gera Excel .XLSX formatado e "Bonito") */
+/* dashboard.js – v14.0 (Gera Excel com Situação Colorida e Sem Logs) */
 
 const firebaseConfig = {
   apiKey: "AIzaSyBOBbMzkTO2MvIxExVO8vlCOUgpeZp0rSY",
@@ -56,7 +56,7 @@ function litersFromPercent(pct) {
   return `${litros.toFixed(2)} L`;
 }
 
-// --- WATCHDOG ---
+// --- WATCHDOG (Monitor de Conexão) ---
 function resetWatchdog() {
   if (els.connLed) { els.connLed.style.backgroundColor = "#22c55e"; els.connLed.classList.add("on"); }
   if (els.connTxt) els.connTxt.textContent = "Online";
@@ -81,7 +81,7 @@ async function ensureSession() {
   });
 }
 
-// 1. SENSOR
+// 1. SENSOR (Leitura em Tempo Real)
 function listenSensorData() {
   db().ref("sensorData").on("value", (snap) => {
     resetWatchdog();
@@ -105,7 +105,7 @@ function listenSensorData() {
   });
 }
 
-// 2. CONTROLE
+// 2. CONTROLE (Escuta status da bomba e modos)
 function listenSystemControl() {
   db().ref("bomba/controle").on("value", (snap) => {
     const data = snap.val() || {};
@@ -152,7 +152,7 @@ function updatePumpStatus(statusRaw) {
     }
 }
 
-// 3. HISTÓRICO
+// 3. HISTÓRICO (Carrega dados para o Gráfico e Excel)
 function listenHistorico() {
   db().ref("historico").limitToLast(100).on("value", snap => {
     const data = snap.val();
@@ -184,30 +184,20 @@ function calcConsumption(points) {
   if (els.consValue) els.consValue.textContent = `~${litros.toFixed(2)} L`;
 }
 
-// --- NOVA FUNÇÃO EXPORTAR EXCEL (.XLSX) ---
+// --- FUNÇÃO EXPORTAR EXCEL (.XLSX) ATUALIZADA ---
 async function exportCSV() {
-  if (!historyBuffer || historyBuffer.length === 0) return alert("Sem dados históricos.");
+  if (!historyBuffer || historyBuffer.length === 0) return alert("Sem dados históricos para exportar.");
   
   els.exportBtn.textContent = "Gerando Excel...";
   els.exportBtn.disabled = true;
 
   try {
-    // 1. Busca Logs
-    const logsSnap = await db().ref("logs").get();
-    const logsData = logsSnap.val() || {};
-    
-    // 2. Mescla dados
-    let timeline = [];
-    historyBuffer.forEach(h => { timeline.push({ ts: h.ts, type: 'data', nivel: h.nivel }); });
-    Object.values(logsData).forEach(l => {
-      if(l.timestamp) timeline.push({ ts: l.timestamp, type: 'log', msg: l.message || l.mensagem });
-    });
-    timeline.sort((a, b) => a.ts - b.ts);
+    // 1. Prepara os dados (Apenas Leituras do Sensor, sem Logs de texto)
+    let timeline = [...historyBuffer].sort((a, b) => a.ts - b.ts);
 
-    // 3. Cria Array de Dados para o Excel
-    // Cabeçalho
+    // 2. Define o Cabeçalho (Com coluna Situação no lugar de Logs)
     const ws_data = [
-      ["Data e Hora", "Nível Caixa (L)", "Nível Res. (L)", "% Caixa", "% Reservatório", "Logs/Eventos"]
+      ["Data e Hora", "Nível Caixa (L)", "Nível Res. (L)", "% Caixa", "% Reservatório", "Situação"]
     ];
 
     const fator = CAPACIDADE_TOTAL / 100;
@@ -216,51 +206,58 @@ async function exportCSV() {
       const d = new Date(row.ts);
       const dataHora = `${d.toLocaleDateString('pt-BR')} ${d.toLocaleTimeString('pt-BR')}`;
 
-      if (row.type === 'data') {
-        const pctMain = row.nivel;
-        const pctRes = 100 - row.nivel;
-        const litMain = (pctMain * fator).toFixed(2);
-        const litRes  = (pctRes * fator).toFixed(2);
-        
-        // Adiciona linha de dados
-        ws_data.push([dataHora, litMain, litRes, pctMain + "%", pctRes + "%", ""]);
+      const pctMain = row.nivel;
+      const pctRes = 100 - row.nivel;
       
-      } else if (row.type === 'log') {
-        // Adiciona linha de Log
-        ws_data.push([dataHora, "", "", "", "", row.msg]);
+      const litMain = (pctMain * fator).toFixed(2);
+      const litRes  = (pctRes * fator).toFixed(2);
+      
+      // --- LÓGICA DE SITUAÇÃO (Feita aqui no JS, sem mexer no ESP) ---
+      let situacao = "";
+      if (pctMain < 30) {
+          // Menor que 30%: BAIXO (Vermelho)
+          situacao = "🔴 BAIXO"; 
+      } else if (pctMain >= 30 && pctMain < 85) {
+          // Entre 30% e 85%: MÉDIO (Verde/Amarelo)
+          situacao = "🟢 MÉDIO";
+      } else {
+          // Maior que 85%: ALTO (Azul)
+          situacao = "🔵 ALTO";
       }
+
+      // Adiciona linha na tabela
+      ws_data.push([dataHora, litMain, litRes, pctMain + "%", pctRes + "%", situacao]);
     });
 
-    // 4. Cria a Planilha com a biblioteca SheetJS
+    // 3. Cria a Planilha
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.aoa_to_sheet(ws_data);
 
-    // --- O SEGREDO: DEFINIR LARGURA DAS COLUNAS ---
-    // wch = "width characters" (largura em caracteres)
+    // Largura das colunas (Ajuste visual)
     ws['!cols'] = [
-      { wch: 20 }, // Col A: Data e Hora
-      { wch: 15 }, // Col B: Nivel L
-      { wch: 15 }, // Col C: Nivel Res L
-      { wch: 10 }, // Col D: % Main
-      { wch: 15 }, // Col E: % Res
-      { wch: 50 }  // Col F: Logs (Bem largo para ler o texto)
+      { wch: 20 }, // Data
+      { wch: 15 }, // Nível L
+      { wch: 15 }, // Nível Res L
+      { wch: 10 }, // %
+      { wch: 15 }, // % Res
+      { wch: 15 }  // Situação
     ];
 
-    XLSX.utils.book_append_sheet(wb, ws, "Relatorio_Agua");
+    XLSX.utils.book_append_sheet(wb, ws, "Relatorio_Nivel");
 
-    // 5. Salva o arquivo
-    XLSX.writeFile(wb, "Relatorio_AquaMonitor.xlsx");
+    // 4. Salva o arquivo
+    XLSX.writeFile(wb, "Relatorio_AquaMonitor_Situacao.xlsx");
 
   } catch (err) {
     console.error(err);
-    alert("Erro: " + err.message);
+    alert("Erro ao gerar Excel: " + err.message);
   } finally {
     els.exportBtn.textContent = "Baixar Planilha";
     els.exportBtn.disabled = false;
   }
 }
 
-// --- INICIALIZAÇÃO ---
+// --- INICIALIZAÇÃO E BOTÕES ---
 async function toggleMotor() {
   try {
     const novo = currentPumpState ? "DESLIGAR" : "LIGAR";
@@ -309,7 +306,7 @@ function renderChart(points) {
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
-  console.log("Dashboard V13.4 - Excel Mode");
+  console.log("Dashboard V14.0 - Custom Excel Mode");
   await ensureSession();
   listenSensorData();
   listenSystemControl();
