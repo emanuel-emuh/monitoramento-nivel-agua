@@ -1,4 +1,4 @@
-/* dashboard.js – v12.1 (Correção: Watchdog estendido para 70s) */
+/* dashboard.js – v12.2 (Correção: Redirecionamento de Segurança + Watchdog 70s) */
 
 const firebaseConfig = {
   apiKey: "AIzaSyBOBbMzkTO2MvIxExVO8vlCOUgpeZp0rSY",
@@ -57,7 +57,6 @@ function resetWatchdog() {
   if (watchdogTimer) clearTimeout(watchdogTimer);
 
   // 3. Inicia contagem da morte (70 segundos)
-  // AJUSTADO: De 20000 para 70000 para evitar falsos offline
   watchdogTimer = setTimeout(() => {
     console.warn("Watchdog: Sem dados há 70s. Marcando OFFLINE.");
     if (els.connLed) {
@@ -78,14 +77,23 @@ function litersFromPercent(pct) {
   return `${Math.round(litros)} L`;
 }
 
+// --- SESSÃO E SEGURANÇA ---
 async function ensureSession() {
   return new Promise((resolve) => {
     firebase.auth().onAuthStateChanged((user) => {
+      // SE NÃO TIVER LOGADO, MANDA PARA O LOGIN IMEDIATAMENTE
+      if (!user) {
+        window.location.href = "login.html"; 
+        return;
+      }
+
       authUser = user;
-      const enabled = !!user;
+      const enabled = true; // Se chegou aqui, está logado e habilitado
+      
       if (els.autoSwitch) els.autoSwitch.disabled = !enabled;
       if (els.motorBtn) els.motorBtn.disabled = !enabled;
       if (els.feriasBtn) els.feriasBtn.disabled = !enabled;
+      
       resolve(user);
     });
   });
@@ -93,9 +101,9 @@ async function ensureSession() {
 
 // 1. SENSOR
 function listenSensorData() {
+  // O .on() vai falhar se não estiver logado, mas o ensureSession garante o login
   db().ref("sensorData").on("value", (snap) => {
-    // SINAL DE VIDA RECEBIDO!
-    resetWatchdog();
+    resetWatchdog(); // SINAL DE VIDA RECEBIDO!
 
     const data = snap.val() || {};
     const rawLevel = (data.nivel !== undefined) ? data.nivel : data.level;
@@ -119,7 +127,9 @@ function listenSensorData() {
     if (data.statusBomba || data.status_bomba) {
        updatePumpStatus(data.statusBomba || data.status_bomba);
     }
-
+  }, (error) => {
+    // Se der erro de permissão, avisa no console
+    console.error("Erro ao ler dados (Permissão negada?):", error);
   });
 }
 
@@ -128,7 +138,6 @@ function listenSystemControl() {
   db().ref("bomba/controle").on("value", (snap) => {
     const data = snap.val() || {};
 
-    // Backup de status
     updatePumpStatus(data.statusBomba || "DESLIGADA");
 
     const isAuto = (data.modo === "automatico");
@@ -166,7 +175,7 @@ function updatePumpStatus(statusRaw) {
        if (isOn) {
           els.motorBtn.textContent = "DESLIGAR BOMBA";
           els.motorBtn.className = "btn btn-danger";
-          els.motorBtn.style.backgroundColor = ""; // Usa a cor do CSS
+          els.motorBtn.style.backgroundColor = ""; 
        } else {
           els.motorBtn.textContent = "LIGAR BOMBA";
           els.motorBtn.className = "btn btn-success";
@@ -228,23 +237,16 @@ function exportCSV() {
   document.body.removeChild(link);
 }
 
-// --- AÇÕES DO USUÁRIO (ATUALIZAÇÃO ATÓMICA) ---
-
+// --- AÇÕES DO USUÁRIO ---
 async function toggleMotor() {
   try {
     const currentText = els.motorStatus.textContent;
     const novoComando = currentText.includes("LIGA") ? "DESLIGAR" : "LIGAR";
-
     console.log("Enviando comando atómico:", novoComando);
-
-    // PACOTE ÚNICO: Força Manual E Envia Comando ao mesmo tempo
     const updates = {};
     updates["bomba/controle/modo"] = "manual";
     updates["bomba/controle/comandoManual"] = novoComando;
-
-    // Envia tudo junto para não haver conflito
     await db().ref().update(updates);
-
   } catch (err) {
     alert("Erro: " + err.message);
   }
@@ -295,8 +297,8 @@ function renderChart(points) {
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
-  console.log("Dashboard V12.1 Iniciado");
-  await ensureSession();
+  console.log("Dashboard V12.2 Iniciado");
+  await ensureSession(); // AGORA OBRIGA O LOGIN
   listenSensorData();
   listenSystemControl();
   listenHistorico();
