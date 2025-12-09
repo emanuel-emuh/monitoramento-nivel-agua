@@ -1,4 +1,4 @@
-/* dashboard.js – v13.2 (Correção Volume Caixa 12cm: ~1.7L) */
+/* dashboard.js – v13.3 (Exportação CSV Avançada com Logs e Modelo Personalizado) */
 
 const firebaseConfig = {
   apiKey: "AIzaSyBOBbMzkTO2MvIxExVO8vlCOUgpeZp0rSY",
@@ -10,6 +10,9 @@ const firebaseConfig = {
 if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
 const db = () => firebase.database();
 const $ = (sel) => document.querySelector(sel);
+
+// --- CAPACIDADE (12x12x12 cm = 1.728 Litros) ---
+const CAPACIDADE_TOTAL = 1.728; 
 
 // --- Elementos ---
 const els = {
@@ -45,52 +48,42 @@ let historyBuffer = [];
 let watchdogTimer = null;
 let currentPumpState = false; 
 
-// --- WATCHDOG (DETEÇÃO DE QUEDA - 75s) ---
+// --- FORMATADORES ---
+function fmtPct(n) { return Number.isFinite(n) ? `${Math.round(n)}%` : "--%"; }
+function safe(n, def = 0) { const num = parseFloat(n); return Number.isNaN(num) ? def : num; }
+
+function litersFromPercent(pct) {
+  if (!Number.isFinite(pct)) return "-- L";
+  const litros = (pct / 100) * CAPACIDADE_TOTAL;
+  return `${litros.toFixed(2)} L`;
+}
+
+// --- WATCHDOG ---
 function resetWatchdog() {
   if (els.connLed) {
-    els.connLed.style.backgroundColor = "#22c55e"; // Verde
+    els.connLed.style.backgroundColor = "#22c55e"; 
     els.connLed.classList.add("on");
   }
   if (els.connTxt) els.connTxt.textContent = "Online";
 
   if (watchdogTimer) clearTimeout(watchdogTimer);
-
   watchdogTimer = setTimeout(() => {
-    console.warn("Watchdog: Sem dados há 75s. Marcando OFFLINE.");
+    console.warn("Watchdog: Offline.");
     if (els.connLed) {
-      els.connLed.style.backgroundColor = "#dc3545"; // Vermelho
+      els.connLed.style.backgroundColor = "#dc3545"; 
       els.connLed.classList.remove("on");
     }
     if (els.connTxt) els.connTxt.textContent = "Sem Sinal (Offline)";
   }, 75000); 
 }
 
-function fmtPct(n) { return Number.isFinite(n) ? `${Math.round(n)}%` : "--%"; }
-function safe(n, def = 0) { const num = parseFloat(n); return Number.isNaN(num) ? def : num; }
-
-// --- CÁLCULO DE LITROS (12x12x12 cm) ---
-function litersFromPercent(pct) {
-  // Volume: 12*12*12 = 1728 cm³ = 1.728 Litros
-  const capacidadeTotal = 1.728; 
-  
-  if (!Number.isFinite(pct)) return "-- L";
-  const litros = (pct / 100) * capacidadeTotal;
-  
-  // Exibe com 2 casas decimais para maquete pequena (ex: 1.25 L)
-  return `${litros.toFixed(2)} L`;
-}
-
-// --- SESSÃO E SEGURANÇA ---
+// --- SESSÃO ---
 async function ensureSession() {
   return new Promise((resolve) => {
     firebase.auth().onAuthStateChanged((user) => {
-      if (!user) {
-        window.location.href = "login.html"; 
-        return;
-      }
+      if (!user) { window.location.href = "login.html"; return; }
       authUser = user;
       const enabled = true;
-      
       if (els.autoSwitch) els.autoSwitch.disabled = !enabled;
       if (els.motorBtn) els.motorBtn.disabled = !enabled;
       if (els.feriasBtn) els.feriasBtn.disabled = !enabled;
@@ -103,10 +96,8 @@ async function ensureSession() {
 function listenSensorData() {
   db().ref("sensorData").on("value", (snap) => {
     resetWatchdog();
-
     const data = snap.val() || {};
-    const rawLevel = (data.nivel !== undefined) ? data.nivel : data.level;
-    const nivelCaixa = safe(rawLevel, 0);
+    const nivelCaixa = safe(data.nivel || data.level, 0);
     const nivelRes = 100 - nivelCaixa;
 
     if (els.mainPct) els.mainPct.textContent = fmtPct(nivelCaixa);
@@ -121,17 +112,14 @@ function listenSensorData() {
     if (els.tankRes) els.tankRes.style.height = `${nivelRes}%`;
     if (els.tankResPct) els.tankResPct.textContent = Math.round(nivelRes);
 
-    if (data.statusBomba || data.status_bomba) {
-       updatePumpStatus(data.statusBomba || data.status_bomba);
-    }
-  }, (error) => console.error("Erro sensor:", error));
+    if (data.statusBomba || data.status_bomba) updatePumpStatus(data.statusBomba || data.status_bomba);
+  });
 }
 
 // 2. CONTROLE
 function listenSystemControl() {
   db().ref("bomba/controle").on("value", (snap) => {
     const data = snap.val() || {};
-    
     if(data.statusBomba) updatePumpStatus(data.statusBomba);
 
     const isAuto = (data.modo === "automatico");
@@ -140,10 +128,7 @@ function listenSystemControl() {
       els.modePill.className = `pill ${isAuto ? 'auto' : 'man'}`;
     }
     if (els.modeTxt) els.modeTxt.textContent = `Modo ${isAuto ? "automático" : "manual"}.`;
-    
-    if (els.autoSwitch && els.autoSwitch.checked !== isAuto) {
-         els.autoSwitch.checked = isAuto;
-    }
+    if (els.autoSwitch && els.autoSwitch.checked !== isAuto) els.autoSwitch.checked = isAuto;
 
     const isFerias = (data.modoOperacao === "ferias");
     if (els.feriasBtn) {
@@ -157,7 +142,6 @@ function listenSystemControl() {
 function updatePumpStatus(statusRaw) {
     const st = String(statusRaw || "DESLIGADA").toUpperCase().trim();
     const isOn = (st === "LIGADA" || st === "ON" || st === "LIGADO");
-    
     currentPumpState = isOn;
 
     if (els.pumpPill) {
@@ -181,12 +165,10 @@ function updatePumpStatus(statusRaw) {
 
 // 3. HISTÓRICO
 function listenHistorico() {
-  db().ref("historico").limitToLast(50).on("value", snap => {
+  db().ref("historico").limitToLast(100).on("value", snap => {
     const data = snap.val();
-    if (!data) {
-        if(els.consTxt) els.consTxt.textContent = "Aguardando novos dados...";
-        return;
-    }
+    if (!data) { if(els.consTxt) els.consTxt.textContent = "Aguardando novos dados..."; return; }
+    
     const arr = [];
     Object.values(data).forEach(item => {
       const lvl = (item.nivel !== undefined) ? item.nivel : item.level;
@@ -203,60 +185,115 @@ function listenHistorico() {
 
 function calcConsumption(points) {
   if (points.length < 2) return;
-  
-  // Fator: 1.728 Litros totais / 100% = 0.01728 L/%
-  const fatorLitrosPorPorcento = 0.01728;
-  
+  const fatorLitros = CAPACIDADE_TOTAL / 100; // ~0.01728
   let totalDrop = 0;
   for (let i = 1; i < points.length; i++) {
     const diff = points[i - 1].nivel - points[i].nivel;
     if (diff > 0) totalDrop += diff;
   }
-  
-  const litros = totalDrop * fatorLitrosPorPorcento; 
+  const litros = totalDrop * fatorLitros; 
   if (els.consValue) els.consValue.textContent = `~${litros.toFixed(2)} L`;
-  if (els.consTxt) els.consTxt.textContent = "Estimado no período.";
 }
 
-function exportCSV() {
-  if (!historyBuffer || historyBuffer.length === 0) return alert("Sem dados.");
-  let csvContent = "data:text/csv;charset=utf-8,Data,Hora,Nivel (%),Volume (L)\n";
-  const fator = 0.01728; // Litros por %
+// --- EXPORTAÇÃO CSV AVANÇADA (MODELO PLANILHA) ---
+async function exportCSV() {
+  if (!historyBuffer || historyBuffer.length === 0) return alert("Sem dados históricos para exportar.");
   
-  historyBuffer.forEach(row => {
-    const d = new Date(row.ts);
-    const dataStr = d.toLocaleDateString('pt-BR');
-    const horaStr = d.toLocaleTimeString('pt-BR');
-    const litros = (row.nivel * fator).toFixed(3); // Mais precisão no CSV
-    csvContent += `${dataStr},${horaStr},${row.nivel},${litros}\n`;
-  });
-  
-  const encodedUri = encodeURI(csvContent);
-  const link = document.createElement("a");
-  link.setAttribute("href", encodedUri);
-  link.setAttribute("download", "historico_agua.csv");
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
+  els.exportBtn.textContent = "Gerando...";
+  els.exportBtn.disabled = true;
+
+  try {
+    // 1. Buscar Logs/Eventos do Firebase (para mesclar)
+    const logsSnap = await db().ref("logs").get();
+    const logsData = logsSnap.val() || {};
+    
+    // 2. Criar lista unificada de eventos (Dados + Logs)
+    let timeline = [];
+
+    // Adiciona histórico de nível
+    historyBuffer.forEach(h => {
+      timeline.push({ 
+        ts: h.ts, 
+        type: 'data', 
+        nivel: h.nivel 
+      });
+    });
+
+    // Adiciona Logs de eventos
+    Object.values(logsData).forEach(l => {
+      if(l.timestamp) {
+        timeline.push({
+          ts: l.timestamp,
+          type: 'log',
+          msg: l.message || l.mensagem
+        });
+      }
+    });
+
+    // Ordenar cronologicamente
+    timeline.sort((a, b) => a.ts - b.ts);
+
+    // 3. Gerar CSV com Separador Ponto-e-Vírgula (Ideal para Excel Brasil)
+    let csvContent = "data:text/csv;charset=utf-8,";
+    // Cabeçalho conforme solicitado
+    csvContent += "Data e Hora;Nivel da Agua (L);Nivel da Agua Reservatorio (L);Porcentagem da agua;Porcentagem da agua reservatorio;Logs/Eventos\n";
+
+    const fator = CAPACIDADE_TOTAL / 100;
+
+    timeline.forEach(row => {
+      const d = new Date(row.ts);
+      // Formato: dd/mm/aaaa | HH:MM:SS
+      const dataStr = d.toLocaleDateString('pt-BR');
+      const horaStr = d.toLocaleTimeString('pt-BR');
+      const dataHora = `${dataStr} | ${horaStr}`;
+
+      if (row.type === 'data') {
+        // Linha de DADOS DE NÍVEL
+        const pctMain = row.nivel;
+        const pctRes = 100 - row.nivel;
+        
+        const litMain = (pctMain * fator).toFixed(2).replace('.', ','); // Troca ponto por vírgula para Excel PT-BR
+        const litRes  = (pctRes * fator).toFixed(2).replace('.', ',');
+
+        // Colunas: Data; LitMain; LitRes; %Main; %Res; (Vazio Log)
+        csvContent += `${dataHora};${litMain} L;${litRes} L;${pctMain}%;${pctRes}%;\n`;
+      
+      } else if (row.type === 'log') {
+        // Linha de LOG/EVENTO
+        // Colunas: Data; (Vazio); (Vazio); (Vazio); (Vazio); Mensagem
+        csvContent += `${dataHora};;;;;${row.msg}\n`;
+      }
+    });
+
+    // 4. Download
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", "relatorio_completo_agua.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+  } catch (err) {
+    console.error(err);
+    alert("Erro ao exportar: " + err.message);
+  } finally {
+    els.exportBtn.textContent = "Baixar CSV";
+    els.exportBtn.disabled = false;
+  }
 }
 
 // --- AÇÕES DO USUÁRIO ---
 async function toggleMotor() {
   try {
     const novoComando = currentPumpState ? "DESLIGAR" : "LIGAR";
-    console.log("Comando Manual:", novoComando);
-    
     els.motorBtn.textContent = "Processando...";
     els.motorBtn.disabled = true;
-
-    const updates = {};
-    updates["bomba/controle/modo"] = "manual";
-    updates["bomba/controle/comandoManual"] = novoComando;
-    
-    await db().ref().update(updates);
-    
+    await db().ref().update({
+      "bomba/controle/modo": "manual",
+      "bomba/controle/comandoManual": novoComando
+    });
     setTimeout(() => { els.motorBtn.disabled = false; }, 500);
-
   } catch (err) {
     alert("Erro: " + err.message);
     els.motorBtn.disabled = false;
@@ -265,19 +302,14 @@ async function toggleMotor() {
 
 async function handleAutoSwitch(e) {
   const novoModo = e.target.checked ? "automatico" : "manual";
-  try {
-    await db().ref("bomba/controle/modo").set(novoModo);
-  } catch (err) {
-    alert("Erro: " + err.message);
-    e.target.checked = !e.target.checked;
-  }
+  try { await db().ref("bomba/controle/modo").set(novoModo); } 
+  catch (err) { alert("Erro: " + err.message); e.target.checked = !e.target.checked; }
 }
 
 async function toggleFerias() {
   try {
     const snap = await db().ref("bomba/controle/modoOperacao").get();
-    const atual = snap.val();
-    const novo = (atual === "ferias") ? "normal" : "ferias";
+    const novo = (snap.val() === "ferias") ? "normal" : "ferias";
     await db().ref("bomba/controle/modoOperacao").set(novo);
   } catch (err) { alert("Erro: " + err.message); }
 }
@@ -308,7 +340,7 @@ function renderChart(points) {
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
-  console.log("Dashboard V13.2 Iniciado");
+  console.log("Dashboard V13.3 Iniciado");
   await ensureSession();
   listenSensorData();
   listenSystemControl();
