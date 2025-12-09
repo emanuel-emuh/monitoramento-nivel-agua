@@ -1,4 +1,4 @@
-/* dashboard.js – v13.3 (Exportação CSV Avançada com Logs e Modelo Personalizado) */
+/* dashboard.js – v13.4 (Gera Excel .XLSX formatado e "Bonito") */
 
 const firebaseConfig = {
   apiKey: "AIzaSyBOBbMzkTO2MvIxExVO8vlCOUgpeZp0rSY",
@@ -14,7 +14,6 @@ const $ = (sel) => document.querySelector(sel);
 // --- CAPACIDADE (12x12x12 cm = 1.728 Litros) ---
 const CAPACIDADE_TOTAL = 1.728; 
 
-// --- Elementos ---
 const els = {
   connLed: $("#conn-led"),
   connTxt: $("#conn-txt"),
@@ -48,10 +47,9 @@ let historyBuffer = [];
 let watchdogTimer = null;
 let currentPumpState = false; 
 
-// --- FORMATADORES ---
+// --- FUNÇÕES BÁSICAS ---
 function fmtPct(n) { return Number.isFinite(n) ? `${Math.round(n)}%` : "--%"; }
 function safe(n, def = 0) { const num = parseFloat(n); return Number.isNaN(num) ? def : num; }
-
 function litersFromPercent(pct) {
   if (!Number.isFinite(pct)) return "-- L";
   const litros = (pct / 100) * CAPACIDADE_TOTAL;
@@ -60,19 +58,11 @@ function litersFromPercent(pct) {
 
 // --- WATCHDOG ---
 function resetWatchdog() {
-  if (els.connLed) {
-    els.connLed.style.backgroundColor = "#22c55e"; 
-    els.connLed.classList.add("on");
-  }
+  if (els.connLed) { els.connLed.style.backgroundColor = "#22c55e"; els.connLed.classList.add("on"); }
   if (els.connTxt) els.connTxt.textContent = "Online";
-
   if (watchdogTimer) clearTimeout(watchdogTimer);
   watchdogTimer = setTimeout(() => {
-    console.warn("Watchdog: Offline.");
-    if (els.connLed) {
-      els.connLed.style.backgroundColor = "#dc3545"; 
-      els.connLed.classList.remove("on");
-    }
+    if (els.connLed) { els.connLed.style.backgroundColor = "#dc3545"; els.connLed.classList.remove("on"); }
     if (els.connTxt) els.connTxt.textContent = "Sem Sinal (Offline)";
   }, 75000); 
 }
@@ -83,10 +73,9 @@ async function ensureSession() {
     firebase.auth().onAuthStateChanged((user) => {
       if (!user) { window.location.href = "login.html"; return; }
       authUser = user;
-      const enabled = true;
-      if (els.autoSwitch) els.autoSwitch.disabled = !enabled;
-      if (els.motorBtn) els.motorBtn.disabled = !enabled;
-      if (els.feriasBtn) els.feriasBtn.disabled = !enabled;
+      els.autoSwitch.disabled = false;
+      els.motorBtn.disabled = false;
+      els.feriasBtn.disabled = false;
       resolve(user);
     });
   });
@@ -185,7 +174,7 @@ function listenHistorico() {
 
 function calcConsumption(points) {
   if (points.length < 2) return;
-  const fatorLitros = CAPACIDADE_TOTAL / 100; // ~0.01728
+  const fatorLitros = CAPACIDADE_TOTAL / 100; 
   let totalDrop = 0;
   for (let i = 1; i < points.length; i++) {
     const diff = points[i - 1].nivel - points[i].nivel;
@@ -195,114 +184,94 @@ function calcConsumption(points) {
   if (els.consValue) els.consValue.textContent = `~${litros.toFixed(2)} L`;
 }
 
-// --- EXPORTAÇÃO CSV AVANÇADA (MODELO PLANILHA) ---
+// --- NOVA FUNÇÃO EXPORTAR EXCEL (.XLSX) ---
 async function exportCSV() {
-  if (!historyBuffer || historyBuffer.length === 0) return alert("Sem dados históricos para exportar.");
+  if (!historyBuffer || historyBuffer.length === 0) return alert("Sem dados históricos.");
   
-  els.exportBtn.textContent = "Gerando...";
+  els.exportBtn.textContent = "Gerando Excel...";
   els.exportBtn.disabled = true;
 
   try {
-    // 1. Buscar Logs/Eventos do Firebase (para mesclar)
+    // 1. Busca Logs
     const logsSnap = await db().ref("logs").get();
     const logsData = logsSnap.val() || {};
     
-    // 2. Criar lista unificada de eventos (Dados + Logs)
+    // 2. Mescla dados
     let timeline = [];
-
-    // Adiciona histórico de nível
-    historyBuffer.forEach(h => {
-      timeline.push({ 
-        ts: h.ts, 
-        type: 'data', 
-        nivel: h.nivel 
-      });
-    });
-
-    // Adiciona Logs de eventos
+    historyBuffer.forEach(h => { timeline.push({ ts: h.ts, type: 'data', nivel: h.nivel }); });
     Object.values(logsData).forEach(l => {
-      if(l.timestamp) {
-        timeline.push({
-          ts: l.timestamp,
-          type: 'log',
-          msg: l.message || l.mensagem
-        });
-      }
+      if(l.timestamp) timeline.push({ ts: l.timestamp, type: 'log', msg: l.message || l.mensagem });
     });
-
-    // Ordenar cronologicamente
     timeline.sort((a, b) => a.ts - b.ts);
 
-    // 3. Gerar CSV com Separador Ponto-e-Vírgula (Ideal para Excel Brasil)
-    let csvContent = "data:text/csv;charset=utf-8,";
-    // Cabeçalho conforme solicitado
-    csvContent += "Data e Hora;Nivel da Agua (L);Nivel da Agua Reservatorio (L);Porcentagem da agua;Porcentagem da agua reservatorio;Logs/Eventos\n";
+    // 3. Cria Array de Dados para o Excel
+    // Cabeçalho
+    const ws_data = [
+      ["Data e Hora", "Nível Caixa (L)", "Nível Res. (L)", "% Caixa", "% Reservatório", "Logs/Eventos"]
+    ];
 
     const fator = CAPACIDADE_TOTAL / 100;
 
     timeline.forEach(row => {
       const d = new Date(row.ts);
-      // Formato: dd/mm/aaaa | HH:MM:SS
-      const dataStr = d.toLocaleDateString('pt-BR');
-      const horaStr = d.toLocaleTimeString('pt-BR');
-      const dataHora = `${dataStr} | ${horaStr}`;
+      const dataHora = `${d.toLocaleDateString('pt-BR')} ${d.toLocaleTimeString('pt-BR')}`;
 
       if (row.type === 'data') {
-        // Linha de DADOS DE NÍVEL
         const pctMain = row.nivel;
         const pctRes = 100 - row.nivel;
+        const litMain = (pctMain * fator).toFixed(2);
+        const litRes  = (pctRes * fator).toFixed(2);
         
-        const litMain = (pctMain * fator).toFixed(2).replace('.', ','); // Troca ponto por vírgula para Excel PT-BR
-        const litRes  = (pctRes * fator).toFixed(2).replace('.', ',');
-
-        // Colunas: Data; LitMain; LitRes; %Main; %Res; (Vazio Log)
-        csvContent += `${dataHora};${litMain} L;${litRes} L;${pctMain}%;${pctRes}%;\n`;
+        // Adiciona linha de dados
+        ws_data.push([dataHora, litMain, litRes, pctMain + "%", pctRes + "%", ""]);
       
       } else if (row.type === 'log') {
-        // Linha de LOG/EVENTO
-        // Colunas: Data; (Vazio); (Vazio); (Vazio); (Vazio); Mensagem
-        csvContent += `${dataHora};;;;;${row.msg}\n`;
+        // Adiciona linha de Log
+        ws_data.push([dataHora, "", "", "", "", row.msg]);
       }
     });
 
-    // 4. Download
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", "relatorio_completo_agua.csv");
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    // 4. Cria a Planilha com a biblioteca SheetJS
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet(ws_data);
+
+    // --- O SEGREDO: DEFINIR LARGURA DAS COLUNAS ---
+    // wch = "width characters" (largura em caracteres)
+    ws['!cols'] = [
+      { wch: 20 }, // Col A: Data e Hora
+      { wch: 15 }, // Col B: Nivel L
+      { wch: 15 }, // Col C: Nivel Res L
+      { wch: 10 }, // Col D: % Main
+      { wch: 15 }, // Col E: % Res
+      { wch: 50 }  // Col F: Logs (Bem largo para ler o texto)
+    ];
+
+    XLSX.utils.book_append_sheet(wb, ws, "Relatorio_Agua");
+
+    // 5. Salva o arquivo
+    XLSX.writeFile(wb, "Relatorio_AquaMonitor.xlsx");
 
   } catch (err) {
     console.error(err);
-    alert("Erro ao exportar: " + err.message);
+    alert("Erro: " + err.message);
   } finally {
-    els.exportBtn.textContent = "Baixar CSV";
+    els.exportBtn.textContent = "Baixar Planilha";
     els.exportBtn.disabled = false;
   }
 }
 
-// --- AÇÕES DO USUÁRIO ---
+// --- INICIALIZAÇÃO ---
 async function toggleMotor() {
   try {
-    const novoComando = currentPumpState ? "DESLIGAR" : "LIGAR";
-    els.motorBtn.textContent = "Processando...";
+    const novo = currentPumpState ? "DESLIGAR" : "LIGAR";
     els.motorBtn.disabled = true;
-    await db().ref().update({
-      "bomba/controle/modo": "manual",
-      "bomba/controle/comandoManual": novoComando
-    });
+    await db().ref().update({ "bomba/controle/modo": "manual", "bomba/controle/comandoManual": novo });
     setTimeout(() => { els.motorBtn.disabled = false; }, 500);
-  } catch (err) {
-    alert("Erro: " + err.message);
-    els.motorBtn.disabled = false;
-  }
+  } catch (err) { alert("Erro: " + err.message); els.motorBtn.disabled = false; }
 }
 
 async function handleAutoSwitch(e) {
-  const novoModo = e.target.checked ? "automatico" : "manual";
-  try { await db().ref("bomba/controle/modo").set(novoModo); } 
+  try { await db().ref("bomba/controle/modo").set(e.target.checked ? "automatico" : "manual"); } 
   catch (err) { alert("Erro: " + err.message); e.target.checked = !e.target.checked; }
 }
 
@@ -340,7 +309,7 @@ function renderChart(points) {
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
-  console.log("Dashboard V13.3 Iniciado");
+  console.log("Dashboard V13.4 - Excel Mode");
   await ensureSession();
   listenSensorData();
   listenSystemControl();
