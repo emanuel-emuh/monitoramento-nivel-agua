@@ -1,3 +1,5 @@
+/* dashboard.js – v9.0 (Correção Definitiva de Status e CSV) */
+
 const firebaseConfig = {
   apiKey: "AIzaSyBOBbMzkTO2MvIxExVO8vlCOUgpeZp0rSY",
   authDomain: "aqua-monitor-login.firebaseapp.com",
@@ -41,48 +43,20 @@ let authUser = null;
 let chart;
 let historyBuffer = [];
 
-// [NOVO] Variável para controlar o tempo da última resposta do ESP
-let lastHeartbeat = 0; 
-let connectionInterval = null;
-
 // --- Auxiliares ---
 function setOnline(on) {
   if (els.connLed) {
-    // [MODIFICADO] Cores mais evidentes para o status
-    els.connLed.style.backgroundColor = on ? "#22c55e" : "#ef4444"; // Verde ou Vermelho
+    els.connLed.style.backgroundColor = on ? "#22c55e" : "#bbb";
     els.connLed.classList.toggle("on", on);
   }
-  if (els.connTxt) {
-    els.connTxt.textContent = on ? "Online" : "Offline (Desconectado)";
-    els.connTxt.style.color = on ? "#2e7d32" : "#dc2626";
-  }
-
-  // [NOVO] Desabilita controles se estiver offline para evitar confusão
-  const disabledState = !on || !authUser;
-  if (els.motorBtn) els.motorBtn.disabled = disabledState;
-  if (els.autoSwitch) els.autoSwitch.disabled = disabledState;
-  if (els.feriasBtn) els.feriasBtn.disabled = disabledState;
-}
-
-// [NOVO] Função Watchdog: Verifica se o ESP parou de falar
-function startConnectionWatchdog() {
-  if (connectionInterval) clearInterval(connectionInterval);
-  
-  connectionInterval = setInterval(() => {
-    const now = Date.now();
-    // Se não receber dados há mais de 20 segundos, considera OFFLINE
-    const timeSinceLastData = now - lastHeartbeat;
-    const isConnected = timeSinceLastData < 20000; 
-
-    setOnline(isConnected);
-  }, 5000); // Roda a verificação a cada 5 segundos
+  if (els.connTxt) els.connTxt.textContent = on ? "Online" : "Conectando...";
 }
 
 function fmtPct(n) { return Number.isFinite(n) ? `${Math.round(n)}%` : "--%"; }
 function safe(n, def = 0) { const num = parseFloat(n); return Number.isNaN(num) ? def : num; }
 
 function litersFromPercent(pct) {
-  const capacidadeTotal = 1000; 
+  const capacidadeTotal = 1000; // Ajuste para o tamanho da sua caixa
   if (!Number.isFinite(pct)) return "-- L";
   const litros = (pct / 100) * capacidadeTotal;
   return `${Math.round(litros)} L`;
@@ -92,44 +66,45 @@ async function ensureSession() {
   return new Promise((resolve) => {
     firebase.auth().onAuthStateChanged((user) => {
       authUser = user;
-      // O estado dos botões agora também depende da conexão (ver setOnline)
+      const enabled = !!user;
+      if (els.autoSwitch) els.autoSwitch.disabled = !enabled;
+      if (els.motorBtn) els.motorBtn.disabled = !enabled;
+      if (els.feriasBtn) els.feriasBtn.disabled = !enabled;
       resolve(user);
     });
   });
 }
 
 // =========================================================
-// 1. LEITURA SENSOR (sensorData)
+// 1. LEITURA SENSOR (sensorData) -> A VERDADE DO HARDWARE
 // =========================================================
 function listenSensorData() {
+  // O ESP escreve o estado real aqui (nível e status da bomba)
   db().ref("sensorData").on("value", (snap) => {
-    // [MODIFICADO] Atualiza o heartbeat toda vez que chega dado
-    lastHeartbeat = Date.now();
-    
-    // Chamamos setOnline(true) aqui para resposta imediata, 
-    // mas o Watchdog cuidará de colocar false se parar.
-    setOnline(true); 
-
+    setOnline(true);
     const data = snap.val() || {};
 
-    // 1. NÍVEL
+    // 1. NÍVEL (Tenta 'nivel' ou 'level')
     const rawLevel = (data.nivel !== undefined) ? data.nivel : data.level;
     const nivelCaixa = safe(rawLevel, 0);
     const nivelRes = 100 - nivelCaixa;
 
+    // Atualiza Caixa
     if (els.mainPct) els.mainPct.textContent = fmtPct(nivelCaixa);
     if (els.mainLiters) els.mainLiters.textContent = litersFromPercent(nivelCaixa);
     if (els.barMain) els.barMain.style.width = `${nivelCaixa}%`;
     if (els.tankMain) els.tankMain.style.height = `${nivelCaixa}%`;
     if (els.tankMainPct) els.tankMainPct.textContent = Math.round(nivelCaixa);
 
+    // Atualiza Reservatório
     if (els.resPct) els.resPct.textContent = fmtPct(nivelRes);
     if (els.resLiters) els.resLiters.textContent = litersFromPercent(nivelRes);
     if (els.barRes) els.barRes.style.width = `${nivelRes}%`;
     if (els.tankRes) els.tankRes.style.height = `${nivelRes}%`;
     if (els.tankResPct) els.tankResPct.textContent = Math.round(nivelRes);
 
-    // 2. STATUS DA BOMBA
+    // 2. STATUS DA BOMBA (Crucial: Ler daqui e não de bomba/controle)
+    // Tenta ler 'statusBomba' ou 'status_bomba'
     const statusRaw = String(data.statusBomba || data.status_bomba || "DESLIGADA").toUpperCase();
     const isOn = statusRaw.includes("LIGA") || statusRaw === "ON";
 
@@ -140,33 +115,30 @@ function listenSensorData() {
     if (els.pumpTxt) els.pumpTxt.textContent = `A bomba está ${isOn ? "LIGADA" : "DESLIGADA"}.`;
     if (els.motorStatus) els.motorStatus.textContent = isOn ? "LIGADA" : "DESLIGADA";
 
-    // Atualiza Botão Manual
+    // Atualiza Botão Manual com base no STATUS REAL
     if (els.motorBtn) {
       if (isOn) {
         els.motorBtn.textContent = "DESLIGAR BOMBA";
         els.motorBtn.className = "btn btn-danger";
-        els.motorBtn.style.backgroundColor = "#dc3545"; 
+        els.motorBtn.style.backgroundColor = "#dc3545"; // Vermelho
       } else {
         els.motorBtn.textContent = "LIGAR BOMBA";
         els.motorBtn.className = "btn btn-success"; 
-        els.motorBtn.style.backgroundColor = "#2e7d32"; 
+        els.motorBtn.style.backgroundColor = "#2e7d32"; // Verde
       }
     }
 
-  }, (err) => {
-    console.error("Erro leitura:", err);
-    // [NOVO] Se der erro de permissão ou rede, marca offline imediatamente
-    lastHeartbeat = 0; 
-    setOnline(false);
-  });
+  }, (err) => setOnline(false));
 }
 
 // =========================================================
-// 2. LEITURA CONTROLE
+// 2. LEITURA CONTROLE (bomba/controle) -> CONFIGURAÇÕES
 // =========================================================
 function listenSystemControl() {
   db().ref("bomba/controle").on("value", (snap) => {
     const data = snap.val() || {};
+
+    // Modo Automático
     const isAuto = (data.modo === "automatico");
 
     if (els.modePill) {
@@ -179,6 +151,7 @@ function listenSystemControl() {
       els.autoSwitch.checked = isAuto;
     }
 
+    // Modo Férias
     const isFerias = (data.modoOperacao === "ferias");
     if (els.feriasBtn) {
       els.feriasBtn.textContent = isFerias ? "Desativar Modo Férias" : "Ativar Modo Férias";
@@ -198,6 +171,7 @@ function listenHistorico() {
 
     const arr = [];
     Object.values(data).forEach(item => {
+      // Compatibilidade: nivel ou level
       const lvl = (item.nivel !== undefined) ? item.nivel : item.level;
       if (lvl !== undefined) {
         arr.push({
@@ -209,6 +183,7 @@ function listenHistorico() {
 
     arr.sort((a, b) => a.ts - b.ts);
     historyBuffer = arr;
+
     renderChart(arr);
     calcConsumption(arr);
   });
@@ -224,21 +199,26 @@ function calcConsumption(points) {
     const diff = points[i - 1].nivel - points[i].nivel;
     if (diff > 0) totalDrop += diff;
   }
-  const litros = totalDrop * 10;
+  const litros = totalDrop * 10; // 1% = 10L
   if (els.consValue) els.consValue.textContent = `~${Math.round(litros)} L`;
   if (els.consTxt) els.consTxt.textContent = "Consumo estimado recente.";
 }
 
 function exportCSV() {
   if (!historyBuffer || historyBuffer.length === 0) return alert("Sem dados para exportar.");
+
+  // Cabeçalho Enfeitado e Dados Formatados
   let csvContent = "data:text/csv;charset=utf-8,Data,Hora,Nivel (%),Volume (L)\n";
+
   historyBuffer.forEach(row => {
     const d = new Date(row.ts);
-    const dataStr = d.toLocaleDateString('pt-BR'); 
+    const dataStr = d.toLocaleDateString('pt-BR'); // Formato BR
     const horaStr = d.toLocaleTimeString('pt-BR');
-    const litros = Math.round((row.nivel / 100) * 1000); 
+    const litros = Math.round((row.nivel / 100) * 1000); // 1000L Capacidade
+
     csvContent += `${dataStr},${horaStr},${row.nivel},${litros}\n`;
   });
+
   const encodedUri = encodeURI(csvContent);
   const link = document.createElement("a");
   link.setAttribute("href", encodedUri);
@@ -249,7 +229,7 @@ function exportCSV() {
 }
 
 // =========================================================
-// 4. AÇÕES (BOTÕES) - [MODIFICADO]
+// 4. AÇÕES (BOTÕES)
 // =========================================================
 async function handleAutoSwitch(e) {
   const novoModo = e.target.checked ? "automatico" : "manual";
@@ -264,29 +244,19 @@ async function handleAutoSwitch(e) {
 async function toggleMotor() {
   try {
     const currentText = els.motorStatus.textContent;
-    // Lógica invertida: se está LIGADA, queremos DESLIGAR
+    // Se está LIGADA, envia comando para DESLIGAR
     const novoComando = currentText.includes("LIGA") ? "DESLIGAR" : "LIGAR";
 
-    // [MODIFICADO] Feedback visual imediato no botão para o usuário saber que clicou
-    els.motorBtn.disabled = true;
-    els.motorBtn.textContent = "Enviando...";
+    // 1. FORÇA MANUAL PRIMEIRO (Evita conflito)
+    if (els.autoSwitch.checked) {
+      await db().ref("bomba/controle/modo").set("manual");
+    }
 
-    // 1. GARANTIR MODO MANUAL: 
-    // Mesmo se o switch estiver visualmente ok, forçamos 'manual' no DB
-    // para garantir que o ESP aceite o comandoManual.
-    await db().ref("bomba/controle/modo").set("manual");
-
-    // 2. ENVIAR COMANDO
+    // 2. ENVIA COMANDO
     await db().ref("bomba/controle/comandoManual").set(novoComando);
-
-    // [NOVO] Aguarda um pouco e reabilita (ou deixa o listener reabilitar)
-    setTimeout(() => {
-        if(els.connTxt.textContent.includes("Online")) els.motorBtn.disabled = false;
-    }, 1000);
 
   } catch (err) {
     alert("Erro ao enviar comando: " + err.message);
-    els.motorBtn.disabled = false;
   }
 }
 
@@ -307,6 +277,7 @@ async function toggleFerias() {
 function renderChart(points) {
   const ctx = document.getElementById("levelChart");
   if (!ctx) return;
+
   const labels = points.map(p => new Date(p.ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
   const data = points.map(p => p.nivel);
 
@@ -334,12 +305,11 @@ function renderChart(points) {
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
-  console.log("Dashboard V10 (Watchdog Ativo)");
+  console.log("Dashboard V9 Iniciado");
   await ensureSession();
   listenSensorData();
   listenSystemControl();
   listenHistorico();
-  startConnectionWatchdog(); // [NOVO] Inicia o monitoramento de conexão
 
   if (els.autoSwitch) els.autoSwitch.addEventListener("change", handleAutoSwitch);
   if (els.motorBtn) els.motorBtn.addEventListener("click", toggleMotor);
