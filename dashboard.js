@@ -1,4 +1,4 @@
-/* dashboard.js – v13.0 (Correção Crítica: Leitura de Status 'DESLIGADA') */
+/* dashboard.js – v13.2 (Correção Volume Caixa 12cm: ~1.7L) */
 
 const firebaseConfig = {
   apiKey: "AIzaSyBOBbMzkTO2MvIxExVO8vlCOUgpeZp0rSY",
@@ -43,7 +43,7 @@ let authUser = null;
 let chart;
 let historyBuffer = [];
 let watchdogTimer = null;
-let currentPumpState = false; // Variável para controlar o estado real da bomba (true=ligada)
+let currentPumpState = false; 
 
 // --- WATCHDOG (DETEÇÃO DE QUEDA - 75s) ---
 function resetWatchdog() {
@@ -68,11 +68,16 @@ function resetWatchdog() {
 function fmtPct(n) { return Number.isFinite(n) ? `${Math.round(n)}%` : "--%"; }
 function safe(n, def = 0) { const num = parseFloat(n); return Number.isNaN(num) ? def : num; }
 
+// --- CÁLCULO DE LITROS (12x12x12 cm) ---
 function litersFromPercent(pct) {
-  const capacidadeTotal = 1000;
+  // Volume: 12*12*12 = 1728 cm³ = 1.728 Litros
+  const capacidadeTotal = 1.728; 
+  
   if (!Number.isFinite(pct)) return "-- L";
   const litros = (pct / 100) * capacidadeTotal;
-  return `${Math.round(litros)} L`;
+  
+  // Exibe com 2 casas decimais para maquete pequena (ex: 1.25 L)
+  return `${litros.toFixed(2)} L`;
 }
 
 // --- SESSÃO E SEGURANÇA ---
@@ -116,7 +121,6 @@ function listenSensorData() {
     if (els.tankRes) els.tankRes.style.height = `${nivelRes}%`;
     if (els.tankResPct) els.tankResPct.textContent = Math.round(nivelRes);
 
-    // Prioridade para o status vindo do SensorData (se existir)
     if (data.statusBomba || data.status_bomba) {
        updatePumpStatus(data.statusBomba || data.status_bomba);
     }
@@ -128,7 +132,6 @@ function listenSystemControl() {
   db().ref("bomba/controle").on("value", (snap) => {
     const data = snap.val() || {};
     
-    // Atualiza status (caso sensorData não tenha mandado)
     if(data.statusBomba) updatePumpStatus(data.statusBomba);
 
     const isAuto = (data.modo === "automatico");
@@ -151,14 +154,11 @@ function listenSystemControl() {
   });
 }
 
-// --- CORREÇÃO DA LÓGICA DE STATUS ---
 function updatePumpStatus(statusRaw) {
     const st = String(statusRaw || "DESLIGADA").toUpperCase().trim();
-    
-    // CORREÇÃO: Comparação EXATA para evitar que "DESLIGADA" seja lido como "LIGA"
     const isOn = (st === "LIGADA" || st === "ON" || st === "LIGADO");
     
-    currentPumpState = isOn; // Atualiza variável global de estado
+    currentPumpState = isOn;
 
     if (els.pumpPill) {
       els.pumpPill.textContent = isOn ? "ON" : "OFF";
@@ -168,14 +168,13 @@ function updatePumpStatus(statusRaw) {
     if (els.motorStatus) els.motorStatus.textContent = isOn ? "LIGADA" : "DESLIGADA";
     if (els.motorStatus) els.motorStatus.style.color = isOn ? "#2e7d32" : "#d32f2f";
 
-    // Atualiza botão de ação Manual
     if (els.motorBtn) {
        if (isOn) {
           els.motorBtn.textContent = "DESLIGAR BOMBA";
-          els.motorBtn.className = "btn btn-danger"; // Vermelho para desligar
+          els.motorBtn.className = "btn btn-danger"; 
        } else {
           els.motorBtn.textContent = "LIGAR BOMBA";
-          els.motorBtn.className = "btn btn-success"; // Verde para ligar
+          els.motorBtn.className = "btn btn-success"; 
        }
     }
 }
@@ -204,26 +203,34 @@ function listenHistorico() {
 
 function calcConsumption(points) {
   if (points.length < 2) return;
+  
+  // Fator: 1.728 Litros totais / 100% = 0.01728 L/%
+  const fatorLitrosPorPorcento = 0.01728;
+  
   let totalDrop = 0;
   for (let i = 1; i < points.length; i++) {
     const diff = points[i - 1].nivel - points[i].nivel;
     if (diff > 0) totalDrop += diff;
   }
-  const litros = totalDrop * 10; 
-  if (els.consValue) els.consValue.textContent = `~${Math.round(litros)} L`;
+  
+  const litros = totalDrop * fatorLitrosPorPorcento; 
+  if (els.consValue) els.consValue.textContent = `~${litros.toFixed(2)} L`;
   if (els.consTxt) els.consTxt.textContent = "Estimado no período.";
 }
 
 function exportCSV() {
   if (!historyBuffer || historyBuffer.length === 0) return alert("Sem dados.");
   let csvContent = "data:text/csv;charset=utf-8,Data,Hora,Nivel (%),Volume (L)\n";
+  const fator = 0.01728; // Litros por %
+  
   historyBuffer.forEach(row => {
     const d = new Date(row.ts);
     const dataStr = d.toLocaleDateString('pt-BR');
     const horaStr = d.toLocaleTimeString('pt-BR');
-    const litros = Math.round((row.nivel / 100) * 1000); 
+    const litros = (row.nivel * fator).toFixed(3); // Mais precisão no CSV
     csvContent += `${dataStr},${horaStr},${row.nivel},${litros}\n`;
   });
+  
   const encodedUri = encodeURI(csvContent);
   const link = document.createElement("a");
   link.setAttribute("href", encodedUri);
@@ -236,13 +243,9 @@ function exportCSV() {
 // --- AÇÕES DO USUÁRIO ---
 async function toggleMotor() {
   try {
-    // Decide o comando baseado no estado ATUAL conhecido (currentPumpState)
-    // Se está ligada (true), queremos DESLIGAR. Se desligada (false), LIGAR.
     const novoComando = currentPumpState ? "DESLIGAR" : "LIGAR";
-
     console.log("Comando Manual:", novoComando);
     
-    // Feedback imediato no botão para o usuário saber que clicou
     els.motorBtn.textContent = "Processando...";
     els.motorBtn.disabled = true;
 
@@ -252,7 +255,6 @@ async function toggleMotor() {
     
     await db().ref().update(updates);
     
-    // Reabilita o botão após envio (o texto vai atualizar quando o status voltar do Firebase)
     setTimeout(() => { els.motorBtn.disabled = false; }, 500);
 
   } catch (err) {
@@ -306,7 +308,7 @@ function renderChart(points) {
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
-  console.log("Dashboard V13.0 Iniciado");
+  console.log("Dashboard V13.2 Iniciado");
   await ensureSession();
   listenSensorData();
   listenSystemControl();
