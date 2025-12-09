@@ -1,4 +1,4 @@
-/* admin.js – vFinal-Corrigido (Correção do Status da Bomba) */
+/* admin.js – vFinal-Corrigido (Mostrando Volume em Litros nas pílulas) */
 
 document.addEventListener('DOMContentLoaded', () => {
   console.log("Admin System: Iniciando módulo de segurança e monitoramento...");
@@ -9,13 +9,16 @@ document.addEventListener('DOMContentLoaded', () => {
   // Variável para o monitor de conexão (Watchdog)
   let watchdogTimer = null; 
 
+  // Capacidade total da caixa (12x12x12 = 1.728 Litros)
+  const CAPACIDADE_TOTAL_LITROS = 1.728;
+
   // Elementos da Interface (Mapeamento completo)
   const els = {
     waterMain: document.getElementById('admin-water-main'),
-    pctMain: document.getElementById('admin-level-percent-main'),
+    pctMain: document.getElementById('admin-level-percent-main'), // Agora vai mostrar LITROS
     cardMain: document.getElementById('admin-level-card'),
     waterRes: document.getElementById('admin-water-res'),
-    pctRes: document.getElementById('admin-level-percent-res'),
+    pctRes: document.getElementById('admin-level-percent-res'),   // Agora vai mostrar LITROS
     cardRes: document.getElementById('admin-res-level-card'),
     pumpStatus: document.getElementById('admin-pump-status-card'),
     collStatus: document.getElementById('admin-collection-status-card'),
@@ -52,6 +55,13 @@ document.addEventListener('DOMContentLoaded', () => {
   historyRef = database.ref('historico');
   eventsRef = database.ref('logs');
 
+  // Função auxiliar para calcular Litros
+  function calcLitros(porcentagem) {
+      if (typeof porcentagem !== 'number') return "-- L";
+      const litros = (porcentagem / 100) * CAPACIDADE_TOTAL_LITROS;
+      return `${litros.toFixed(2)} L`; // Ex: 1.25 L
+  }
+
   // --- SISTEMA DE MONITORAMENTO DE CONEXÃO (WATCHDOG) ---
   function setSystemOffline() {
       if (els.connStatus) {
@@ -66,7 +76,6 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function setSystemOnline() {
-      // Se estava offline, volta para online
       if (els.connStatus) {
           els.connStatus.textContent = "ONLINE (Operacional)";
           els.connStatus.style.color = "#2e7d32"; // Verde
@@ -75,8 +84,6 @@ document.addEventListener('DOMContentLoaded', () => {
       const agora = new Date().toLocaleTimeString('pt-BR');
       if (els.lastSeen) els.lastSeen.textContent = `Último sinal: ${agora}`;
 
-      // Reinicia a contagem regressiva
-      // 75 segundos de tolerância
       if (watchdogTimer) clearTimeout(watchdogTimer);
       watchdogTimer = setTimeout(setSystemOffline, 75000); 
   }
@@ -89,23 +96,27 @@ document.addEventListener('DOMContentLoaded', () => {
     sensorRef.on('value', (snap) => {
       const d = snap.val();
       
-      // Se d for null, o banco pode estar vazio, mas a conexão existe
       if (d) {
-          setSystemOnline(); // Reset do Watchdog
+          setSystemOnline(); 
 
-          // Atualização Visual Nível Principal
+          // --- Atualização Nível Principal ---
           const rawLevel = (d.nivel !== undefined) ? d.nivel : d.level;
           const levelMain = (rawLevel !== undefined) ? Number(rawLevel) : 0;
           
           if(els.waterMain) els.waterMain.style.height = `${levelMain}%`;
-          if(els.pctMain) els.pctMain.textContent = levelMain;
-          if(els.cardMain) els.cardMain.textContent = `${levelMain}%`;
+          if(els.cardMain) els.cardMain.textContent = `${levelMain}%`; // % Grande
+          
+          // AQUI ESTÁ A CORREÇÃO: Mostra Litros na pílula pequena
+          if(els.pctMain) els.pctMain.textContent = calcLitros(levelMain);
 
-          // Atualização Visual Reservatório (Inverso)
+          // --- Atualização Reservatório ---
           const levelRes = (d.nivelReservatorio !== undefined) ? d.nivelReservatorio : (100 - levelMain);
+          
           if(els.waterRes) els.waterRes.style.height = `${levelRes}%`;
-          if(els.pctRes) els.pctRes.textContent = levelRes;
-          if(els.cardRes) els.cardRes.textContent = `${levelRes}%`;
+          if(els.cardRes) els.cardRes.textContent = `${levelRes}%`; // % Grande
+          
+          // AQUI ESTÁ A CORREÇÃO: Mostra Litros na pílula pequena
+          if(els.pctRes) els.pctRes.textContent = calcLitros(levelRes);
           
           // Status Coleta
           const active = d.coletaAtiva !== false;
@@ -124,17 +135,16 @@ document.addEventListener('DOMContentLoaded', () => {
         alert("Erro de permissão: Você foi desconectado ou não tem acesso.");
     });
 
-    // 2. CONTROLE DA BOMBA (CORRIGIDO)
+    // 2. CONTROLE DA BOMBA
     controlRef.on('value', (snap) => {
       const d = snap.val() || {};
       const st = String(d.statusBomba || "--").toUpperCase().trim();
       
-      // CORREÇÃO: Comparação EXATA para evitar erro com "DESLIGADA"
       const isOn = (st === "LIGADA" || st === "ON" || st === "LIGADO");
       
       if(els.pumpStatus) {
          els.pumpStatus.textContent = isOn ? "LIGADA" : "DESLIGADA";
-         els.pumpStatus.style.color = isOn ? "#2e7d32" : "#d32f2f"; // Verde ou Vermelho
+         els.pumpStatus.style.color = isOn ? "#2e7d32" : "#d32f2f"; 
          els.pumpStatus.style.fontWeight = "bold";
       }
     });
@@ -142,7 +152,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // 3. PARÂMETROS (Limites)
     paramsRef.on('value', (snap) => {
       const p = snap.val() || {};
-      // Só atualiza os inputs se o usuário não estiver digitando
       if(document.activeElement !== els.inLow && els.inLow) els.inLow.value = p.limiteInferior ?? 50;
       if(document.activeElement !== els.inHigh && els.inHigh) els.inHigh.value = p.limiteSuperior ?? 95;
     });
@@ -158,7 +167,6 @@ document.addEventListener('DOMContentLoaded', () => {
           return; 
       }
       
-      // Transforma objeto em array e inverte para mostrar o mais recente primeiro
       const arr = Object.values(data).sort((a,b) => (b.timestamp || 0) - (a.timestamp || 0));
       
       arr.forEach(l => {
@@ -181,7 +189,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // --- CONTROLES E BOTÕES ---
   
-  // Salvar Limites
   els.btnSave?.addEventListener('click', () => {
     const min = parseInt(els.inLow.value);
     const max = parseInt(els.inHigh.value);
@@ -209,11 +216,10 @@ document.addEventListener('DOMContentLoaded', () => {
       });
   });
 
-  // Pausar/Retomar
   els.btnToggleColl?.addEventListener('click', async () => {
      try {
          const snap = await sensorRef.child('coletaAtiva').get();
-         const novoEstado = (snap.val() === false); // Inverte o estado atual
+         const novoEstado = (snap.val() === false); 
          await sensorRef.update({ coletaAtiva: novoEstado });
      } catch(e) {
          console.error(e);
@@ -221,7 +227,6 @@ document.addEventListener('DOMContentLoaded', () => {
      }
   });
 
-  // Reiniciar ESP
   els.btnRestart?.addEventListener('click', () => {
     if(confirm("Tem certeza que deseja reiniciar o dispositivo ESP8266 remotamente?")) {
         controlRef.update({ comandoRestart: true })
@@ -230,7 +235,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Limpezas
   els.btnCleanLogs?.addEventListener('click', () => {
      if(confirm("Isso apagará todos os logs de eventos. Continuar?")) eventsRef.remove();
   });
@@ -242,14 +246,11 @@ document.addEventListener('DOMContentLoaded', () => {
   // --- AUTENTICAÇÃO E INICIALIZAÇÃO ---
   auth.onAuthStateChanged(user => {
     if(user) {
-       // Verifica se é Admin MESMO
        database.ref('usuarios/' + user.uid).once('value').then(s => {
           const dados = s.val();
           if(dados && dados.role === 'admin') {
-              // SUCESSO: É admin, inicia o painel
               attachFirebaseListeners();
           } else {
-              // FALHA: Logado mas não é admin
               alert("Acesso Negado: Sua conta não tem privilégios de Administrador.");
               window.location.href = 'index.html';
           }
@@ -258,12 +259,10 @@ document.addEventListener('DOMContentLoaded', () => {
            window.location.href = 'login.html';
        });
     } else {
-       // Não está logado
        window.location.href = 'login.html';
     }
   });
 
-  // Botão Sair
   document.querySelector('.logout-button')?.addEventListener('click', (e) => {
       e.preventDefault();
       auth.signOut();
