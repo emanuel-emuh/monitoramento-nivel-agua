@@ -1,4 +1,4 @@
-/* dashboard.js – v14.1 (Gera Excel com Situação para Caixa e Reservatório) */
+/* dashboard.js – v15.0 (Correção Real do Status Online/Offline + Excel com Situação) */
 
 const firebaseConfig = {
   apiKey: "AIzaSyBOBbMzkTO2MvIxExVO8vlCOUgpeZp0rSY",
@@ -56,15 +56,45 @@ function litersFromPercent(pct) {
   return `${litros.toFixed(2)} L`;
 }
 
-// --- WATCHDOG ---
-function resetWatchdog() {
-  if (els.connLed) { els.connLed.style.backgroundColor = "#22c55e"; els.connLed.classList.add("on"); }
+// --- LÓGICA DE CONEXÃO (CORRIGIDA) ---
+function setDisplayOffline() {
+  if (els.connLed) { 
+    els.connLed.style.backgroundColor = "#dc3545"; // Vermelho
+    els.connLed.classList.remove("on"); 
+  }
+  if (els.connTxt) els.connTxt.textContent = "Offline (Sem sinal)";
+}
+
+function setDisplayOnline() {
+  if (els.connLed) { 
+    els.connLed.style.backgroundColor = "#22c55e"; // Verde
+    els.connLed.classList.add("on"); 
+  }
   if (els.connTxt) els.connTxt.textContent = "Online";
-  if (watchdogTimer) clearTimeout(watchdogTimer);
-  watchdogTimer = setTimeout(() => {
-    if (els.connLed) { els.connLed.style.backgroundColor = "#dc3545"; els.connLed.classList.remove("on"); }
-    if (els.connTxt) els.connTxt.textContent = "Sem Sinal (Offline)";
-  }, 75000); 
+}
+
+// Esta função verifica se o dado é recente (menos de 70 segundos)
+function checkLastSeen(timestamp) {
+  if (!timestamp) {
+    setDisplayOffline();
+    return;
+  }
+  
+  const now = Date.now();
+  const diff = now - timestamp;
+  
+  // Se a última vez que o ESP mandou sinal foi há mais de 75s (75000ms)
+  if (diff > 75000) {
+    setDisplayOffline();
+  } else {
+    setDisplayOnline();
+    
+    // Reinicia o timer para mudar para offline se parar de chegar dados
+    if (watchdogTimer) clearTimeout(watchdogTimer);
+    watchdogTimer = setTimeout(() => {
+      setDisplayOffline();
+    }, 75000); 
+  }
 }
 
 // --- SESSÃO ---
@@ -81,11 +111,14 @@ async function ensureSession() {
   });
 }
 
-// 1. SENSOR
+// 1. SENSOR (Leitura em Tempo Real)
 function listenSensorData() {
   db().ref("sensorData").on("value", (snap) => {
-    resetWatchdog();
     const data = snap.val() || {};
+    
+    // --- CORREÇÃO AQUI: Verifica o Timestamp antes de dizer que é Online ---
+    checkLastSeen(data.lastSeen); 
+
     const nivelCaixa = safe(data.nivel || data.level, 0);
     const nivelRes = 100 - nivelCaixa;
 
@@ -184,14 +217,14 @@ function calcConsumption(points) {
   if (els.consValue) els.consValue.textContent = `~${litros.toFixed(2)} L`;
 }
 
-// --- FUNÇÃO AUXILIAR PARA CALCULAR SITUAÇÃO ---
+// --- AUXILIAR PARA EXCEL ---
 function obterSituacao(pct) {
     if (pct < 30) return "🔴 BAIXO";
     if (pct >= 30 && pct < 85) return "🟢 MÉDIO";
     return "🔵 ALTO";
 }
 
-// --- FUNÇÃO EXPORTAR EXCEL (.XLSX) ATUALIZADA ---
+// --- FUNÇÃO EXPORTAR EXCEL (Mantida a v14.1) ---
 async function exportCSV() {
   if (!historyBuffer || historyBuffer.length === 0) return alert("Sem dados históricos para exportar.");
   
@@ -199,11 +232,8 @@ async function exportCSV() {
   els.exportBtn.disabled = true;
 
   try {
-    // 1. Prepara dados e ordena
     let timeline = [...historyBuffer].sort((a, b) => a.ts - b.ts);
 
-    // 2. Define o Cabeçalho (Agora com Situação para AMBOS)
-    // Ordem: Data | Litros Caixa | % Caixa | Situação Caixa | Litros Res | % Res | Situação Res
     const ws_data = [
       ["Data e Hora", "Litros Caixa", "% Caixa", "Situação Caixa", "Litros Res.", "% Res.", "Situação Res."]
     ];
@@ -214,38 +244,31 @@ async function exportCSV() {
       const d = new Date(row.ts);
       const dataHora = `${d.toLocaleDateString('pt-BR')} ${d.toLocaleTimeString('pt-BR')}`;
 
-      // Valores da Caixa Principal
       const pctMain = row.nivel;
       const litMain = (pctMain * fator).toFixed(2);
-      const sitMain = obterSituacao(pctMain); // Calcula Situação Caixa
+      const sitMain = obterSituacao(pctMain);
 
-      // Valores do Reservatório (Complementar)
       const pctRes = 100 - row.nivel;
       const litRes  = (pctRes * fator).toFixed(2);
-      const sitRes = obterSituacao(pctRes);   // Calcula Situação Reservatório
+      const sitRes = obterSituacao(pctRes);
       
-      // Adiciona linha na tabela
       ws_data.push([dataHora, litMain, pctMain + "%", sitMain, litRes, pctRes + "%", sitRes]);
     });
 
-    // 3. Cria a Planilha
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.aoa_to_sheet(ws_data);
 
-    // Ajuste de largura das colunas
     ws['!cols'] = [
-      { wch: 20 }, // Data
-      { wch: 12 }, // Litros Caixa
-      { wch: 10 }, // % Caixa
-      { wch: 15 }, // Situação Caixa
-      { wch: 12 }, // Litros Res
-      { wch: 10 }, // % Res
-      { wch: 15 }  // Situação Res
+      { wch: 20 }, 
+      { wch: 12 }, 
+      { wch: 10 }, 
+      { wch: 15 }, 
+      { wch: 12 }, 
+      { wch: 10 }, 
+      { wch: 15 }
     ];
 
     XLSX.utils.book_append_sheet(wb, ws, "Relatorio_Completo");
-
-    // 4. Salva o arquivo
     XLSX.writeFile(wb, "Relatorio_Agua_Situacao_Completa.xlsx");
 
   } catch (err) {
@@ -306,7 +329,7 @@ function renderChart(points) {
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
-  console.log("Dashboard V14.1 - Dual Situation Mode");
+  console.log("Dashboard V15.0 - Status Fix");
   await ensureSession();
   listenSensorData();
   listenSystemControl();
