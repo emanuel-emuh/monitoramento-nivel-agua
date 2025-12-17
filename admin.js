@@ -1,4 +1,4 @@
-/* admin.js – vFinal-Corrigido (Mostrando Volume em Litros nas pílulas) */
+/* admin.js – v15.0 (Correção Status Offline e Hora Real) */
 
 document.addEventListener('DOMContentLoaded', () => {
   console.log("Admin System: Iniciando módulo de segurança e monitoramento...");
@@ -12,13 +12,13 @@ document.addEventListener('DOMContentLoaded', () => {
   // Capacidade total da caixa (12x12x12 = 1.728 Litros)
   const CAPACIDADE_TOTAL_LITROS = 1.728;
 
-  // Elementos da Interface (Mapeamento completo)
+  // Elementos da Interface
   const els = {
     waterMain: document.getElementById('admin-water-main'),
-    pctMain: document.getElementById('admin-level-percent-main'), // Agora vai mostrar LITROS
+    pctMain: document.getElementById('admin-level-percent-main'), 
     cardMain: document.getElementById('admin-level-card'),
     waterRes: document.getElementById('admin-water-res'),
-    pctRes: document.getElementById('admin-level-percent-res'),   // Agora vai mostrar LITROS
+    pctRes: document.getElementById('admin-level-percent-res'),   
     cardRes: document.getElementById('admin-res-level-card'),
     pumpStatus: document.getElementById('admin-pump-status-card'),
     collStatus: document.getElementById('admin-collection-status-card'),
@@ -43,52 +43,75 @@ document.addEventListener('DOMContentLoaded', () => {
       databaseURL: "https://aqua-monitor-login-default-rtdb.firebaseio.com"
   };
 
-  // Inicialização Segura
   if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
   auth = firebase.auth();
   database = firebase.database();
 
-  // Referências do Banco
   sensorRef = database.ref('sensorData');
   paramsRef = database.ref('configuracoes/sistema');
   controlRef = database.ref('bomba/controle');
   historyRef = database.ref('historico');
   eventsRef = database.ref('logs');
 
-  // Função auxiliar para calcular Litros
   function calcLitros(porcentagem) {
       if (typeof porcentagem !== 'number') return "-- L";
       const litros = (porcentagem / 100) * CAPACIDADE_TOTAL_LITROS;
-      return `${litros.toFixed(2)} L`; // Ex: 1.25 L
+      return `${litros.toFixed(2)} L`; 
   }
 
-  // --- SISTEMA DE MONITORAMENTO DE CONEXÃO (WATCHDOG) ---
+  // --- SISTEMA DE MONITORAMENTO DE CONEXÃO (CORRIGIDO) ---
+  
   function setSystemOffline() {
       if (els.connStatus) {
           els.connStatus.textContent = "OFFLINE (Sem sinal)";
           els.connStatus.style.color = "#d32f2f"; // Vermelho
           els.connStatus.style.fontWeight = "bold";
       }
-      if (els.lastSeen) {
-          els.lastSeen.textContent = "Aguardando reconexão do ESP...";
-      }
-      console.warn("Alerta: Sistema parece estar offline (Watchdog disparado).");
+      // Não mudamos o texto do "Último sinal" aqui para manter o registro de quando caiu
   }
 
-  function setSystemOnline() {
+  function setSystemOnline(timestamp) {
       if (els.connStatus) {
           els.connStatus.textContent = "ONLINE (Operacional)";
           els.connStatus.style.color = "#2e7d32"; // Verde
           els.connStatus.style.fontWeight = "bold";
       }
-      const agora = new Date().toLocaleTimeString('pt-BR');
-      if (els.lastSeen) els.lastSeen.textContent = `Último sinal: ${agora}`;
+      
+      // Mostra a hora REAL que veio do ESP, e não a hora do navegador
+      if (timestamp && els.lastSeen) {
+          const dateObj = new Date(timestamp);
+          const horaFormatada = dateObj.toLocaleTimeString('pt-BR');
+          els.lastSeen.textContent = `Último sinal recebido: ${horaFormatada}`;
+      }
 
+      // Reinicia contagem
       if (watchdogTimer) clearTimeout(watchdogTimer);
       watchdogTimer = setTimeout(setSystemOffline, 75000); 
   }
 
-  // --- LISTENERS (Ouvintes de Dados) ---
+  // Lógica inteligente que compara o tempo
+  function checkLastSeen(timestamp) {
+      if (!timestamp) {
+          setSystemOffline();
+          if(els.lastSeen) els.lastSeen.textContent = "Último sinal: Nunca/Desconhecido";
+          return;
+      }
+
+      const now = Date.now();
+      const diff = now - timestamp;
+
+      // Se o dado for mais velho que 75 segundos, é OFFLINE
+      if (diff > 75000) {
+          setSystemOffline();
+          // Ainda assim, mostramos quando foi o último sinal
+          const dateObj = new Date(timestamp);
+          els.lastSeen.textContent = `Visto por último em: ${dateObj.toLocaleTimeString('pt-BR')} (${dateObj.toLocaleDateString('pt-BR')})`;
+      } else {
+          setSystemOnline(timestamp);
+      }
+  }
+
+  // --- LISTENERS ---
   function attachFirebaseListeners() {
     console.log("Permissão de Admin confirmada. Conectando aos dados...");
 
@@ -97,25 +120,22 @@ document.addEventListener('DOMContentLoaded', () => {
       const d = snap.val();
       
       if (d) {
-          setSystemOnline(); 
+          // --- CORREÇÃO AQUI: Verifica Timestamp ---
+          checkLastSeen(d.lastSeen);
 
-          // --- Atualização Nível Principal ---
+          // Atualização Nível Principal
           const rawLevel = (d.nivel !== undefined) ? d.nivel : d.level;
           const levelMain = (rawLevel !== undefined) ? Number(rawLevel) : 0;
           
           if(els.waterMain) els.waterMain.style.height = `${levelMain}%`;
-          if(els.cardMain) els.cardMain.textContent = `${levelMain}%`; // % Grande
-          
-          // AQUI ESTÁ A CORREÇÃO: Mostra Litros na pílula pequena
+          if(els.cardMain) els.cardMain.textContent = `${levelMain}%`; 
           if(els.pctMain) els.pctMain.textContent = calcLitros(levelMain);
 
-          // --- Atualização Reservatório ---
+          // Atualização Reservatório
           const levelRes = (d.nivelReservatorio !== undefined) ? d.nivelReservatorio : (100 - levelMain);
           
           if(els.waterRes) els.waterRes.style.height = `${levelRes}%`;
-          if(els.cardRes) els.cardRes.textContent = `${levelRes}%`; // % Grande
-          
-          // AQUI ESTÁ A CORREÇÃO: Mostra Litros na pílula pequena
+          if(els.cardRes) els.cardRes.textContent = `${levelRes}%`; 
           if(els.pctRes) els.pctRes.textContent = calcLitros(levelRes);
           
           // Status Coleta
@@ -149,14 +169,14 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
 
-    // 3. PARÂMETROS (Limites)
+    // 3. PARÂMETROS
     paramsRef.on('value', (snap) => {
       const p = snap.val() || {};
       if(document.activeElement !== els.inLow && els.inLow) els.inLow.value = p.limiteInferior ?? 50;
       if(document.activeElement !== els.inHigh && els.inHigh) els.inHigh.value = p.limiteSuperior ?? 95;
     });
 
-    // 4. LOGS DO SISTEMA
+    // 4. LOGS
     eventsRef.limitToLast(20).on('value', (snap) => {
       if(!els.logsList) return;
       els.logsList.innerHTML = "";
@@ -188,7 +208,6 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // --- CONTROLES E BOTÕES ---
-  
   els.btnSave?.addEventListener('click', () => {
     const min = parseInt(els.inLow.value);
     const max = parseInt(els.inHigh.value);
