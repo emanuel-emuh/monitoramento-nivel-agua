@@ -57,7 +57,7 @@ O projeto visa solucionar a ineficiência e os riscos da verificação manual de
 └── TCC...pdf       # Documentação completa do projeto
 ```
 
-👥 Autores
+### 👥 Autores
 
 Trabalho desenvolvido pelos alunos do Curso Técnico em Informática do IFRN - Campus Apodi:
 
@@ -69,7 +69,7 @@ Saulo Araújo Costa
 
 Orientador: Prof. Francisco Eudes Oliveira Barrozo.
 
-📄 Licença
+### 📄 Licença
 Este projeto foi desenvolvido para fins acadêmicos. Consulte a instituição para detalhes sobre direitos de uso.
 
 2025 - IFRN Campus Apodi
