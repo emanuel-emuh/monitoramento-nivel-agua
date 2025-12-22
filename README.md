@@ -55,3 +55,20 @@ O projeto visa solucionar a ineficiência e os riscos da verificação manual de
 ├── main.css        # Estilos globais e responsividade
 ├── style.css       # Estilos específicos da tela de login
 └── TCC...pdf       # Documentação completa do projeto
+```
+
+👥 Autores
+Trabalho desenvolvido pelos alunos do Curso Técnico em Informática do IFRN - Campus Apodi:
+
+Gustavo Kauê Fernandes de Oliveira
+
+Pedro Emanuel Silva Gurgel
+
+Saulo Araújo Costa
+
+Orientador: Prof. Francisco Eudes Oliveira Barrozo.
+
+📄 Licença
+Este projeto foi desenvolvido para fins acadêmicos. Consulte a instituição para detalhes sobre direitos de uso.
+
+2025 - IFRN Campus Apodi
