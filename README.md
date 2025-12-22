@@ -58,6 +58,7 @@ O projeto visa solucionar a ineficiência e os riscos da verificação manual de
 ```
 
 👥 Autores
+
 Trabalho desenvolvido pelos alunos do Curso Técnico em Informática do IFRN - Campus Apodi:
 
 Gustavo Kauê Fernandes de Oliveira
